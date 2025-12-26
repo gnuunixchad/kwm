@@ -14,18 +14,13 @@ const binding = @import("binding.zig");
 const Window = @import("window.zig");
 const Context = @import("context.zig");
 
-const Event = union(enum) {
-    enable: config.seat.Mode,
-    disable: config.seat.Mode,
-};
-
 
 link: wl.list.Link = undefined,
 
 rwm_seat: *river.SeatV1,
 rwm_layer_shell_seat: *river.LayerShellSeatV1,
 
-unhandled_events: std.ArrayList(Event) = .empty,
+new: bool = undefined,
 focus_exclusive: bool = false,
 unhandled_actions: std.ArrayList(binding.Action) = .empty,
 xkb_bindings: std.EnumMap(config.seat.Mode, std.ArrayList(binding.XkbBinding)) = undefined,
@@ -45,11 +40,11 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
     seat.* = .{
         .rwm_seat = rwm_seat,
         .rwm_layer_shell_seat = rwm_layer_shell_seat,
+        .new = true,
         .xkb_bindings = .init(.{}),
         .pointer_bindings = .init(.{}),
     };
     seat.link.init();
-    try seat.unhandled_events.append(utils.allocator, .{ .enable = context.mode });
 
     for (config.seat.xkb_bindings) |xkb_binding| {
         if (!seat.xkb_bindings.contains(xkb_binding.mode)) {
@@ -108,20 +103,28 @@ pub fn destroy(self: *Self) void {
         list.deinit(utils.allocator);
     }
 
-    self.unhandled_events.deinit(utils.allocator);
     self.unhandled_actions.deinit(utils.allocator);
 
     utils.allocator.destroy(self);
 }
 
 
-pub fn prepare_switch_mode(self: *Self, mode: config.seat.Mode) void {
-    log.debug("<{*}> prepare switch to mode: {s}", .{ self, @tagName(mode) });
-
-    self.unhandled_events.append(utils.allocator, .{ .switch_mode = mode }) catch |err| {
-        log.err("<{*}> append event {s} failed: {}", .{ self, @tagName(mode), err });
-        return;
-    };
+pub fn toggle_bindings(self: *Self, mode: config.seat.Mode, flag: bool) void {
+    if (flag) {
+        for (self.xkb_bindings.get(mode).?.items) |*xkb_binding| {
+            xkb_binding.enable();
+        }
+        for (self.pointer_bindings.get(mode).?.items) |*pointer_binding| {
+            pointer_binding.enable();
+        }
+    } else {
+        for (self.xkb_bindings.get(mode).?.items) |*xkb_binding| {
+            xkb_binding.disable();
+        }
+        for (self.pointer_bindings.get(mode).?.items) |*pointer_binding| {
+            pointer_binding.disable();
+        }
+    }
 }
 
 
@@ -144,7 +147,11 @@ pub fn manage(self: *Self) void {
 
     const context = Context.get();
 
-    self.handle_events();
+    if (self.new) {
+        defer self.new = false;
+
+        self.toggle_bindings(context.mode, true);
+    }
 
     self.handle_bindings();
 
@@ -152,34 +159,6 @@ pub fn manage(self: *Self) void {
     if (!self.focus_exclusive) {
         if (context.focused()) |window| {
             self.rwm_seat.focusWindow(window.rwm_window);
-        }
-    }
-}
-
-
-fn handle_events(self: *Self) void {
-    defer self.unhandled_events.clearRetainingCapacity();
-
-    for (self.unhandled_events.items) |event| {
-        log.debug("<{*}> handle event: {s}", .{ self, @tagName(event) });
-
-        switch (event) {
-            .enable => |mode| {
-                for (self.xkb_bindings.get(mode).?.items) |*xkb_binding| {
-                    xkb_binding.enable();
-                }
-                for (self.pointer_bindings.get(mode).?.items) |*pointer_binding| {
-                    pointer_binding.enable();
-                }
-            },
-            .disable => |mode| {
-                for (self.xkb_bindings.get(mode).?.items) |*xkb_binding| {
-                    xkb_binding.disable();
-                }
-                for (self.pointer_bindings.get(mode).?.items) |*pointer_binding| {
-                    pointer_binding.disable();
-                }
-            }
         }
     }
 }
