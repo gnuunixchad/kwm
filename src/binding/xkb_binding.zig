@@ -20,34 +20,40 @@ action: binding.Action,
 event: river.XkbBindingV1.Event,
 
 
-pub fn init(
-    self: *Self,
+pub fn create(
     seat: *Seat,
     keysym: u32,
     modifiers: river.SeatV1.Modifiers,
     action: binding.Action,
     event: river.XkbBindingV1.Event,
-) !void {
-    defer log.debug("<{*}> created", .{ self });
+) !*Self {
+    const xkb_binding = try utils.allocator.create(Self);
+    errdefer utils.allocator.destroy(xkb_binding);
+
+    defer log.debug("<{*}> created", .{ xkb_binding });
 
     const context = Context.get();
     const rwm_xkb_binding = try context.rwm_xkb_bindings.getXkbBinding(seat.rwm_seat, keysym, modifiers);
 
-    self.* = .{
+    xkb_binding.* = .{
         .rwm_xkb_binding = rwm_xkb_binding,
         .seat = seat,
         .action = action,
         .event = event
     };
 
-    rwm_xkb_binding.setListener(*Self, rwm_xkb_binding_listener, self);
+    rwm_xkb_binding.setListener(*Self, rwm_xkb_binding_listener, xkb_binding);
+
+    return xkb_binding;
 }
 
 
-pub fn deinit(self: *Self) void {
+pub fn destroy(self: *Self) void {
     defer log.debug("<{*}> destroied", .{ self });
 
     self.rwm_xkb_binding.destroy();
+
+    utils.allocator.destroy(self);
 }
 
 

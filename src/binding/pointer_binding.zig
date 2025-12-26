@@ -19,33 +19,39 @@ action: binding.Action,
 event: river.PointerBindingV1.Event,
 
 
-pub fn init(
-    self: *Self,
+pub fn create(
     seat: *Seat,
     button: u32,
     modifiers: river.SeatV1.Modifiers,
     action: binding.Action,
     event: river.PointerBindingV1.Event,
-) !void {
-    defer log.debug("<{*}> created", .{ self });
+) !*Self {
+    const pointer_binding = try utils.allocator.create(Self);
+    errdefer utils.allocator.destroy(pointer_binding);
+
+    defer log.debug("<{*}> created", .{ pointer_binding });
 
     const rwm_pointer_binding = try seat.rwm_seat.getPointerBinding(button, modifiers);
 
-    self.* = .{
+    pointer_binding.* = .{
         .rwm_pointer_binding = rwm_pointer_binding,
         .seat = seat,
         .action = action,
         .event = event,
     };
 
-    rwm_pointer_binding.setListener(*Self, rwm_pointer_binding_listener, self);
+    rwm_pointer_binding.setListener(*Self, rwm_pointer_binding_listener, pointer_binding);
+
+    return pointer_binding;
 }
 
 
-pub fn deinit(self: *Self) void {
+pub fn destroy(self: *Self) void {
     defer log.debug("<{*}> destroied", .{ self });
 
     self.rwm_pointer_binding.destroy();
+
+    utils.allocator.destroy(self);
 }
 
 

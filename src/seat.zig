@@ -23,8 +23,8 @@ rwm_layer_shell_seat: *river.LayerShellSeatV1,
 new: bool = undefined,
 focus_exclusive: bool = false,
 unhandled_actions: std.ArrayList(binding.Action) = .empty,
-xkb_bindings: std.EnumMap(config.seat.Mode, std.ArrayList(binding.XkbBinding)) = undefined,
-pointer_bindings: std.EnumMap(config.seat.Mode, std.ArrayList(binding.PointerBinding)) = undefined,
+xkb_bindings: std.EnumMap(config.seat.Mode, std.ArrayList(*binding.XkbBinding)) = undefined,
+pointer_bindings: std.EnumMap(config.seat.Mode, std.ArrayList(*binding.PointerBinding)) = undefined,
 
 
 pub fn create(rwm_seat: *river.SeatV1) !*Self {
@@ -46,33 +46,41 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
     };
     seat.link.init();
 
-    for (config.seat.xkb_bindings) |xkb_binding| {
+    for (&config.seat.xkb_bindings) |*xkb_binding| {
+        log.debug("<{*}> add xkb binding: (mode: {s}, action: {any})", .{ xkb_binding, @tagName(xkb_binding.mode), xkb_binding.action });
+
         if (!seat.xkb_bindings.contains(xkb_binding.mode)) {
             seat.xkb_bindings.put(xkb_binding.mode, .empty);
         }
         const list = seat.xkb_bindings.getPtr(xkb_binding.mode).?;
-        const ptr = try list.addOne(utils.allocator);
-        try ptr.init(
-            seat,
-            xkb_binding.keysym,
-            xkb_binding.modifiers,
-            xkb_binding.action,
-            xkb_binding.event,
+        try list.append(
+            utils.allocator,
+            try binding.XkbBinding.create(
+                seat,
+                xkb_binding.keysym,
+                xkb_binding.modifiers,
+                xkb_binding.action,
+                xkb_binding.event,
+            ),
         );
     }
 
-    for (config.seat.pointer_bindings) |pointer_binding| {
+    for (&config.seat.pointer_bindings) |*pointer_binding| {
+        log.debug("<{*}> add pointer binding: (mode: {s}, action: {any})", .{ pointer_binding, @tagName(pointer_binding.mode), pointer_binding.action });
+
         if (!seat.pointer_bindings.contains(pointer_binding.mode)) {
             seat.pointer_bindings.put(pointer_binding.mode, .empty);
         }
         const list = seat.pointer_bindings.getPtr(pointer_binding.mode).?;
-        const ptr = try list.addOne(utils.allocator);
-        try ptr.init(
-            seat,
-            pointer_binding.button,
-            pointer_binding.modifiers,
-            pointer_binding.action,
-            pointer_binding.event,
+        try list.append(
+            utils.allocator,
+            try binding.PointerBinding.create(
+                seat,
+                pointer_binding.button,
+                pointer_binding.modifiers,
+                pointer_binding.action,
+                pointer_binding.event,
+            ),
         );
     }
 
@@ -90,18 +98,24 @@ pub fn destroy(self: *Self) void {
     self.rwm_seat.destroy();
     self.rwm_layer_shell_seat.destroy();
 
-    for (&self.xkb_bindings.values) |*list| {
-        for (list.items) |*xkb_binding| {
-            xkb_binding.deinit();
+    {
+        var it = self.xkb_bindings.iterator();
+        while (it.next()) |pair| {
+            for (pair.value.items) |xkb_binding| {
+                xkb_binding.destroy();
+            }
+            pair.value.deinit(utils.allocator);
         }
-        list.deinit(utils.allocator);
     }
 
-    for (&self.pointer_bindings.values) |*list| {
-        for (list.items) |*pointer_binding| {
-            pointer_binding.deinit();
+    {
+        var it = self.pointer_bindings.iterator();
+        while (it.next()) |pair| {
+            for (pair.value.items) |pointer_binding| {
+                pointer_binding.destroy();
+            }
+            pair.value.deinit(utils.allocator);
         }
-        list.deinit(utils.allocator);
     }
 
     self.unhandled_actions.deinit(utils.allocator);
@@ -112,17 +126,17 @@ pub fn destroy(self: *Self) void {
 
 pub fn toggle_bindings(self: *Self, mode: config.seat.Mode, flag: bool) void {
     if (flag) {
-        for (self.xkb_bindings.get(mode).?.items) |*xkb_binding| {
+        for (self.xkb_bindings.get(mode).?.items) |xkb_binding| {
             xkb_binding.enable();
         }
-        for (self.pointer_bindings.get(mode).?.items) |*pointer_binding| {
+        for (self.pointer_bindings.get(mode).?.items) |pointer_binding| {
             pointer_binding.enable();
         }
     } else {
-        for (self.xkb_bindings.get(mode).?.items) |*xkb_binding| {
+        for (self.xkb_bindings.get(mode).?.items) |xkb_binding| {
             xkb_binding.disable();
         }
-        for (self.pointer_bindings.get(mode).?.items) |*pointer_binding| {
+        for (self.pointer_bindings.get(mode).?.items) |pointer_binding| {
             pointer_binding.disable();
         }
     }
