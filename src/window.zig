@@ -34,7 +34,7 @@ rwm_window_node: *river.NodeV1,
 output: ?*Output,
 former_output: ?u32 = null,
 
-unhandled_events: std.ArrayList(Event) = undefined,
+unhandled_events: std.ArrayList(Event) = .empty,
 
 fullscreen: bool = false,
 maximize: bool = false,
@@ -80,7 +80,6 @@ pub fn create(rwm_window: *river.WindowV1, output: *Output) !*Self {
         .rwm_window = rwm_window,
         .rwm_window_node = rwm_window_node,
         .output = output,
-        .unhandled_events = try .initCapacity(utils.allocator, 6),
         .tag = output.tag,
     };
     window.link.init();
@@ -133,8 +132,20 @@ pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
         .{ self, self.width, self.height },
     );
 
-    if (width) |w| self.width = w;
-    if (height) |h| self.height = h;
+    if (width) |w| self.width = @max(
+        0,
+        @min(
+            w,
+            self.output.?.width-self.x-config.window.border_width
+        )
+    );
+    if (height) |h| self.height = @max(
+        0,
+        @min(
+            h,
+            self.output.?.height-self.y-config.window.border_width
+        )
+    );
 }
 
 
