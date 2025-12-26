@@ -97,8 +97,8 @@ pub fn destroy(self: *Self) void {
 
     self.link.remove();
     self.rwm_window.destroy();
-    if (self.title) |title| utils.allocator.free(title);
-    if (self.app_id) |app_id| utils.allocator.free(app_id);
+    self.set_appid(null);
+    self.set_title(null);
     self.unhandled_events.deinit(utils.allocator);
 
     utils.allocator.destroy(self);
@@ -246,6 +246,28 @@ pub fn hide(self: *Self) void {
 }
 
 
+fn set_appid(self: *Self, app_id: ?[]const u8) void {
+    if (self.app_id) |appid| {
+        utils.allocator.free(appid);
+        self.app_id = null;
+    }
+    if (app_id) |appid| {
+        self.app_id = utils.allocator.dupe(u8, appid) catch return;
+    }
+}
+
+
+fn set_title(self: *Self, title: ?[]const u8) void {
+    if (self.title) |tt| {
+        utils.allocator.free(tt);
+        self.title = null;
+    }
+    if (title) |tt| {
+        self.title = utils.allocator.dupe(u8, tt) catch return;
+    }
+}
+
+
 fn append_event(self: *Self, event: Event) void {
     log.debug("<{*}> append event: {s}", .{ self, @tagName(event) });
 
@@ -388,14 +410,14 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
 
             log.debug("<{*}> app_id: {s}", .{ window, app_id });
 
-            window.app_id = utils.allocator.dupe(u8, mem.span(app_id)) catch return;
+            window.set_appid(mem.span(app_id));
         },
         .title => |data| {
             const title = data.title orelse return;
 
             log.debug("<{*}> title: {s}", .{ window, title });
 
-            window.title = utils.allocator.dupe(u8, mem.span(title)) catch return;
+            window.set_title(mem.span(title));
         },
         .closed => {
             log.debug("<{*}> closed", .{window});
