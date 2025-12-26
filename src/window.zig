@@ -434,9 +434,8 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
 
             if (window.output) |owner| {
                 owner.remove_window(window);
-            } else {
-                window.destroy();
             }
+            window.destroy();
         },
         .decoration_hint => |data| {
             log.debug("<{*}> decoration hint: {s}", .{ window, @tagName(data.hint) });

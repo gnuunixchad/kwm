@@ -84,8 +84,11 @@ pub fn destroy(self: *Self) void {
 pub fn add_window(self: *Self, window: *Window) void {
     log.debug("<{*}> add window: {*}", .{ self, window });
 
-    self.windows.prepend(window);
+    std.debug.assert(window.output == null);
+
     self.current_window = window;
+    self.windows.prepend(window);
+    window.output = self;
 }
 
 
@@ -119,8 +122,8 @@ pub fn remove_window(self: *Self, window: *Window) void {
     if (window == self.current_window) {
         self.promote_new_window();
     }
-
-    window.destroy();
+    window.link.remove(); window.link.init();
+    window.output = null;
 }
 
 
