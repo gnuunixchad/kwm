@@ -37,10 +37,10 @@ former_output: ?u32 = null,
 
 unhandled_events: std.ArrayList(Event) = .empty,
 
-fullscreen: enum {
+fullscreen: union(enum) {
     none,
     window,
-    output,
+    output: *Output,
 } = .none,
 maximize: bool = false,
 floating: bool = false,
@@ -363,7 +363,11 @@ fn handle_events(self: *Self) void {
                     log.debug("<{*}> fullscreen on {*}", .{ self, output });
 
                     self.rwm_window.fullscreen(output.rwm_output);
-                    self.fullscreen = .output;
+                    self.fullscreen = .{ .output = output };
+
+                    std.debug.assert(output.fullscreen_window == null);
+
+                    output.fullscreen_window = self;
                 } else {
                     log.debug("<{*}> fullscreen on window", .{ self });
 
@@ -375,9 +379,16 @@ fn handle_events(self: *Self) void {
 
                 switch (self.fullscreen) {
                     .none => unreachable,
-                    .window, .output => {
+                    .window => {
                         self.rwm_window.informNotFullscreen();
-                        if (self.fullscreen == .output) self.rwm_window.exitFullscreen();
+                    },
+                    .output => |output| {
+                        self.rwm_window.informNotFullscreen();
+                        self.rwm_window.exitFullscreen();
+
+                        std.debug.assert(output.fullscreen_window == self);
+
+                        output.fullscreen_window = null;
                     }
                 }
                 self.fullscreen = .none;

@@ -26,6 +26,7 @@ rwm_layer_shell_output: ?*river.LayerShellOutputV1,
 tag: u32 = 1,
 windows: wl.list.Head(Window, .link) = undefined,
 current_window: ?*Window = null,
+fullscreen_window: ?*Window = null,
 
 name: u32 = undefined,
 x: i32 = undefined,
