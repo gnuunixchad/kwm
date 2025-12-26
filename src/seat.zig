@@ -205,11 +205,13 @@ fn handle_bindings(self: *Self) void {
             },
             .pointer_move => {
                 if (self.window_below_pointer) |window| {
+                    self.window_interaction(window);
                     window.prepare_move(self);
                 }
             },
             .pointer_resize => {
                 if (self.window_below_pointer) |window| {
+                    self.window_interaction(window);
                     window.prepare_resize(self);
                 }
             },
@@ -219,6 +221,22 @@ fn handle_bindings(self: *Self) void {
             else => {}
         }
     }
+}
+
+
+fn window_interaction(self: *Self, window: *Window) void {
+    log.debug("<{*}> interaction with window {*}", .{ self, window });
+
+    const context = Context.get();
+
+    if (context.focused()) |win| {
+        std.debug.assert(win.focused);
+
+        win.unfocus();
+    }
+
+    context.set_current_output(window.output.?);
+    window.focus();
 }
 
 
@@ -308,14 +326,7 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
                 @alignCast(river.WindowV1.getUserData(data.window.?))
             );
 
-            if (context.focused()) |win| {
-                std.debug.assert(win.focused);
-
-                win.unfocus();
-            }
-
-            context.set_current_output(window.output.?);
-            window.focus();
+            seat.window_interaction(window);
         },
         .wl_seat => |data| {
             log.debug("<{*}> wl_seat: {}", .{ seat, data.name });

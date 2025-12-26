@@ -20,6 +20,7 @@ const Event = union(enum) {
     app_id,
     decoration_hint: river.WindowV1.DecorationHint,
     fullscreen: ?*Output,
+    unfullscreen,
     maximize: bool,
     move: ?*Seat,
     resize: ?*Seat,
@@ -36,7 +37,11 @@ former_output: ?u32 = null,
 
 unhandled_events: std.ArrayList(Event) = .empty,
 
-fullscreen: bool = false,
+fullscreen: enum {
+    none,
+    window,
+    output,
+} = .none,
 maximize: bool = false,
 floating: bool = false,
 
@@ -194,7 +199,7 @@ pub fn prepare_fullscreen(self: *Self, output: ?*Output) void {
 pub fn prepare_unfullscreen(self: *Self) void {
     log.debug("<{*}> prepare unfullscreen", .{ self });
 
-    self.append_event(.{ .fullscreen = null });
+    self.append_event(.unfullscreen);
 }
 
 
@@ -353,18 +358,31 @@ fn handle_events(self: *Self) void {
             .fullscreen => |data| {
                 log.debug("<{*}> managing fullscreen: {*}", .{ self, data });
 
-                std.debug.assert(self.fullscreen != (data != null));
+                std.debug.assert(self.fullscreen == .none);
 
+                self.rwm_window.informFullscreen();
                 if (data) |output| {
                     log.debug("<{*}> fullscreen on {*}", .{ self, output });
 
-                    self.rwm_window.informFullscreen();
+                    self.rwm_window.fullscreen(output.rwm_output);
+                    self.fullscreen = .output;
                 } else {
-                    log.debug("<{*}> unfullscreen", .{ self });
+                    log.debug("<{*}> window fullscreen", .{ self });
 
-                    self.rwm_window.informNotFullscreen();
+                    self.fullscreen = .window;
                 }
-                self.fullscreen = data != null;
+            },
+            .unfullscreen => {
+                log.debug("<{*}> managing unfullscreen", .{ self });
+
+                switch (self.fullscreen) {
+                    .none => unreachable,
+                    .window, .output => {
+                        self.rwm_window.informNotFullscreen();
+                        if (self.fullscreen == .output) self.rwm_window.exitFullscreen();
+                    }
+                }
+                self.fullscreen = .none;
             },
             .maximize => |flag| {
                 log.debug("<{*}> managing maximize: {}", .{ self, flag });
