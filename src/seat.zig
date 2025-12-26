@@ -229,10 +229,12 @@ fn window_interaction(self: *Self, window: *Window) void {
 
     const context = Context.get();
 
-    if (context.focused()) |win| {
-        std.debug.assert(win.focused);
+    if (window.output.? == context.current_output.?) {
+        if (window.output.?.current_window) |win| {
+            std.debug.assert(win.focused);
 
-        win.unfocus();
+            win.unfocus();
+        }
     }
 
     context.set_current_output(window.output.?);
