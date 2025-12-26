@@ -208,6 +208,9 @@ fn handle_bindings(self: *Self) void {
             .pointer_resize => {
                 context.focused().?.prepare_resize(self);
             },
+            .switch_mode => |mode| {
+                context.switch_mode(mode);
+            },
             else => {}
         }
     }

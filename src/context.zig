@@ -175,6 +175,20 @@ pub fn promote_new_seat(self: *Self) void {
 }
 
 
+pub fn switch_mode(self: *Self, mode: config.seat.Mode) void {
+    log.debug("switch mode from {s} to {s}", .{ @tagName(self.mode), @tagName(mode) });
+
+    {
+        var it = self.seats.safeIterator(.forward);
+        while (it.next()) |seat| {
+            seat.toggle_bindings(self.mode, false);
+            seat.toggle_bindings(mode, true);
+        }
+    }
+    self.mode = mode;
+}
+
+
 pub inline fn set_current_output(self: *Self, output: ?*Output) void {
     log.debug("set current output: {*}", .{ output });
 
