@@ -177,6 +177,30 @@ pub fn move(self: *Self, x: ?i32, y: ?i32) void {
 }
 
 
+pub fn snap_to(
+    self: *Self,
+    edge: river.WindowV1.Edges,
+) void {
+    var new_x: ?i32 = null;
+    var new_y: ?i32 = null;
+
+    if (edge.top) {
+        new_y = 0;
+    }
+    if (edge.bottom) {
+        new_y = self.output.?.height;
+    }
+    if (edge.left) {
+        new_x = 0;
+    }
+    if (edge.right) {
+        new_x = self.output.?.width;
+    }
+
+    self.move(new_x, new_y);
+}
+
+
 pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
     defer log.debug(
         "<{*}> set dimensions to (width: {}, height: {})",

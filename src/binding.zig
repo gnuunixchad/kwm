@@ -1,3 +1,6 @@
+const wayland = @import("wayland");
+const river = wayland.client.river;
+
 pub const XkbBinding = @import("binding/xkb_binding.zig");
 pub const PointerBinding = @import("binding/pointer_binding.zig");
 
@@ -17,6 +20,7 @@ pub const Action = union(enum) {
     resize: MoveResizeStep,
     pointer_move,
     pointer_resize,
+    snap: river.WindowV1.Edges,
     switch_mode: config.seat.Mode,
     toggle_fullscreen: struct {
         in_window: bool = false,

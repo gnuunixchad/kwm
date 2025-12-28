@@ -242,6 +242,11 @@ fn handle_bindings(self: *Self) void {
                     window.prepare_resize(self);
                 }
             },
+            .snap => |edges| {
+                if (context.focused_window()) |window| {
+                    window.snap_to(edges);
+                }
+            },
             .switch_mode => |mode| {
                 context.switch_mode(mode);
             },
