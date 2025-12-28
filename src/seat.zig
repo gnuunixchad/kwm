@@ -224,18 +224,7 @@ fn handle_bindings(self: *Self) void {
                 context.switch_mode(mode);
             },
             .toggle_fullscreen => |data| {
-                if (context.current_output) |output| {
-                    if (output.fullscreen_window) |window| {
-                        window.prepare_unfullscreen();
-                    } else {
-                        if (context.focused_window()) |window| {
-                            switch (window.fullscreen) {
-                                .none => window.prepare_fullscreen(if (data.window) null else window.output.?),
-                                else => window.prepare_unfullscreen(),
-                            }
-                        }
-                    }
-                }
+                context.toggle_fullscreen(data.in_window);
             },
             .set_output_tag => |tag| {
                 if (context.current_output) |output| {

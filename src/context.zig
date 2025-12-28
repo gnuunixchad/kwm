@@ -198,6 +198,22 @@ pub fn switch_mode(self: *Self, mode: config.seat.Mode) void {
 }
 
 
+pub fn toggle_fullscreen(self: *Self, in_window: bool) void {
+    if (self.current_output) |output| {
+        if (output.fullscreen_window) |window| {
+            window.prepare_unfullscreen();
+        } else {
+            if (self.focused_window()) |window| {
+                switch (window.fullscreen) {
+                    .none => window.prepare_fullscreen(if (in_window) null else window.output.?),
+                    else => window.prepare_unfullscreen(),
+                }
+            }
+        }
+    }
+}
+
+
 pub inline fn set_current_output(self: *Self, output: ?*Output) void {
     log.debug("set current output: {*}", .{ output });
 

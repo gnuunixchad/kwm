@@ -16,7 +16,7 @@ pub const Action = union(enum) {
     pointer_resize,
     switch_mode: config.seat.Mode,
     toggle_fullscreen: struct {
-        window: bool = false,
+        in_window: bool = false,
     },
     set_output_tag: u32,
     set_window_tag: u32,
