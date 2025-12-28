@@ -59,7 +59,7 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
             try binding.XkbBinding.create(
                 seat,
                 xkb_binding.keysym,
-                xkb_binding.modifiers,
+                @bitCast(xkb_binding.modifiers),
                 xkb_binding.action,
                 xkb_binding.event,
             ),
@@ -78,7 +78,7 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
             try binding.PointerBinding.create(
                 seat,
                 pointer_binding.button,
-                pointer_binding.modifiers,
+                @bitCast(pointer_binding.modifiers),
                 pointer_binding.action,
                 pointer_binding.event,
             ),

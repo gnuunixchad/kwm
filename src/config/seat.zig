@@ -9,6 +9,10 @@ const river = wayland.client.river;
 
 const binding = @import("../binding.zig");
 
+const alt: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod1);
+const super: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod4);
+const ctrl: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.ctrl);
+const shift: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.shift);
 pub const Mode = enum {
     default,
 };
@@ -16,7 +20,7 @@ pub const Mode = enum {
 const XkbBinding = struct {
     mode: Mode = .default,
     keysym: u32,
-    modifiers: river.SeatV1.Modifiers,
+    modifiers: u32,
     event: river.XkbBindingV1.Event = .pressed,
     action: binding.Action,
 };
@@ -24,7 +28,7 @@ const XkbBinding = struct {
 const PointerBinding = struct {
     mode: Mode = .default,
     button: u32,
-    modifiers: river.SeatV1.Modifiers,
+    modifiers: u32,
     action: binding.Action,
     event: river.PointerBindingV1.Event = .pressed,
 };
