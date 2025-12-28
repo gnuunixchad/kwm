@@ -59,6 +59,8 @@ x: i32 = 0,
 y: i32 = 0,
 width: i32 = undefined,
 height: i32 = undefined,
+min_width: i32 = 1,
+min_height: i32 = 1,
 operator: union(enum) {
     none,
     move: struct {
@@ -208,14 +210,14 @@ pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
     );
 
     self.width = @max(
-        0,
+        self.min_width,
         @min(
             width orelse self.width,
             self.output.?.width-self.x-config.window.border_width
         )
     );
     self.height = @max(
-        0,
+        self.min_height,
         @min(
             height orelse self.height,
             self.output.?.height-self.y-config.window.border_width
@@ -563,6 +565,9 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
                 "<{*}> dimensions hint: (-width/+width: {}/{}, -height/+height: {}/{})",
                 .{ window, data.min_width, data.max_width, data.min_height, data.max_height },
             );
+
+            window.min_width = @max(window.min_width, data.min_width);
+            window.min_height = @max(window.min_height, data.min_height);
         },
         .fullscreen_requested => |data| {
             var output: ?*Output = undefined;
