@@ -255,6 +255,9 @@ fn handle_actions(self: *Self) void {
             .switch_mode => |data| {
                 context.switch_mode(data.mode);
             },
+            .focus_iter => |data| {
+                context.focus_iter(data.direction);
+            },
             .toggle_fullscreen => |data| {
                 context.toggle_fullscreen(data.in_window);
             },

@@ -1,5 +1,6 @@
 const wayland = @import("wayland");
 const river = wayland.client.river;
+const wl = wayland.client.wl;
 
 pub const XkbBinding = @import("binding/xkb_binding.zig");
 pub const PointerBinding = @import("binding/pointer_binding.zig");
@@ -19,6 +20,9 @@ pub const Action = union(enum) {
     },
     spawn_shell: struct {
         cmd: []const u8,
+    },
+    focus_iter: struct {
+        direction: wl.list.Direction
     },
     move: struct {
         step: MoveResizeStep,

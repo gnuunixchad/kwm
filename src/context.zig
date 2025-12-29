@@ -150,6 +150,27 @@ pub fn focused_window(self: *Self) ?*Window {
 }
 
 
+pub fn focus_iter(self: *Self, direction: wl.list.Direction) void {
+    log.debug("focus iter: {s}", .{ @tagName(direction) });
+
+    if (self.focused_window()) |window| {
+        var win = window;
+        while (true) {
+            const new_win = switch (direction) {
+                .forward => utils.cycle_list(Window, &self.windows.link, &win.link, .next),
+                .reverse => utils.cycle_list(Window, &self.windows.link, &win.link, .prev),
+            };
+            if (new_win == win) break;
+            if (new_win.is_visiable_in(window.output.?)) {
+                self.focus(new_win);
+                break;
+            }
+            win = new_win;
+        }
+    }
+}
+
+
 pub inline fn focus_exclusive(self: *Self) bool {
     return if (self.current_seat) |seat| seat.focus_exclusive else false;
 }
