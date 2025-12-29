@@ -37,6 +37,9 @@ pub const Action = union(enum) {
     focus_output_iter: struct {
         direction: wl.list.Direction,
     },
+    swap: struct {
+        direction: wl.list.Direction,
+    },
     move: struct {
         step: MoveResizeStep,
     },

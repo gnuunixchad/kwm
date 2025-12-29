@@ -204,6 +204,30 @@ pub inline fn focus_exclusive(self: *Self) bool {
 }
 
 
+pub fn swap(self: *Self, direction: wl.list.Direction) void {
+    log.debug("swap window: {s}", .{ @tagName(direction) });
+
+    if (self.focused_window()) |window| {
+        if (window.floating) return;
+
+        var win = window;
+        while (true) {
+            const new_window = switch (direction) {
+                .forward => utils.cycle_list(Window, &self.windows.link, &win.link, .next),
+                .reverse => utils.cycle_list(Window, &self.windows.link, &win.link, .prev),
+            };
+            defer win = new_window;
+            if (new_window == window) break;
+            if (new_window.is_visiable_in(window.output.?) and !new_window.floating) {
+                window.link.swapWith(&new_window.link);
+                self.focus(window);
+                break;
+            }
+        }
+    }
+}
+
+
 pub fn prepare_remove_output(self: *Self, output: *Output) void {
     log.debug("prepare to remove output {*}", .{ output });
 

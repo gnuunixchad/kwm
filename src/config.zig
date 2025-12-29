@@ -142,6 +142,16 @@ pub const xkb_bindings = blk: {
             .action = .{ .focus_iter = .{ .direction = .reverse } },
         },
         .{
+            .keysym = Keysym.j,
+            .modifiers = Super|Shift,
+            .action = .{ .swap = .{ .direction = .forward } },
+        },
+        .{
+            .keysym = Keysym.k,
+            .modifiers = Super|Shift,
+            .action = .{ .swap = .{ .direction = .reverse } },
+        },
+        .{
             .keysym = Keysym.period,
             .modifiers = Super,
             .action = .{ .focus_output_iter = .{ .direction = .forward } },
