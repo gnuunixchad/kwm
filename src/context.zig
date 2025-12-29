@@ -156,15 +156,15 @@ pub fn focus_iter(self: *Self, direction: wl.list.Direction, skip_floating: bool
     if (self.focused_window()) |window| {
         var win = window;
         while (true) {
-            const new_win = switch (direction) {
+            const new_window = switch (direction) {
                 .forward => utils.cycle_list(Window, &self.windows.link, &win.link, .next),
                 .reverse => utils.cycle_list(Window, &self.windows.link, &win.link, .prev),
             };
-            defer win = new_win;
-            if (new_win == win) break;
-            if (new_win.is_visiable_in(window.output.?)) {
-                if (skip_floating and new_win.floating) continue;
-                self.focus(new_win);
+            defer win = new_window;
+            if (new_window == window) break;
+            if (new_window.is_visiable_in(window.output.?)) {
+                if (skip_floating and new_window.floating) continue;
+                self.focus(new_window);
                 break;
             }
         }
