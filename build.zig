@@ -40,7 +40,6 @@ pub fn build(b: *std.Build) void {
 
     const wayland_mod = b.createModule(.{ .root_source_file = scanner.result });
     const xkbcommon_mod = b.dependency("xkbcommon", .{}).module("xkbcommon");
-    const toml_mod = b.dependency("toml", .{}).module("toml");
 
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
@@ -76,7 +75,6 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "wayland", .module = wayland_mod },
                 .{ .name = "xkbcommon", .module = xkbcommon_mod },
-                .{ .name = "toml", .module = toml_mod },
             },
 
             .link_libc = true,
