@@ -7,10 +7,18 @@ pub const PointerBinding = @import("binding/pointer_binding.zig");
 
 const config = @import("config.zig");
 const layout = @import("layout.zig");
+const Context = @import("context.zig");
 
 const MoveResizeStep = union(enum) {
     horizontal: i32,
     vertical: i32,
+};
+
+pub const Arg = union(enum) {
+    i: i32,
+    f: f32,
+    ui: u32,
+    v: []const []const u8,
 };
 
 pub const Action = union(enum) {
@@ -50,4 +58,8 @@ pub const Action = union(enum) {
     toggle_floating,
     zoom,
     switch_layout: struct { layout: layout.Type },
+    custom_fn: struct {
+        arg: Arg,
+        func: *const fn(*const Context, *const Arg) void,
+    },
 };

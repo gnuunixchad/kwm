@@ -301,6 +301,8 @@ fn handle_actions(self: *Self) void {
                     output.set_current_layout(data.layout);
                 }
             },
+            .custom_fn => |data| {
+                data.func(context, &data.arg);
             }
         }
     }
