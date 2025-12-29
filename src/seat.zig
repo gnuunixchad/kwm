@@ -295,6 +295,12 @@ fn handle_actions(self: *Self) void {
                     context.shift_to_head(window);
                     context.focus(window);
                 }
+            },
+            .switch_layout => |data| {
+                if (context.current_output) |output| {
+                    output.set_current_layout(data.layout);
+                }
+            },
             }
         }
     }

@@ -6,6 +6,7 @@ pub const XkbBinding = @import("binding/xkb_binding.zig");
 pub const PointerBinding = @import("binding/pointer_binding.zig");
 
 const config = @import("config.zig");
+const layout = @import("layout.zig");
 
 const MoveResizeStep = union(enum) {
     horizontal: i32,
@@ -48,4 +49,5 @@ pub const Action = union(enum) {
     toggle_window_tag: struct { mask: u32 },
     toggle_floating,
     zoom,
+    switch_layout: struct { layout: layout.Type },
 };
