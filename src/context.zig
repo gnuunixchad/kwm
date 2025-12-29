@@ -160,13 +160,13 @@ pub fn focus_iter(self: *Self, direction: wl.list.Direction, skip_floating: bool
                 .forward => utils.cycle_list(Window, &self.windows.link, &win.link, .next),
                 .reverse => utils.cycle_list(Window, &self.windows.link, &win.link, .prev),
             };
+            defer win = new_win;
             if (new_win == win) break;
             if (new_win.is_visiable_in(window.output.?)) {
                 if (skip_floating and new_win.floating) continue;
                 self.focus(new_win);
                 break;
             }
-            win = new_win;
         }
     }
 }
