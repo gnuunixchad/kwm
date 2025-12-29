@@ -12,10 +12,7 @@ const utils = @import("utils.zig");
 const config = @import("config.zig");
 const Context = @import("context.zig");
 const Window = @import("window.zig");
-const Layout = enum {
-    tiled,
-    float,
-};
+const layout = @import("layout.zig");
 
 
 link: wl.list.Link = undefined,
@@ -24,6 +21,8 @@ rwm_output: *river.OutputV1,
 rwm_layer_shell_output: ?*river.LayerShellOutputV1,
 
 tag: u32 = 1,
+main_tag: u32 = 1,
+layout_tag: [32]layout.Type = .{ @as(layout.Type, @enumFromInt(0)) } ** 32,
 fullscreen_window: ?*Window = null,
 
 name: u32 = undefined,
@@ -78,6 +77,12 @@ pub fn set_tag(self: *Self, tag: u32) void {
     log.debug("<{*}> set tag: {b}", .{ self, tag });
 
     self.tag = tag;
+    if (self.main_tag & tag == 0) {
+        // use the lowest bit 1 as new main tag
+        self.main_tag = tag ^ (tag & (tag-1));
+
+        log.debug("<{*}> update main tag to {b}", .{ self, self.main_tag });
+    }
 }
 
 
@@ -87,6 +92,35 @@ pub fn toggle_tag(self: *Self, mask: u32) void {
     log.debug("<{*}> toggle tag: (tag: {b}, mask: {b})", .{ self, self.tag, mask });
 
     self.tag ^= mask;
+    // if there is only one bit 1, set it as new main tag
+    if (self.tag & (self.tag-1) == 0) {
+        log.debug("<{*}> update main tag to {b}", .{ self, self.tag });
+
+        self.main_tag = self.tag;
+    }
+}
+
+
+pub fn current_layout(self: *Self) layout.Type {
+    std.debug.assert(self.main_tag != 0 and self.main_tag & (self.main_tag-1) == 0);
+
+    return self.layout_tag[@ctz(self.main_tag)];
+}
+
+
+pub fn set_current_layout(self: *Self, layout_t: layout.Type) void {
+    std.debug.assert(self.main_tag != 0 and self.main_tag & (self.main_tag-1) == 0);
+
+    log.debug("<{*}>(tag: {b}) set layout to {s}", .{ self, self.main_tag, @tagName(layout_t) });
+
+    self.layout_tag[@ctz(self.main_tag)] = layout_t;
+}
+
+
+pub fn manage(self: *Self) void {
+    layout.arrange(self.current_layout(), self);
+
+    log.debug("<{*}> managed", .{ self });
 }
 
 

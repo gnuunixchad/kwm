@@ -172,6 +172,18 @@ pub fn focus_iter(self: *Self, direction: wl.list.Direction, skip_floating: bool
 }
 
 
+pub fn focus_top_in(self: *Self, output: *Output, skip_floating: bool) ?*Window {
+    var it = self.focus_stack.safeIterator(.forward);
+    while (it.next()) |window| {
+        if (window.is_visiable_in(output)) {
+            if (skip_floating and window.floating) continue;
+            return window;
+        }
+    }
+    return null;
+}
+
+
 pub inline fn focus_exclusive(self: *Self) bool {
     return if (self.current_seat) |seat| seat.focus_exclusive else false;
 }
@@ -319,6 +331,25 @@ fn promote_new_seat(self: *Self) void {
 }
 
 
+fn prepare_manage(self: *Self) void {
+    log.debug("prepare to manage", .{});
+
+    {
+        var it = self.seats.safeIterator(.forward);
+        while (it.next()) |seat| {
+            seat.manage();
+        }
+    }
+
+    {
+        var it = self.windows.safeIterator(.forward);
+        while (it.next()) |window| {
+            window.handle_events();
+        }
+    }
+}
+
+
 fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event, context: *Self) void {
     std.debug.assert(rwm == context.rwm);
 
@@ -332,10 +363,12 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
         .manage_start => {
             log.debug("manage start", .{});
 
+            context.prepare_manage();
+
             {
-                var it = context.seats.safeIterator(.forward);
-                while (it.next()) |seat| {
-                    seat.manage();
+                var it = context.outputs.safeIterator(.forward);
+                while (it.next()) |output| {
+                    output.manage();
                 }
             }
 
@@ -364,7 +397,6 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
                 while (it.next()) |window| {
                     if (!window.is_visiable()) {
                         window.hide();
-                        continue;
                     }
 
                     window.set_border(

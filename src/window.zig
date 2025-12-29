@@ -45,6 +45,8 @@ fullscreen: union(enum) {
 } = .none,
 maximize: bool = false,
 floating: bool = false,
+hided: bool = false,
+cliped: bool = false,
 
 tag: u32 = 1,
 app_id: ?[]const u8 = null,
@@ -179,6 +181,14 @@ pub fn move(self: *Self, x: ?i32, y: ?i32) void {
 }
 
 
+pub fn unbound_move(self: *Self, x: ?i32, y: ?i32) void {
+    defer log.debug("<{*}> unbound move to (x: {}, y: {})", .{ self, self.x, self.y });
+
+    if (x) |new_x| self.x = new_x;
+    if (y) |new_y| self.y = new_y;
+}
+
+
 pub fn snap_to(
     self: *Self,
     edge: river.WindowV1.Edges,
@@ -223,6 +233,17 @@ pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
             self.output.?.height-self.y-config.border_width
         )
     );
+}
+
+
+pub fn unbound_resize(self: *Self, width: ?i32, height: ?i32) void {
+    defer log.debug(
+        "<{*}> unbound set dimensions to (width: {}, height: {})",
+        .{ self, self.width, self.height },
+    );
+
+    if (width) |new_width| self.width = new_width;
+    if (height) |new_height| self.height = new_height;
 }
 
 
@@ -326,74 +347,7 @@ pub fn is_visiable_in(self: *Self, output: *Output) bool {
 }
 
 
-pub fn manage(self: *Self) void {
-    log.debug("<{*}> managing", .{ self });
-
-    self.handle_events();
-
-    log.debug("<{*}> propose dimensions: (width: {}, height: {})", .{ self, self.width, self.height });
-
-    self.rwm_window.proposeDimensions(self.width, self.height);
-}
-
-
-pub fn render(self: *Self) void {
-    log.debug("<{*}> rendering to (x: {}, y: {})", .{ self, self.x, self.y });
-
-    self.rwm_window_node.setPosition(
-        self.output.?.x + self.x,
-        self.output.?.y + self.y,
-    );
-    self.rwm_window.show();
-}
-
-
-pub fn hide(self: *Self) void {
-    log.debug("<{*}> hide", .{ self });
-
-    self.rwm_window.hide();
-}
-
-
-fn set_appid(self: *Self, app_id: ?[]const u8) void {
-    if (self.app_id) |appid| {
-        utils.allocator.free(appid);
-        self.app_id = null;
-    }
-    if (app_id) |appid| {
-        self.app_id = utils.allocator.dupe(u8, appid) catch return;
-    }
-}
-
-
-fn set_title(self: *Self, title: ?[]const u8) void {
-    if (self.title) |tt| {
-        utils.allocator.free(tt);
-        self.title = null;
-    }
-    if (title) |tt| {
-        self.title = utils.allocator.dupe(u8, tt) catch return;
-    }
-}
-
-
-fn center(self: *Self) void {
-    self.x = @divFloor(self.output.?.width-self.width, 2);
-    self.y = @divFloor(self.output.?.height-self.height, 2);
-}
-
-
-fn append_event(self: *Self, event: Event) void {
-    log.debug("<{*}> append event: {s}", .{ self, @tagName(event) });
-
-    self.unhandled_events.append(utils.allocator, event) catch |err| {
-        log.err("<{*}> append event {s} failed: {}", .{ self, @tagName(event), err });
-        return;
-    };
-}
-
-
-fn handle_events(self: *Self) void {
+pub fn handle_events(self: *Self) void {
     defer self.unhandled_events.clearRetainingCapacity();
 
     for (self.unhandled_events.items) |event| {
@@ -542,6 +496,105 @@ fn handle_events(self: *Self) void {
             else => {}
         }
     }
+}
+
+
+pub fn manage(self: *Self) void {
+    log.debug("<{*}> managing, propose dimensions: (width: {}, height: {})", .{ self, self.width, self.height });
+
+    self.rwm_window.proposeDimensions(self.width, self.height);
+}
+
+
+pub fn render(self: *Self) void {
+    log.debug("<{*}> rendering to (x: {}, y: {})", .{ self, self.x, self.y });
+
+    defer self.hided = false;
+
+    if (
+        self.hided
+        or self.x - config.border_width >= self.output.?.width
+        or self.x + self.width + config.border_width <= 0
+        or self.y - config.border_width >= self.output.?.height
+        or self.y + self.height + config.border_width <= 0
+    ) {
+        if (!self.hided) log.debug("<{*}> out of range, hided", .{ self });
+        self.rwm_window.hide();
+        return;
+    }
+
+    self.rwm_window_node.setPosition(
+        self.output.?.x + self.x,
+        self.output.?.y + self.y,
+    );
+
+    var left = self.x - config.border_width;
+    var right = self.x + self.width + config.border_width;
+    var top = self.y - config.border_width;
+    var bottom = self.y + self.height + config.border_width;
+    if (
+        left < 0
+        or top < 0
+        or right > self.output.?.width
+        or bottom > self.output.?.height
+    ) {
+        left = @max(left, 0);
+        right = @min(right, self.output.?.width);
+        top = @max(top, 0);
+        bottom = @min(bottom, self.output.?.height);
+        self.rwm_window.setClipBox(left-self.x, top-self.y, right-left, bottom-top);
+        self.cliped = true;
+    } else if (self.cliped){
+        self.rwm_window.setClipBox(0, 0, 0, 0);
+        self.cliped = false;
+    }
+
+    self.rwm_window.show();
+}
+
+
+pub fn hide(self: *Self) void {
+    log.debug("<{*}> hide", .{ self });
+
+    self.hided = true;
+}
+
+
+fn set_appid(self: *Self, app_id: ?[]const u8) void {
+    if (self.app_id) |appid| {
+        utils.allocator.free(appid);
+        self.app_id = null;
+    }
+    if (app_id) |appid| {
+        self.app_id = utils.allocator.dupe(u8, appid) catch return;
+    }
+}
+
+
+fn set_title(self: *Self, title: ?[]const u8) void {
+    if (self.title) |tt| {
+        utils.allocator.free(tt);
+        self.title = null;
+    }
+    if (title) |tt| {
+        self.title = utils.allocator.dupe(u8, tt) catch return;
+    }
+}
+
+
+fn center(self: *Self) void {
+    self.x = @divFloor(self.output.?.width-self.width, 2);
+    self.y = @divFloor(self.output.?.height-self.height, 2);
+}
+
+
+fn append_event(self: *Self, event: Event) void {
+    log.debug("<{*}> append event: {s}", .{ self, @tagName(event) });
+
+    self.unhandled_events.append(utils.allocator, event) catch |err| {
+        log.err("<{*}> append event {s} failed: {}", .{ self, @tagName(event), err });
+        return;
+    };
 }
 
 
