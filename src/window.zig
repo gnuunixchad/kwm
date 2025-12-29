@@ -163,17 +163,17 @@ pub fn move(self: *Self, x: ?i32, y: ?i32) void {
     defer log.debug("<{*}> move to (x: {}, y: {})", .{ self, self.x, self.y });
 
     self.x = @max(
-        config.window.border_width,
+        config.border_width,
         @min(
             x orelse self.x,
-            self.output.?.width-self.width-config.window.border_width
+            self.output.?.width-self.width-config.border_width
         )
     );
     self.y = @max(
-        config.window.border_width,
+        config.border_width,
         @min(
             y orelse self.y,
-            self.output.?.height-self.height-config.window.border_width
+            self.output.?.height-self.height-config.border_width
         )
     );
 }
@@ -213,14 +213,14 @@ pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
         self.min_width,
         @min(
             width orelse self.width,
-            self.output.?.width-self.x-config.window.border_width
+            self.output.?.width-self.x-config.border_width
         )
     );
     self.height = @max(
         self.min_height,
         @min(
             height orelse self.height,
-            self.output.?.height-self.y-config.window.border_width
+            self.output.?.height-self.y-config.border_width
         )
     );
 }

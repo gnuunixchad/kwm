@@ -24,8 +24,8 @@ new: bool = undefined,
 focus_exclusive: bool = false,
 window_below_pointer: ?*Window = null,
 unhandled_actions: std.ArrayList(binding.Action) = .empty,
-xkb_bindings: std.EnumMap(config.seat.Mode, std.ArrayList(*binding.XkbBinding)) = undefined,
-pointer_bindings: std.EnumMap(config.seat.Mode, std.ArrayList(*binding.PointerBinding)) = undefined,
+xkb_bindings: std.EnumMap(config.Mode, std.ArrayList(*binding.XkbBinding)) = undefined,
+pointer_bindings: std.EnumMap(config.Mode, std.ArrayList(*binding.PointerBinding)) = undefined,
 
 
 pub fn create(rwm_seat: *river.SeatV1) !*Self {
@@ -47,7 +47,7 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
     };
     seat.link.init();
 
-    for (&config.seat.xkb_bindings) |*xkb_binding| {
+    for (&config.xkb_bindings) |*xkb_binding| {
         log.debug("<{*}> add xkb binding: (mode: {s}, action: {any})", .{ xkb_binding, @tagName(xkb_binding.mode), xkb_binding.action });
 
         if (!seat.xkb_bindings.contains(xkb_binding.mode)) {
@@ -66,7 +66,7 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
         );
     }
 
-    for (&config.seat.pointer_bindings) |*pointer_binding| {
+    for (&config.pointer_bindings) |*pointer_binding| {
         log.debug("<{*}> add pointer binding: (mode: {s}, action: {any})", .{ pointer_binding, @tagName(pointer_binding.mode), pointer_binding.action });
 
         if (!seat.pointer_bindings.contains(pointer_binding.mode)) {
@@ -125,7 +125,7 @@ pub fn destroy(self: *Self) void {
 }
 
 
-pub fn toggle_bindings(self: *Self, mode: config.seat.Mode, flag: bool) void {
+pub fn toggle_bindings(self: *Self, mode: config.Mode, flag: bool) void {
     log.debug("<{*}> toggle binding: (mode: {s}, flag: {})", .{ self, @tagName(mode), flag });
 
     if (self.xkb_bindings.get(mode)) |list| {

@@ -21,7 +21,7 @@ pub const Action = union(enum) {
     pointer_move,
     pointer_resize,
     snap: river.WindowV1.Edges,
-    switch_mode: config.seat.Mode,
+    switch_mode: config.Mode,
     toggle_fullscreen: struct {
         in_window: bool = false,
     },

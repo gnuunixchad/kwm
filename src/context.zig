@@ -37,7 +37,7 @@ current_output: ?*Output = null,
 windows: wl.list.Head(Window, .link) = undefined,
 focus_stack: wl.list.Head(Window, .flink) = undefined,
 
-mode: config.seat.Mode = .default,
+mode: config.Mode = .default,
 running: bool = true,
 locked: bool = false,
 env: process.EnvMap,
@@ -184,7 +184,7 @@ pub fn prepare_remove_seat(self: *Self, seat: *Seat) void {
 }
 
 
-pub fn switch_mode(self: *Self, mode: config.seat.Mode) void {
+pub fn switch_mode(self: *Self, mode: config.Mode) void {
     log.debug("switch mode from {s} to {s}", .{ @tagName(self.mode), @tagName(mode) });
 
     {
@@ -342,10 +342,10 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
                     }
 
                     window.set_border(
-                        config.window.border_width,
+                        config.border_width,
                         if (!context.focus_exclusive() and window == focused)
-                            config.window.border_color.focus
-                        else config.window.border_color.unfocus
+                            config.border_color.focus
+                        else config.border_color.unfocus
                     );
                     window.render();
                 }
