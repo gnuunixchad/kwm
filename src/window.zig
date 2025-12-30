@@ -38,7 +38,7 @@ rwm_window_node: *river.NodeV1,
 output: ?*Output = null,
 former_output: ?u32 = null,
 
-unhandled_events: std.ArrayList(Event) = .empty,
+unhandled_events: std.ArrayList(Event) = undefined,
 
 fullscreen: union(enum) {
     none,
@@ -89,6 +89,7 @@ pub fn create(rwm_window: *river.WindowV1) !*Self {
     window.* = .{
         .rwm_window = rwm_window,
         .rwm_window_node = rwm_window_node,
+        .unhandled_events = try .initCapacity(utils.allocator, 2),
     };
     window.link.init();
     window.flink.init();
