@@ -7,6 +7,7 @@ const river = wayland.client.river;
 
 const binding = @import("binding.zig");
 const Context = @import("context.zig");
+const Rule = @import("rule.zig");
 
 const Alt: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod1);
 const Super: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod4);
@@ -339,4 +340,29 @@ pub const pointer_bindings = [_]PointerBinding {
         .modifiers = Super,
         .action = .pointer_resize,
     },
+};
+
+
+pub const rules = [_]Rule {
+    //  support regex by: https://github.com/mnemnion/mvzr
+    // .{
+    //     // match part
+    //     .app_id = .{ .str = "pattern" } or .app_id = .compile("regex pattern"),
+    //     .title = .{ .str = "pattern" } or .title = .compile("regex pattern"),
+    //
+    //     // apply part
+    //     .tag = 1,
+    //     .floating = true,
+    //     .decoration = .csd or .ssd
+    // },
+    .{ .app_id = .{ .str = "chromium" }, .tag = 1 << 1 },
+    .{ .app_id = .{ .str = "QQ" }, .tag = 1 << 2, .floating = true },
+    .{ .app_id = .{ .str = "wemeetapp" }, .tag = 1 << 2, .floating = true },
+    .{ .app_id = .{ .str = "wechat" }, .tag = 1 << 2, .floating = true },
+    .{ .app_id = .compile(".*微信.*"), .tag = 1 << 2, .floating = true },
+    .{ .app_id = .{ .str = "virt-manager" }, .floating = true },
+    .{ .app_id = .{ .str = "Zotero" }, .floating = true },
+    .{ .app_id = .{ .str = "stalonetray" }, .floating = true },
+    .{ .app_id = .{ .str = "lazarus" }, .floating = true },
+    .{ .app_id = .{ .str = "ONLYOFFICE" }, .floating = true },
 };

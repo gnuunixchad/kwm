@@ -9,7 +9,6 @@ A window manager based on River Wayland Compositor, written in Zig
 
 ## TODO
 
-+ support rule match
 + support keybinding repeatly trigger
 
 ## Thanks to these reference project

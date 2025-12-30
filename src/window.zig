@@ -16,14 +16,16 @@ const Context = @import("context.zig");
 
 const Event = union(enum) {
     init,
-    title,
-    app_id,
-    decoration_hint: river.WindowV1.DecorationHint,
     fullscreen: ?*Output,
     unfullscreen,
     maximize: bool,
     move: ?*Seat,
     resize: ?*Seat,
+};
+
+pub const Decoration = enum(u1) {
+    csd,
+    ssd,
 };
 
 
@@ -52,10 +54,8 @@ tag: u32 = 1,
 app_id: ?[]const u8 = null,
 title: ?[]const u8 = null,
 parent: ?*Self = null,
-decoration: ?enum(u1) {
-    csd,
-    ssd,
-} = null,
+decoration: ?Decoration = null,
+decoration_hint: river.WindowV1.DecorationHint = .no_preference,
 
 x: i32 = 0,
 y: i32 = 0,
@@ -371,8 +371,20 @@ pub fn handle_events(self: *Self) void {
                     .minimize = false,
                 });
 
-                const decoration = self.decoration orelse .ssd;
-                switch (decoration) {
+                for (config.rules) |rule| {
+                    if (rule.match(self)) {
+                        rule.apply(self);
+                    }
+                }
+
+                switch (self.decoration_hint) {
+                    .only_supports_csd => self.decoration = .csd,
+                    .prefers_csd => self.decoration = self.decoration orelse .csd,
+                    .prefers_ssd => self.decoration = self.decoration orelse .ssd,
+                    else => {}
+                }
+
+                switch (self.decoration orelse .ssd) {
                     .csd => self.rwm_window.useCsd(),
                     .ssd => self.rwm_window.useSsd(),
                 }
@@ -381,16 +393,6 @@ pub fn handle_events(self: *Self) void {
                     self.width = @divFloor(self.output.?.width, 2);
                     self.height = @divFloor(self.output.?.height, 2);
                     self.center();
-                }
-            },
-            .decoration_hint => |decoration_hint| {
-                log.debug("<{*}> managing decoration hint", .{ self });
-
-                switch (decoration_hint) {
-                    .only_supports_csd => self.rwm_window.useCsd(),
-                    .prefers_csd => if (self.decoration == null) self.rwm_window.useCsd(),
-                    .prefers_ssd => if (self.decoration == null) self.rwm_window.useSsd(),
-                    else => {}
                 }
             },
             .fullscreen => |data| {
@@ -493,7 +495,6 @@ pub fn handle_events(self: *Self) void {
                     self.operator = .none;
                 }
             },
-            else => {}
         }
     }
 }
@@ -624,10 +625,7 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
         .decoration_hint => |data| {
             log.debug("<{*}> decoration hint: {s}", .{ window, @tagName(data.hint) });
 
-            window.unhandled_events.append(utils.allocator, .{ .decoration_hint = data.hint }) catch |err| {
-                log.err("<{*}> append decoration_hint event failed: {}", .{ window, err });
-                return;
-            };
+            window.decoration_hint = data.hint;
         },
         .dimensions => |data| {
             log.debug("<{*}> dimensions: ({}, {})", .{ window, data.width, data.height });
