@@ -202,6 +202,16 @@ pub const xkb_bindings = blk: {
             .action = .{ .custom_fn = .{ .func = &modify_master_location, .arg = .{ .ui = 'l' } } },
         },
         .{
+            .keysym = Keysym.equal,
+            .modifiers = Super,
+            .action = .{ .custom_fn = .{ .func = &modify_nmaster, .arg = .{ .i = 1 } } },
+        },
+        .{
+            .keysym = Keysym.minus,
+            .modifiers = Super,
+            .action = .{ .custom_fn = .{ .func = &modify_nmaster, .arg = .{ .i = -1 } } },
+        },
+        .{
             .keysym = Keysym.j,
             .modifiers = Super,
             .action = .{ .focus_iter = .{ .direction = .forward, .skip_floating = true, } },
