@@ -60,6 +60,7 @@ pub const border_color: BorderColor = .{
 };
 
 
+pub const default_layout: @import("layout.zig").Type = .scroller;
 pub var layout: struct {
     tile: @import("layout/tile.zig"),
     monocle: @import("layout/monocle.zig"),

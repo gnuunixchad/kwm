@@ -22,7 +22,7 @@ rwm_layer_shell_output: ?*river.LayerShellOutputV1,
 
 tag: u32 = 1,
 main_tag: u32 = 1,
-layout_tag: [32]layout.Type = .{ @as(layout.Type, @enumFromInt(0)) } ** 32,
+layout_tag: [32]layout.Type = .{ config.default_layout } ** 32,
 fullscreen_window: ?*Window = null,
 
 name: u32 = undefined,
