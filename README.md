@@ -17,13 +17,13 @@ A window manager based on River Wayland Compositor, written in Zig
 
 **Multiple layout:** tile, monocle, scroller, floating
 
-**Tag instead of workspace:** 32 tag
+**Tag:** base tags not workspaces (supports separate window layouts for each tag)
 
 **Rule support:** regex rule match
 
 **Bindings:** bindings in different mode such as default, passthrough orelse your custom mode
 
-**Lots of actions:** fullscreen(support fakefullscreen), toggle_floating, switch_mode, switch_layout, custom_fn and so on, custom_fn allow you to define your own function, quite flexable
+**Rich window state:** swallow, maximize, fullscreen, fakefullscreen
 
 you could see all config in [config](./src/config.zig)
 
@@ -33,3 +33,4 @@ you could see all config in [config](./src/config.zig)
 - https://github.com/pinpox/river-pwm - River based window manager
 - https://codeberg.org/machi/machi - River based window manager
 - https://codeberg.org/dwl/dwl - dwm for wayland
+- https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch - swallow window patch for dwl
