@@ -15,6 +15,7 @@ const MoveResizeStep = union(enum) {
 };
 
 pub const Arg = union(enum) {
+    none,
     i: i32,
     f: f32,
     ui: u32,

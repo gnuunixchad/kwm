@@ -45,7 +45,7 @@ const BorderColor = struct {
 
 pub const xcursor_theme: ?XcursorTheme = null;
 
-pub const auto_swallow = true;
+pub var auto_swallow = true;
 
 pub const Mode = enum {
     default,
@@ -139,6 +139,11 @@ fn modify_master_location(context: *const Context, arg: *const binding.Arg) void
             else => {}
         }
     }
+}
+
+
+fn toggle_auto_swallow(_: *const Context, _: *const binding.Arg) void {
+    auto_swallow = !auto_swallow;
 }
 
 
@@ -280,6 +285,11 @@ pub const xkb_bindings = blk: {
             .keysym = Keysym.a,
             .modifiers = Super,
             .action = .toggle_swallow,
+        },
+        .{
+            .keysym = Keysym.a,
+            .modifiers = Super|Shift,
+            .action = .{ .custom_fn = .{ .func = &toggle_auto_swallow, .arg = .none } }
         },
         .{
             .keysym = Keysym.f,
