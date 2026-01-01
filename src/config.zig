@@ -42,12 +42,19 @@ const BorderColor = struct {
     urgent: u32,
 };
 
+pub const env = [_] struct { []const u8, []const u8 } {
+    // .{ "key", "value" },
+};
 
 pub const working_directory: union(enum) {
     none,
     home,
     custom: []const u8,
 } = .home;
+
+pub const startup_cmds = [_][]const []const u8 {
+    &[_][]const u8 { "sh", "-c", "$HOME/.local/bin/swaybgd" },
+};
 
 pub const xcursor_theme: ?XcursorTheme = null;
 

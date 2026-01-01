@@ -75,6 +75,17 @@ pub fn init(
     ctx.?.windows.init();
     ctx.?.focus_stack.init();
 
+    for (config.env) |pair| {
+        const key, const value = pair;
+        ctx.?.env.put(key, value) catch |err| {
+            log.warn("put (key: {s}, value: {s}) to env map failed: {}", .{ key, value, err });
+        };
+    }
+
+    for (config.startup_cmds) |cmd| {
+        ctx.?.spawn(cmd);
+    }
+
     rwm.setListener(*Self, rwm_listener, &ctx.?);
 }
 
