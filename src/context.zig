@@ -447,6 +447,7 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
             {
                 var it = context.outputs.safeIterator(.forward);
                 while (it.next()) |output| {
+                    if (output.fullscreen_window != null) continue;
                     output.manage();
                 }
             }
