@@ -409,6 +409,7 @@ pub fn spawn(self: *Self, argv: []const []const u8) ?process.Child {
     }
 
     var child = process.Child.init(argv, utils.allocator);
+    child.pgid = 0;
     child.env_map = &self.env;
     child.cwd = switch (config.working_directory) {
         .none => null,
