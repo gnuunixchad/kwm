@@ -555,6 +555,20 @@ pub const xkb_bindings = blk: {
                 .spawn_shell = .{ .cmd = fmt.comptimePrint("{s} source --mute", .{ audio_script }) },
             },
         },
+        .{
+            .keysym = Keysym.XF86MonBrightnessUp,
+            .modifiers = 0,
+            .action = .{
+                .spawn_shell = .{ .cmd = fmt.comptimePrint("{s} --plus", .{ bright_script }) },
+            },
+        },
+        .{
+            .keysym = Keysym.XF86MonBrightnessDown,
+            .modifiers = 0,
+            .action = .{
+                .spawn_shell = .{ .cmd = fmt.comptimePrint("{s} --minus", .{ bright_script }) },
+            },
+        },
     };
 
     const tag_num = 9;
