@@ -432,7 +432,7 @@ pub fn handle_events(self: *Self) void {
                     else => {}
                 }
 
-                switch (self.decoration orelse .ssd) {
+                switch (self.decoration orelse config.default_window_decoration) {
                     .csd => self.rwm_window.useCsd(),
                     .ssd => self.rwm_window.useSsd(),
                 }

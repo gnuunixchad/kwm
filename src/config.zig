@@ -9,6 +9,7 @@ const river = wayland.client.river;
 const binding = @import("binding.zig");
 const Context = @import("context.zig");
 const Rule = @import("rule.zig");
+const Window = @import("window.zig");
 
 const Alt: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod1);
 const Super: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod4);
@@ -101,6 +102,7 @@ pub const accel_speed: f64 = 0.0;
 pub const calibration_matrix: ?[6]f32 = null;
 pub const rotation_angle: u32 = 0;
 
+pub const default_window_decoration: Window.Decoration = .ssd;
 pub var auto_swallow = true;
 
 pub const Mode = enum {
