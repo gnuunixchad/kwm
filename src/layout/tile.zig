@@ -87,7 +87,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
             x = 0;
             y = (@as(i32, @intCast(i)) * master_height) + if (i > 0) master_remain + self.inner_gap else 0;
             w = if (nstack > 0) master_width - @divFloor(self.inner_gap, 2) else master_width;
-            h = (master_height + if (i == 0) master_remain else 0) - if (i > 1) self.inner_gap else 0;
+            h = (master_height + if (i == 0) master_remain else 0) - if (i > 0) self.inner_gap else 0;
         } else {
             x = master_width + @divFloor(self.inner_gap, 2);
             y = ((@as(i32, @intCast(i))-nmaster) * stack_height) + if (i > nmaster) stack_remain + self.inner_gap else 0;
