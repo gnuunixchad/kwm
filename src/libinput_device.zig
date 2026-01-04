@@ -297,6 +297,19 @@ fn set_rotation(self: *Self, angle: u32) void {
 }
 
 
+fn is_match(self: *Self, comptime T: type, cfg: *const T) bool {
+    if (cfg.pattern) |pattern| {
+        if (self.input_device) |input_device| {
+            if (input_device.name) |name| {
+                return pattern.is_match(name);
+            }
+        }
+        return false;
+    }
+    return true;
+}
+
+
 fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, event: river.LibinputDeviceV1.Event, libinput_device: *Self) void {
     std.debug.assert(rwm_libinput_device == libinput_device.rwm_libinput_device);
 
@@ -321,8 +334,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .tap_current => |data| {
             log.debug("<{*}> tap_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.tap) {
-                libinput_device.set_tap(config.tap);
+            if (!libinput_device.is_match(@TypeOf(config.tap), &config.tap)) return;
+
+            if (data.state != config.tap.value) {
+                libinput_device.set_tap(config.tap.value);
             }
         },
         .drag_default => |data| {
@@ -331,8 +346,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .drag_current => |data| {
             log.debug("<{*}> drag_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.drag) {
-                libinput_device.set_drag(config.drag);
+            if (!libinput_device.is_match(@TypeOf(config.drag), &config.drag)) return;
+
+            if (data.state != config.drag.value) {
+                libinput_device.set_drag(config.drag.value);
             }
         },
         .drag_lock_default => |data| {
@@ -341,8 +358,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .drag_lock_current => |data| {
             log.debug("<{*}> drag_lock_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.drag_lock) {
-                libinput_device.set_drag_lock(config.drag_lock);
+            if (!libinput_device.is_match(@TypeOf(config.drag_lock), &config.drag_lock)) return;
+
+            if (data.state != config.drag_lock.value) {
+                libinput_device.set_drag_lock(config.drag_lock.value);
             }
         },
         .tap_button_map_default => |data| {
@@ -351,8 +370,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .tap_button_map_current => |data| {
             log.debug("<{*}> tap_button_map_current, button_map: {s}", .{ libinput_device, @tagName(data.button_map) });
 
-            if (data.button_map != config.tap_button_map) {
-                libinput_device.set_tap_button_map(config.tap_button_map);
+            if (!libinput_device.is_match(@TypeOf(config.tap_button_map), &config.tap_button_map)) return;
+
+            if (data.button_map != config.tap_button_map.value) {
+                libinput_device.set_tap_button_map(config.tap_button_map.value);
             }
         },
 
@@ -368,13 +389,15 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .three_finger_drag_current => |data| {
             log.debug("<{*}> three_finger_drag_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.three_finger_drag) {
-                switch (config.three_finger_drag) {
+            if (!libinput_device.is_match(@TypeOf(config.three_finger_drag), &config.three_finger_drag)) return;
+
+            if (data.state != config.three_finger_drag.value) {
+                switch (config.three_finger_drag.value) {
                     .enabled_3fg => if (libinput_device.three_finger_drag_support < 3) return,
                     .enabled_4fg => if (libinput_device.three_finger_drag_support < 4) return,
                     else => {}
                 }
-                libinput_device.set_three_finger_drag(config.three_finger_drag);
+                libinput_device.set_three_finger_drag(config.three_finger_drag.value);
             }
         },
 
@@ -388,12 +411,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .natural_scroll_current => |data| {
             log.debug("<{*}> natural_scroll_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (libinput_device.input_device) |input_device| {
-                if (input_device.type == .touch) {
-                    if (data.state != config.natural_scroll) {
-                        libinput_device.set_natural_scroll(config.natural_scroll);
-                    }
-                }
+            if (!libinput_device.is_match(@TypeOf(config.natural_scroll), &config.natural_scroll)) return;
+
+            if (data.state != config.natural_scroll.value) {
+                libinput_device.set_natural_scroll(config.natural_scroll.value);
             }
         },
 
@@ -407,8 +428,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .dwt_current => |data| {
             log.debug("<{*}> dwt_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.disable_while_typing) {
-                libinput_device.set_dwt(config.disable_while_typing);
+            if (!libinput_device.is_match(@TypeOf(config.disable_while_typing), &config.disable_while_typing)) return;
+
+            if (data.state != config.disable_while_typing.value) {
+                libinput_device.set_dwt(config.disable_while_typing.value);
             }
         },
 
@@ -422,8 +445,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .dwtp_current => |data| {
             log.debug("<{*}> dwtp_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.disable_while_trackpointing) {
-                libinput_device.set_dwtp(config.disable_while_trackpointing);
+            if (!libinput_device.is_match(@TypeOf(config.disable_while_trackpointing), &config.disable_while_trackpointing)) return;
+
+            if (data.state != config.disable_while_trackpointing.value) {
+                libinput_device.set_dwtp(config.disable_while_trackpointing.value);
             }
         },
 
@@ -437,8 +462,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .left_handed_current => |data| {
             log.debug("<{*}> left_handed_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.left_handed) {
-                libinput_device.set_left_handed(config.left_handed);
+            if (!libinput_device.is_match(@TypeOf(config.left_handed), &config.left_handed)) return;
+
+            if (data.state != config.left_handed.value) {
+                libinput_device.set_left_handed(config.left_handed.value);
             }
         },
 
@@ -452,8 +479,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .middle_emulation_current => |data| {
             log.debug("<{*}> middle_emulation_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.middle_button_emulation) {
-                libinput_device.set_middle_emulation(config.middle_button_emulation);
+            if (!libinput_device.is_match(@TypeOf(config.middle_button_emulation), &config.middle_button_emulation)) return;
+
+            if (data.state != config.middle_button_emulation.value) {
+                libinput_device.set_middle_emulation(config.middle_button_emulation.value);
             }
         },
 
@@ -472,14 +501,16 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .scroll_method_current => |data| {
             log.debug("<{*}> scroll_method_current, method: {s}", .{ libinput_device, @tagName(data.method) });
 
+            if (!libinput_device.is_match(@TypeOf(config.scroll_method), &config.scroll_method)) return;
+
             if (
-                data.method != config.scroll_method
+                data.method != config.scroll_method.value
                 and (
-                    config.scroll_method == .no_scroll
-                    or @as(u32, @bitCast(libinput_device.scroll_method_support)) & @as(u32, @intFromEnum(config.scroll_method)) != 0
+                    config.scroll_method.value == .no_scroll
+                    or @as(u32, @bitCast(libinput_device.scroll_method_support)) & @as(u32, @intFromEnum(config.scroll_method.value)) != 0
                 )
             ) {
-                libinput_device.set_scroll_method(config.scroll_method);
+                libinput_device.set_scroll_method(config.scroll_method.value);
             }
         },
         .scroll_button_default => |data| {
@@ -488,8 +519,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .scroll_button_current => |data| {
             log.debug("<{*}> scroll_button_current, button: {}", .{ libinput_device, data.button });
 
-            if (data.button != config.scroll_button) {
-                libinput_device.set_scroll_button(config.scroll_button);
+            if (!libinput_device.is_match(@TypeOf(config.scroll_button), &config.scroll_button)) return;
+
+            if (data.button != config.scroll_button.value) {
+                libinput_device.set_scroll_button(config.scroll_button.value);
             }
         },
         .scroll_button_lock_default => |data| {
@@ -498,8 +531,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .scroll_button_lock_current => |data| {
             log.debug("<{*}> scroll_button_lock_current, state: {s}", .{ libinput_device, @tagName(data.state) });
 
-            if (data.state != config.scroll_button_lock) {
-                libinput_device.set_scroll_button_lock(config.scroll_button_lock);
+            if (!libinput_device.is_match(@TypeOf(config.scroll_button_lock), &config.scroll_button_lock)) return;
+
+            if (data.state != config.scroll_button_lock.value) {
+                libinput_device.set_scroll_button_lock(config.scroll_button_lock.value);
             }
         },
 
@@ -515,14 +550,16 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .click_method_current => |data| {
             log.debug("<{*}> click_method_current, method: {s}", .{ libinput_device, @tagName(data.method) });
 
+            if (!libinput_device.is_match(@TypeOf(config.click_method), &config.click_method)) return;
+
             if (
-                data.method != config.click_method
+                data.method != config.click_method.value
                 and (
-                        config.click_method == .none
-                        or @as(u32, @bitCast(libinput_device.click_method_support)) & @as(u32, @intFromEnum(config.click_method)) != 0
+                        config.click_method.value == .none
+                        or @as(u32, @bitCast(libinput_device.click_method_support)) & @as(u32, @intFromEnum(config.click_method.value)) != 0
                     )
             ) {
-                libinput_device.set_click_method(config.click_method);
+                libinput_device.set_click_method(config.click_method.value);
             }
         },
         .clickfinger_button_map_default => |data| {
@@ -531,8 +568,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .clickfinger_button_map_current => |data| {
             log.debug("<{*}> clickfinger_button_map_current, button_map: {s}", .{ libinput_device, @tagName(data.button_map) });
 
-            if (data.button_map != config.clickfinger_button_map) {
-                libinput_device.set_clickfinger_button_map(config.clickfinger_button_map);
+            if (!libinput_device.is_match(@TypeOf(config.clickfinger_button_map), &config.clickfinger_button_map)) return;
+
+            if (data.button_map != config.clickfinger_button_map.value) {
+                libinput_device.set_clickfinger_button_map(config.clickfinger_button_map.value);
             }
         },
 
@@ -546,14 +585,16 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .send_events_current => |data| {
             log.debug("<{*}> send_events_current, mode: (disabled: {}, disabled_on_external_mouse: {})", .{ libinput_device, data.mode.disabled, data.mode.disabled_on_external_mouse });
 
+            if (!libinput_device.is_match(@TypeOf(config.send_events_modes), &config.send_events_modes)) return;
+
             if (
-                @as(u32, @bitCast(data.mode)) != @as(u32, @intFromEnum(config.send_events_modes))
+                @as(u32, @bitCast(data.mode)) != @as(u32, @intFromEnum(config.send_events_modes.value))
                 and (
-                    config.send_events_modes == .enabled
-                    or @as(u32, @bitCast(libinput_device.send_events_support)) & @as(u32, @intFromEnum(config.send_events_modes)) != 0
+                    config.send_events_modes.value == .enabled
+                    or @as(u32, @bitCast(libinput_device.send_events_support)) & @as(u32, @intFromEnum(config.send_events_modes.value)) != 0
                 )
             ) {
-                libinput_device.set_send_events(@bitCast(@as(u32, @intFromEnum(config.send_events_modes))));
+                libinput_device.set_send_events(@bitCast(@as(u32, @intFromEnum(config.send_events_modes.value))));
             }
         },
 
@@ -567,8 +608,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .accel_profile_current => |data| {
             log.debug("<{*}> accel_profile_current, profile: {s}", .{ libinput_device, @tagName(data.profile) });
 
-            if (data.profile != config.accel_profile) {
-                libinput_device.set_accel_profile(config.accel_profile);
+            if (!libinput_device.is_match(@TypeOf(config.accel_profile), &config.accel_profile)) return;
+
+            if (data.profile != config.accel_profile.value) {
+                libinput_device.set_accel_profile(config.accel_profile.value);
             }
         },
         .accel_speed_default => |data| {
@@ -577,8 +620,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .accel_speed_current => |data| {
             log.debug("<{*}> accel_speed_current, speed: {any}", .{ libinput_device, data.speed.slice(f64) });
 
-            if (@abs(data.speed.slice(f64)[0] - config.accel_speed) > 1e-6) {
-                libinput_device.set_accel_speed(config.accel_speed);
+            if (!libinput_device.is_match(@TypeOf(config.accel_speed), &config.accel_speed)) return;
+
+            if (@abs(data.speed.slice(f64)[0] - config.accel_speed.value) > 1e-6) {
+                libinput_device.set_accel_speed(config.accel_speed.value);
             }
         },
 
@@ -592,7 +637,9 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .calibration_matrix_current => |data| {
             log.debug("<{*}> calibration_matrix_current, matrix: {any}", .{ libinput_device, data.matrix.slice(f32) });
 
-            if (config.calibration_matrix) |matrix| {
+            if (!libinput_device.is_match(@TypeOf(config.calibration_matrix), &config.calibration_matrix)) return;
+
+            if (config.calibration_matrix.value) |matrix| {
                 const current_matrix = data.matrix.slice(f32);
                 const eq = for (0..6) |i| {
                     if (@abs(current_matrix[i] - matrix[i]) > 1e-6) {
@@ -615,8 +662,10 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
         .rotation_current => |data| {
             log.debug("<{*}> rotation_current, angle: {}", .{ libinput_device, data.angle });
 
-            if (data.angle != config.rotation_angle) {
-                libinput_device.set_rotation(config.rotation_angle);
+            if (!libinput_device.is_match(@TypeOf(config.rotation_angle), &config.rotation_angle)) return;
+
+            if (data.angle != config.rotation_angle.value) {
+                libinput_device.set_rotation(config.rotation_angle.value);
             }
         },
 

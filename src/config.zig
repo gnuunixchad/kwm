@@ -80,28 +80,6 @@ pub const repeat_rate = 50;
 pub const repeat_delay = 300;
 pub const scroll_factor = 1.0;
 
-// libinput config
-pub const tap: river.LibinputDeviceV1.TapState = .enabled;
-pub const drag: river.LibinputDeviceV1.DragState = .enabled;
-pub const drag_lock: river.LibinputDeviceV1.DragLockState = .disabled;
-pub const three_finger_drag: river.LibinputDeviceV1.ThreeFingerDragState = .disabled;
-pub const tap_button_map: river.LibinputDeviceV1.TapButtonMap = .lrm;
-pub const natural_scroll: river.LibinputDeviceV1.NaturalScrollState = .enabled;
-pub const disable_while_typing: river.LibinputDeviceV1.DwtState = .enabled;
-pub const disable_while_trackpointing: river.LibinputDeviceV1.DwtpState = .enabled;
-pub const left_handed: river.LibinputDeviceV1.LeftHandedState = .disabled;
-pub const middle_button_emulation: river.LibinputDeviceV1.MiddleEmulationState = .disabled;
-pub const scroll_method: river.LibinputDeviceV1.ScrollMethod = .two_finger;
-pub const scroll_button: u32 = Button.middle;
-pub const scroll_button_lock: river.LibinputDeviceV1.ScrollButtonLockState = .disabled;
-pub const click_method: river.LibinputDeviceV1.ClickMethod = .button_areas;
-pub const clickfinger_button_map: river.LibinputDeviceV1.ClickfingerButtonMap = .lrm;
-pub const send_events_modes: river.LibinputDeviceV1.SendEventsModes.Enum = .enabled;
-pub const accel_profile: river.LibinputDeviceV1.AccelProfile = .adaptive;
-pub const accel_speed: f64 = 0.0;
-pub const calibration_matrix: ?[6]f32 = null;
-pub const rotation_angle: u32 = 0;
-
 pub const default_window_decoration: Window.Decoration = .ssd;
 pub var auto_swallow = true;
 
@@ -641,3 +619,31 @@ pub const rules = [_]Rule {
     .{ .app_id = .{ .str = "foot" }, .is_terminal = true },
     .{ .app_id = .{ .str = "footclient" }, .is_terminal = true },
 };
+
+// libinput config
+fn InputConfig(comptime T: type) type {
+    return struct {
+        value: T,
+        pattern: ?Rule.Pattern = null,
+    };
+}
+pub const tap: InputConfig(river.LibinputDeviceV1.TapState)                                 = .{ .value = .enabled };
+pub const drag: InputConfig(river.LibinputDeviceV1.DragState)                               = .{ .value = .enabled };
+pub const drag_lock: InputConfig(river.LibinputDeviceV1.DragLockState)                      = .{ .value = .disabled };
+pub const three_finger_drag: InputConfig(river.LibinputDeviceV1.ThreeFingerDragState)       = .{ .value = .disabled };
+pub const tap_button_map: InputConfig(river.LibinputDeviceV1.TapButtonMap)                  = .{ .value = .lrm };
+pub const natural_scroll: InputConfig(river.LibinputDeviceV1.NaturalScrollState)            = .{ .value = .enabled, .pattern = .compile(".*[tT]ouchpad") };
+pub const disable_while_typing: InputConfig(river.LibinputDeviceV1.DwtState)                = .{ .value = .enabled };
+pub const disable_while_trackpointing: InputConfig(river.LibinputDeviceV1.DwtpState)        = .{ .value = .enabled };
+pub const left_handed: InputConfig(river.LibinputDeviceV1.LeftHandedState)                  = .{ .value = .disabled };
+pub const middle_button_emulation: InputConfig(river.LibinputDeviceV1.MiddleEmulationState) = .{ .value = .disabled };
+pub const scroll_method: InputConfig(river.LibinputDeviceV1.ScrollMethod)                   = .{ .value = .two_finger };
+pub const scroll_button: InputConfig(u32)                                                   = .{ .value = Button.middle };
+pub const scroll_button_lock: InputConfig(river.LibinputDeviceV1.ScrollButtonLockState)     = .{ .value = .disabled };
+pub const click_method: InputConfig(river.LibinputDeviceV1.ClickMethod)                     = .{ .value = .button_areas };
+pub const clickfinger_button_map: InputConfig(river.LibinputDeviceV1.ClickfingerButtonMap)  = .{ .value = .lrm };
+pub const send_events_modes: InputConfig(river.LibinputDeviceV1.SendEventsModes.Enum)       = .{ .value = .enabled };
+pub const accel_profile: InputConfig(river.LibinputDeviceV1.AccelProfile)                   = .{ .value = .adaptive };
+pub const accel_speed: InputConfig(f64)                                                     = .{ .value = 0.0 };
+pub const calibration_matrix: InputConfig(?[6]f32)                                          = .{ .value = null };
+pub const rotation_angle: InputConfig(u32)                                                  = .{ .value = 0 };

@@ -19,7 +19,7 @@ pub const Pattern = struct {
         };
     }
 
-    fn is_match(self: *const @This(), haystack: []const u8) bool {
+    pub fn is_match(self: *const @This(), haystack: []const u8) bool {
         const matched = blk: {
             if (self.regex) |regex| {
                 break :blk regex.isMatch(haystack);
