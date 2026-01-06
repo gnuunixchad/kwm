@@ -11,6 +11,7 @@ const Window = @import("../window.zig");
 outer_gap: i32,
 inner_gap: i32,
 mfact: f32,
+snap_to_left: bool,
 
 
 pub fn arrange(self: *const Self, output: *Output) void {
@@ -24,7 +25,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
         @as(f32, @floatFromInt(output.width)) * (focus_top.scroller_mfact orelse self.mfact)
     );
     const height = output.height - 2*self.outer_gap;
-    const master_x = @divFloor(output.width-master_width, 2);
+    const master_x = if (self.snap_to_left) self.outer_gap else @divFloor(output.width-master_width, 2);
     const y = self.outer_gap;
 
     focus_top.move(master_x, y);

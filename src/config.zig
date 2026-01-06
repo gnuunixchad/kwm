@@ -117,6 +117,7 @@ pub var layout: struct {
         .mfact = 0.7,
         .inner_gap = 16,
         .outer_gap = 9,
+        .snap_to_left = false,
     }
 };
 
