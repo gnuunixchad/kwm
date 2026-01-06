@@ -69,8 +69,8 @@ disable_swallow: bool = false,
 
 x: i32 = 0,
 y: i32 = 0,
-width: i32 = 1,
-height: i32 = 1,
+width: i32 = 0,
+height: i32 = 0,
 min_width: i32 = 1,
 min_height: i32 = 1,
 operator: union(enum) {
@@ -436,12 +436,6 @@ pub fn handle_events(self: *Self) void {
                 switch (self.decoration orelse config.default_window_decoration) {
                     .csd => self.rwm_window.useCsd(),
                     .ssd => self.rwm_window.useSsd(),
-                }
-
-                if (self.floating or !self.is_visible()) {
-                    self.width = @divFloor(self.output.?.width, 2);
-                    self.height = @divFloor(self.output.?.height, 2);
-                    self.center();
                 }
 
                 const context = Context.get();
