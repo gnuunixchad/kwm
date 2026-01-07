@@ -343,7 +343,6 @@ fn window_interaction(self: *Self, window: *Window) void {
 
     const context = Context.get();
 
-    context.set_current_output(window.output.?);
     context.focus(window);
 }
 

@@ -215,6 +215,12 @@ pub fn quit(self: *Self) void {
 pub fn focus(self: *Self, window: *Window) void {
     log.debug("<{*}> focus window: {*}", .{ self, window });
 
+    if (window.output) |output| {
+        if (self.current_output == null or output != self.current_output.?) {
+            self.set_current_output(output);
+        }
+    }
+
     window.flink.remove();
     self.focus_stack.prepend(window);
 }
