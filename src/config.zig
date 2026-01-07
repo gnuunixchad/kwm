@@ -80,6 +80,8 @@ pub const repeat_rate = 50;
 pub const repeat_delay = 300;
 pub const scroll_factor = 1.0;
 
+pub const sloppy_focus = false;
+
 pub const default_window_decoration: Window.Decoration = .ssd;
 pub var auto_swallow = true;
 
