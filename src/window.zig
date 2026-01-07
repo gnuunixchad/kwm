@@ -579,7 +579,11 @@ pub fn render(self: *Self) void {
         return;
     }
 
-    if (self.position_undefined) {
+    if (
+        self.position_undefined
+        // dimensions event may not sent yet, width and height are not setted
+        and self.width > 0 and self.height > 0
+    ) {
         defer self.position_undefined = false;
         self.center();
     }
