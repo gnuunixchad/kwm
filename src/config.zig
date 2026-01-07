@@ -667,6 +667,7 @@ pub const rules = [_]Rule {
     //     .decoration = .csd or .ssd
     //     .is_terminal = true,
     //     .disable_swallow = true,
+    //     .scroller_mfact = 0.5
     // },
     .{ .alter_match_fn = &empty_appid, .floating = true },
     .{ .app_id = .{ .str = "chromium" }, .tag = 1 << 1, .scroller_mfact = 0.9 },
