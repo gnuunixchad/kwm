@@ -373,22 +373,22 @@ pub const xkb_bindings = blk: {
         .{
             .keysym = Keysym.j,
             .modifiers = Super,
-            .action = .{ .focus_iter = .{ .direction = .forward, .skip_floating = true, } },
-        },
-        .{
-            .keysym = Keysym.k,
-            .modifiers = Super,
-            .action = .{ .focus_iter = .{ .direction = .reverse, .skip_floating = true } },
-        },
-        .{
-            .keysym = Keysym.j,
-            .modifiers = Super|Ctrl,
             .action = .{ .focus_iter = .{ .direction = .forward } },
         },
         .{
             .keysym = Keysym.k,
-            .modifiers = Super|Ctrl,
+            .modifiers = Super,
             .action = .{ .focus_iter = .{ .direction = .reverse } },
+        },
+        .{
+            .keysym = Keysym.j,
+            .modifiers = Super|Ctrl,
+            .action = .{ .focus_iter = .{ .direction = .forward, .skip_floating = true, } },
+        },
+        .{
+            .keysym = Keysym.k,
+            .modifiers = Super|Ctrl,
+            .action = .{ .focus_iter = .{ .direction = .reverse, .skip_floating = true } },
         },
         .{
             .keysym = Keysym.j,
@@ -653,8 +653,8 @@ pub const pointer_bindings = [_]PointerBinding {
 };
 
 
-fn empty_appid(_: *const Rule, window: *const Window) bool {
-    return window.app_id == null or window.app_id.?.len == 0;
+fn empty_appid_or_title(_: *const Rule, window: *const Window) bool {
+    return window.app_id == null or window.app_id.?.len == 0 or window.title == null or window.title.?.len == 0;
 }
 pub const rules = [_]Rule {
     //  support regex by: https://github.com/mnemnion/mvzr
@@ -671,12 +671,14 @@ pub const rules = [_]Rule {
     //     .disable_swallow = true,
     //     .scroller_mfact = 0.5
     // },
-    .{ .alter_match_fn = &empty_appid, .floating = true },
+    .{ .alter_match_fn = &empty_appid_or_title, .floating = true },
+    .{ .app_id = .{ .str = "zenity" }, .floating = true },
+    .{ .app_id = .{ .str = "DesktopEditors" }, .floating = true },
+    .{ .app_id = .{ .str = "xdg-desktop-portal-gtk" }, .floating = true },
     .{ .app_id = .{ .str = "chromium" }, .tag = 1 << 1, .scroller_mfact = 0.9 },
     .{ .app_id = .{ .str = "QQ" }, .tag = 1 << 2, .floating = true },
     .{ .app_id = .{ .str = "wemeetapp" }, .tag = 1 << 2, .floating = true },
     .{ .app_id = .{ .str = "wechat" }, .tag = 1 << 2, .floating = true },
-    .{ .app_id = .compile(".*微信.*"), .tag = 1 << 2, .floating = true },
     .{ .app_id = .{ .str = "virt-manager" }, .floating = true },
     .{ .app_id = .{ .str = "Zotero" }, .floating = true },
     .{ .app_id = .{ .str = "stalonetray" }, .floating = true },
