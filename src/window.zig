@@ -453,7 +453,7 @@ pub fn handle_events(self: *Self) void {
                     .ssd => self.rwm_window.useSsd(),
                 }
 
-                if (self.floating) {
+                if (self.floating or self.output == null or self.output.?.current_layout() == .float) {
                     self.position_undefined = true;
                 }
 
