@@ -31,13 +31,13 @@ A window manager based on River Wayland Compositor, written in Zig
 zig build -Dconfig=/path/to/specify/config -Doptimize=ReleaseSafe
 ```
 
-It will try to find `config.zig` as config file. If not found, will use `config.def.zig` as backup.
+It will try to find `config.zig` as config file. If not found, will create it from `config.def.zig` as backup.
 
 You can use `-Dconfig` to specify custom config file path, `-Doptimize` to specify build mode.
 
 ## configuration
 
-`cp config.def.zig config.zig` to create your own config file, and make custom modifications in `config.zig`.
+Make your custom modifications in `config.zig`.
 
 ## Thanks to these reference project
 

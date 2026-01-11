@@ -74,9 +74,21 @@ pub fn build(b: *std.Build) void {
     const backup_config_path = "config.def.zig";
     const config_mod = b.createModule(.{
         .root_source_file = blk: {
-            fs.cwd().access(config_path, .{}) catch |err| {
-                std.log.err("access config file `{s}` failed: {}, use `{s}`", .{ config_path, err, backup_config_path });
-                break :blk b.path(backup_config_path);
+            fs.cwd().access(config_path, .{}) catch |err| switch (err) {
+                error.FileNotFound => {
+                    std.log.warn("Config file `{s}` not found, creating from `{s}`", .{ config_path, backup_config_path });
+
+                    fs.cwd().copyFile(backup_config_path, fs.cwd(), config_path, .{}) catch |copy_err| {
+                        std.log.err("Failed to copy `{s}` to `{s}`: {}", .{ backup_config_path, config_path, copy_err });
+                        break :blk b.path(backup_config_path);
+                    };
+
+                    std.log.info("Config file `{s}` created successfully. Please review and customize it.", .{config_path});
+                },
+                else => {
+                    std.log.err("access config file `{s}` failed: {}, use `{s}`", .{ config_path, err, backup_config_path });
+                    break :blk b.path(backup_config_path);
+                }
             };
             break :blk b.path(config_path);
         },
