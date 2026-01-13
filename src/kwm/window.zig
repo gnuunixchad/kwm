@@ -100,7 +100,7 @@ operator: union(enum) {
 } = .none,
 
 
-pub fn create(rwm_window: *river.WindowV1) !*Self {
+pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
     const window = try utils.allocator.create(Self);
     errdefer utils.allocator.destroy(window);
 
@@ -115,6 +115,10 @@ pub fn create(rwm_window: *river.WindowV1) !*Self {
     };
     window.link.init();
     window.flink.init();
+    if (output) |o| {
+        window.set_tag(o.tag);
+        window.set_output(o, false);
+    }
     try window.unhandled_events.append(utils.allocator, .init);
 
     rwm_window.setListener(*Self, rwm_window_listener, window);

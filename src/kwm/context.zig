@@ -625,15 +625,10 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
         .window => |data| {
             log.debug("new window {*}", .{ data.id });
 
-            const window = Window.create(data.id) catch |err| {
+            const window = Window.create(data.id, context.current_output) catch |err| {
                 log.err("create window failed: {}", .{ err });
                 return;
             };
-
-            if (context.current_output) |output| {
-                window.set_tag(output.tag);
-                window.set_output(output, false);
-            }
 
             context.windows.prepend(window);
             context.focus(window);
