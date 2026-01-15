@@ -212,6 +212,14 @@ pub const Mode = enum {
     floating,
     passthrough,
 };
+// if not set, will use @tagName(mode) as replacement
+// if set to empty string, will hide
+pub const mode_tag: std.EnumMap(Mode, ?[]const u8) = .init(.{
+    .lock = null,
+    .default = null,
+    .floating = "F",
+    .passthrough = "P",
+});
 
 pub const tags = [_][]const u8 {
     "1", "2", "3", "4", "5", "6", "7", "8", "9"

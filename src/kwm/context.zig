@@ -405,6 +405,13 @@ pub inline fn switch_mode(self: *Self, mode: config.Mode) void {
     log.debug("switch mode from {s} to {s}", .{ @tagName(self.mode), @tagName(mode) });
 
     self.mode = mode;
+
+    if (comptime build_options.bar_enabled) {
+        var it = self.outputs.safeIterator(.forward);
+        while (it.next()) |output| {
+            output.bar.damage(.mode);
+        }
+    }
 }
 
 

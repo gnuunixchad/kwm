@@ -104,7 +104,7 @@ pub fn reload_font(self: *Self) void {
 }
 
 
-pub fn damage(self: *Self, @"type": enum { all, tags, layout, title, status }) void {
+pub fn damage(self: *Self, @"type": enum { all, tags, layout, mode, title, status }) void {
     log.debug("<{*}> damage {s}", .{ self, @tagName(@"type") });
 
     switch (@"type") {
@@ -410,6 +410,19 @@ fn render_dynamic_component(self: *Self) void {
         x+@as(i16, @intCast(@divFloor(pad, 2))),
         y,
     ) + @as(i16, @intCast(pad));
+
+    const mode_tag =
+        if (config.mode_tag.contains(context.mode)) config.mode_tag.getAssertContains(context.mode)
+        else @tagName(context.mode);
+    if (mode_tag.len > 0) {
+        x += self.render_str(
+            buffer,
+            mode_tag,
+            &normal_fg,
+            x+@as(i16, @intCast(@divFloor(pad, 2))),
+            y,
+        ) + @as(i16, @intCast(pad));
+    }
 
     if (context.focus_top_in(self.output, false)) |window| {
         if (self.output == context.current_output) {
