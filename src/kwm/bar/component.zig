@@ -61,7 +61,6 @@ pub fn render(self: *Self, buffer: *Buffer) void {
 
     self.width = buffer.width;
 
-    // self.wl_subsurface.setPosition(x, y);
     self.wl_surface.attach(buffer.wl_buffer, 0, 0);
     self.wl_surface.damageBuffer(0, 0, buffer.width, buffer.height);
     self.wl_surface.commit();

@@ -6,6 +6,7 @@ const std = @import("std");
 const fmt = std.fmt;
 const mem = std.mem;
 const posix = std.posix;
+const linux = std.os.linux;
 const process = std.process;
 const log = std.log.scoped(.context);
 
@@ -51,6 +52,8 @@ libinput_devices: wl.list.Head(LibinputDevice, .link) = undefined,
 windows: wl.list.Head(Window, .link) = undefined,
 focus_stack: wl.list.Head(Window, .flink) = undefined,
 
+bar_status_fd: ?posix.fd_t = null,
+
 terminal_windows: std.AutoHashMap(i32, *Window) = undefined,
 
 mode: config.Mode = .default,
@@ -74,8 +77,6 @@ pub fn init(
 ) void {
     // initialize once
     if (ctx != null) return;
-
-    if (comptime build_options.bar_enabled) _ = @import("fcft").init(.auto, false, .err);
 
     log.info("init context", .{});
 
@@ -124,6 +125,14 @@ pub fn init(
         ctx.?.startup_processes[i] = ctx.?.spawn(cmd);
     }
 
+    if (comptime build_options.bar_enabled) {
+        _ = @import("fcft").init(.auto, false, .err);
+
+        if (config.bar.show_default) {
+            ctx.?.start_listening_status();
+        }
+    }
+
     rwm.setListener(*Self, rwm_listener, &ctx.?);
     rwm_input_manager.setListener(*Self, rwm_input_manager_listener, &ctx.?);
     rwm_libinput_config.setListener(*Self, rwm_libinput_config_listener, &ctx.?);
@@ -136,8 +145,6 @@ pub fn deinit() void {
     log.info("deinit context", .{});
 
     defer ctx = null;
-
-    if (comptime build_options.bar_enabled) @import("fcft").fini();
 
     ctx.?.wl_registry.destroy();
     ctx.?.wl_compositor.destroy();
@@ -195,6 +202,12 @@ pub fn deinit() void {
         ctx.?.libinput_devices.init();
     }
 
+    if (comptime build_options.bar_enabled) {
+        @import("fcft").fini();
+
+        ctx.?.stop_listening_status();
+    }
+
     ctx.?.terminal_windows.deinit();
 
     ctx.?.env.deinit();
@@ -208,6 +221,76 @@ pub fn deinit() void {
             log.debug("kill startup process {}", .{ child.id });
         }
     }
+}
+
+
+pub fn start_listening_status(self: *Self) void {
+    self.stop_listening_status();
+
+    self.bar_status_fd = switch (config.bar.status) {
+        .text => null,
+        .stdin => blk: {
+            var flags = posix.fcntl(posix.STDIN_FILENO, posix.F.GETFL, 0) catch |err| {
+                log.err("get fd flags failed: {}", .{ err });
+                break :blk null;
+            };
+            flags |= 1 << @bitOffsetOf(posix.O, "NONBLOCK");
+
+            _ = posix.fcntl(posix.STDIN_FILENO, posix.F.SETFL, flags) catch |err| {
+                log.err("set stdin fd NONBLOCK failed: {}", .{ err });
+                break :blk null;
+            };
+
+            break :blk posix.STDIN_FILENO;
+        },
+        .fifo => |fifo| try_open_fifo(fifo) catch null,
+    };
+}
+
+
+pub fn stop_listening_status(self: *Self) void {
+    switch (config.bar.status) {
+        .text => {},
+        .stdin => self.bar_status_fd = null,
+        .fifo => if (self.bar_status_fd) |fd| {
+            log.debug("close fd {}`", .{ fd });
+            posix.close(fd);
+            self.bar_status_fd = null;
+        }
+    }
+}
+
+
+pub fn update_bar_status(self: *Self) void {
+    if (comptime build_options.bar_enabled) {
+        if (self.bar_status_fd) |fd| {
+            log.debug("update status", .{});
+
+            const dest_buf = &@import("bar.zig").status_buffer;
+            const nbytes = posix.read(fd, dest_buf) catch |err| {
+                switch (err) {
+                    error.WouldBlock => log.debug("no data in fd {}", .{ fd }),
+                    else => log.err("read data from fd {} failed: {}", .{ fd, err }),
+                }
+                return;
+            };
+
+            log.debug("read {} bytes data from fd {}", .{ nbytes, fd });
+
+            if (nbytes > 0) {
+                var it = self.outputs.safeIterator(.forward);
+                while (it.next()) |output| {
+                    output.bar.damage(.status);
+                }
+
+                self.rwm.manageDirty();
+            } else {
+                self.stop_listening_status();
+            }
+        } else {
+            log.warn("call `update_bar_status` while bar_status_fd is null", .{});
+        }
+    } else unreachable;
 }
 
 
@@ -767,4 +850,26 @@ fn rwm_libinput_config_listener(rwm_libinput_config: *river.LibinputConfigV1, ev
             context.rwm_libinput_config = null;
         }
     }
+}
+
+
+fn try_open_fifo(fifo: []const u8) !posix.fd_t {
+    log.debug("try open fifo file `{s}`", .{ fifo });
+
+    const fd = posix.open(fifo, .{ .ACCMODE = .RDWR, .NONBLOCK = true }, 0) catch |err| {
+        log.warn("open `{s}` failed: {}", .{ fifo, err });
+        return error.OpenFailed;
+    };
+    errdefer posix.close(fd);
+
+    const stat = posix.fstat(fd) catch |err| {
+        log.warn("stat `{s}` failed: {}", .{ fifo, err });
+        return error.StatFailed;
+    };
+
+    if (stat.mode & posix.S.IFMT == 0) {
+        log.warn("`{s}` is not a fifo file", .{ fifo });
+        return error.NotFifo;
+    }
+    return fd;
 }

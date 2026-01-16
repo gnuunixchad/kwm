@@ -21,9 +21,7 @@ const Output = @import("output.zig");
 const Buffer = @import("bar/buffer.zig");
 const Component = @import("bar/component.zig");
 
-const default_text: []const u8 = "kwm";
-var status_buffer = [1]u8 { 0 } ** 256;
-const status: [*:0]const u8 = @ptrCast(&status_buffer);
+pub var status_buffer = [1]u8 { 0 } ** 256;
 
 
 font: *fcft.Font,
@@ -442,30 +440,35 @@ fn render_dynamic_component(self: *Self) void {
         }
     }
 
-    const status_text: []const u8 = mem.span(status);
-    if (to_utf8(if (status_text.len > 0) status_text else default_text)) |utf8| {
-        defer utils.allocator.free(utf8);
+    const status_text: []const u8 = switch (config.bar.status) {
+        .text => |text| text,
+        else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
+    };
+    if (status_text.len > 0) {
+        if (to_utf8(mem.trimEnd(u8, status_text, "\n "))) |utf8| {
+            defer utils.allocator.free(utf8);
 
-        const text = self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
-            log.err("createU32RgbaBuffer failed: {}", .{ err });
-            return;
-        };
-        defer text.destroy();
+            const text = self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
+                log.err("createU32RgbaBuffer failed: {}", .{ err });
+                return;
+            };
+            defer text.destroy();
 
-        const width = text_width(text);
+            const width = text_width(text);
 
-        x = @intCast(w - @as(u16, @intCast(width)) - pad); x = @max(0, x);
-        bg_rect[0].x = x;
-        bg_rect[0].width = w - @as(u16, @intCast(x));
-        _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
+            x = @intCast(w -| @as(u16, @intCast(width)) -| pad);
+            bg_rect[0].x = x;
+            bg_rect[0].width = w - @as(u16, @intCast(x));
+            _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
 
-        x += self.render_text(
-            buffer,
-            text,
-            &normal_fg,
-            x+@as(i16, @intCast(@divFloor(pad, 2))),
-            y,
-        ) + @as(i16, @intCast(pad));
+            x += self.render_text(
+                buffer,
+                text,
+                &normal_fg,
+                x+@as(i16, @intCast(@divFloor(pad, 2))),
+                y,
+            ) + @as(i16, @intCast(pad));
+        }
     }
 
     self.dynamic_component.render(buffer);

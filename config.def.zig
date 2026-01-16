@@ -40,6 +40,11 @@ const BarConfig = struct {
         normal: BarColor,
         select: BarColor,
     },
+    status: union(enum) {
+        text: []const u8,
+        stdin,
+        fifo: []const u8,
+    },
 };
 const XkbBinding = struct {
     mode: Mode = .default,
@@ -102,6 +107,7 @@ pub const bar: BarConfig = .{
             .bg = 0xc8d3f5d0,
         },
     },
+    .status = .{ .text = "kwm" }, // .stdin or .{ .fifo = "fifo file path" }
 };
 
 pub var auto_swallow = true;

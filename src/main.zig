@@ -80,12 +80,19 @@ pub fn main() !void {
     var poll_fds = [_]posix.pollfd {
         .{ .fd = wayland_fd, .events = posix.POLL.IN, .revents = 0 },
         .{ .fd = signal_fd, .events = posix.POLL.IN, .revents = 0 },
+        .{ .fd = -1, .events = posix.POLL.IN, .revents = 0 },
     };
 
     const context = kwm.Context.get();
     while (context.running) {
+        var poll_fd_num: u8 = 2;
+        if (context.bar_status_fd) |fd| {
+            poll_fds[2].fd = fd;
+            poll_fd_num += 1;
+        }
+
         _ = display.flush();
-        _ = try posix.poll(&poll_fds, -1);
+        _ = try posix.poll(poll_fds[0..poll_fd_num], -1);
 
         if (poll_fds[0].revents & posix.POLL.IN != 0) {
             if (display.dispatch() != .SUCCESS) {
@@ -105,6 +112,10 @@ pub fn main() !void {
             if (nbytes != @sizeOf(posix.siginfo_t)) continue;
 
             context.handle_signal(signal_info.signo);
+        }
+
+        if (poll_fd_num > 2 and poll_fds[2].revents & posix.POLL.IN != 0) {
+            context.update_bar_status();
         }
     }
 }
