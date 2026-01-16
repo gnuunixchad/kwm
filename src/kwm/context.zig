@@ -118,13 +118,6 @@ pub fn init(
     rwm.setListener(*Self, rwm_listener, &ctx.?);
     rwm_input_manager.setListener(*Self, rwm_input_manager_listener, &ctx.?);
     rwm_libinput_config.setListener(*Self, rwm_libinput_config_listener, &ctx.?);
-
-    const action: posix.Sigaction = .{
-        .handler = .{ .handler = signal_handler },
-        .mask = posix.sigemptyset(),
-        .flags = 0,
-    };
-    posix.sigaction(posix.SIG.CHLD, &action, null);
 }
 
 
@@ -208,6 +201,24 @@ pub inline fn get() *Self {
     std.debug.assert(ctx != null);
 
     return &ctx.?;
+}
+
+
+pub fn handle_signal(self: *Self, sig: i32) void {
+    switch (sig) {
+        posix.SIG.INT, posix.SIG.TERM, posix.SIG.QUIT => self.quit(),
+        posix.SIG.CHLD => {
+            while (true) {
+                const res = utils.waitpid(-1, posix.W.NOHANG) catch |err| {
+                    log.warn("wait failed: {}", .{ err });
+                    break;
+                };
+                if (res.pid <= 0) break;
+                log.debug("wait pid {}", .{ res.pid });
+            }
+        },
+        else => {}
+    }
 }
 
 
@@ -718,20 +729,6 @@ fn rwm_libinput_config_listener(rwm_libinput_config: *river.LibinputConfigV1, ev
 
             rwm_libinput_config.destroy();
             context.rwm_libinput_config = null;
-        }
-    }
-}
-
-
-fn signal_handler(sig: c_int) callconv(.c) void {
-    if (sig == posix.SIG.CHLD) {
-        while (true) {
-            const res = utils.waitpid(-1, posix.W.NOHANG) catch |err| {
-                log.warn("wait failed: {}", .{ err });
-                break;
-            };
-            if (res.pid <= 0) break;
-            log.debug("wait pid {}", .{ res.pid });
         }
     }
 }

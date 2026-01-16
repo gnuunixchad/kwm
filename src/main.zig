@@ -62,8 +62,18 @@ pub fn main() !void {
     defer kwm.Context.deinit();
 
     const wayland_fd = display.getFd();
+
+    var mask = posix.sigemptyset();
+    posix.sigaddset(&mask, posix.SIG.INT);
+    posix.sigaddset(&mask, posix.SIG.TERM);
+    posix.sigaddset(&mask, posix.SIG.QUIT);
+    posix.sigaddset(&mask, posix.SIG.CHLD);
+    posix.sigprocmask(posix.SIG.BLOCK, &mask, null);
+    const signal_fd = try posix.signalfd(-1, &mask, 1 << @bitOffsetOf(posix.O, "NONBLOCK"));
+
     var poll_fds = [_]posix.pollfd {
         .{ .fd = wayland_fd, .events = posix.POLL.IN, .revents = 0 },
+        .{ .fd = signal_fd, .events = posix.POLL.IN, .revents = 0 },
     };
 
     const context = kwm.Context.get();
@@ -75,6 +85,20 @@ pub fn main() !void {
             if (display.dispatch() != .SUCCESS) {
                 return error.DispatchFailed;
             }
+        }
+
+        if (poll_fds[1].revents & posix.POLL.IN != 0) {
+            var signal_info: posix.siginfo_t = undefined;
+            const buffer: *[@sizeOf(posix.siginfo_t)]u8 = @ptrCast(&signal_info);
+            const nbytes = posix.read(signal_fd, buffer) catch |err| {
+                switch (err) {
+                    error.WouldBlock => continue,
+                    else => return err,
+                }
+            };
+            if (nbytes != @sizeOf(posix.siginfo_t)) continue;
+
+            context.handle_signal(signal_info.signo);
         }
     }
 }
