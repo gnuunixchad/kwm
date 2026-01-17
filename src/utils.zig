@@ -88,3 +88,9 @@ pub fn waitpid(pid: posix.pid_t, flags: u32) !posix.WaitPidResult {
     }
 }
 
+
+extern fn wl_proxy_set_user_data(proxy: *wl.Proxy, data: ?*anyopaque) void;
+pub fn set_user_data(comptime T: type, object: *T, comptime DataT: type, data: DataT) void {
+    const proxy: *wl.Proxy = @ptrCast(object);
+    wl_proxy_set_user_data(proxy, @ptrFromInt(@intFromPtr(data)));
+}

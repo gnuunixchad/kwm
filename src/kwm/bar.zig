@@ -17,6 +17,7 @@ const utils = @import("utils");
 const config = @import("config");
 
 const Context = @import("context.zig");
+const Seat = @import("seat.zig");
 const Output = @import("output.zig");
 const Buffer = @import("bar/buffer.zig");
 const Component = @import("bar/component.zig");
@@ -78,6 +79,48 @@ pub fn reload_font(self: *Self) void {
     const font = load_font(self.output.scale) catch return;
     self.font.destroy();
     self.font = font;
+}
+
+
+pub fn handle_click(self: *Self, seat: *const Seat) void {
+    log.debug("<{*}> handle click by {*}", .{ self, seat });
+
+    const pointer_x = seat.pointer_position.x;
+    const pointer_y = seat.pointer_position.y;
+    switch (config.bar.position) {
+        .top => {
+            if (pointer_y < self.output.y or pointer_y > self.output.y + self.height()) {
+                return;
+            }
+        },
+        .bottom => {
+            if (pointer_y < self.output.y + self.output.height - self.height() or pointer_y > self.output.y + self.output.height) {
+                return;
+            }
+        }
+    }
+
+    const pad = self.height();
+    var x: i32 = 0;
+    for (0.., config.tags) |i, tag| {
+        if (to_utf8(tag)) |utf8| {
+            defer utils.allocator.free(utf8);
+
+            const text = self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
+                log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
+                return;
+            };
+            defer text.destroy();
+
+            const tw: i32 = @intCast(text_width(text));
+            defer x += tw + pad;
+
+            if (pointer_x >= x and pointer_x < x + tw + pad) {
+                self.output.set_tag(@as(u32, @intCast(1)) << @as(u5, @intCast(i)));
+                break;
+            }
+        }
+    }
 }
 
 
@@ -500,6 +543,7 @@ fn show(self: *Self) !void {
     self.rwm_shell_surface_node = rwm_shell_surface_node;
     self.wp_viewport = wp_viewport;
     self.damage(.all);
+    utils.set_user_data(river.ShellSurfaceV1, rwm_shell_surface, *Self, self);
 
     if (config.bar.status != .text and !context.is_listening_status()) {
         context.start_listening_status();

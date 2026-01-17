@@ -23,6 +23,9 @@ rwm_layer_shell_seat: *river.LayerShellSeatV1,
 
 mode: ?config.Mode = null,
 focus_exclusive: bool = false,
+pointer_position: struct {
+    x: i32, y: i32,
+} = undefined,
 window_below_pointer: ?*Window = null,
 unhandled_actions: std.ArrayList(binding.Action) = undefined,
 xkb_bindings: std.EnumMap(config.Mode, std.ArrayList(*binding.XkbBinding)) = undefined,
@@ -433,6 +436,9 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
         },
         .pointer_position => |data| {
             log.debug("<{*}> pointer position: (x: {}, y: {})", .{ seat, data.x, data.y });
+
+            seat.pointer_position.x = data.x;
+            seat.pointer_position.y = data.y;
         },
         .removed => {
             log.debug("<{*}> removed", .{ seat });
@@ -443,6 +449,17 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
         },
         .shell_surface_interaction => |data| {
             log.debug("<{*}> shell surface interaction: {*}", .{ seat, data.shell_surface });
+
+            if (comptime build_options.bar_enabled) {
+                const Bar = @import("bar.zig");
+                const bar: *Bar = @ptrCast(
+                    @alignCast((data.shell_surface orelse return).getUserData())
+                );
+
+                log.debug("<{*}> interaction with {*}", .{ seat, bar });
+
+                bar.handle_click(seat);
+            }
         },
         .window_interaction => |data| {
             log.debug("<{*}> window interaction: {*}", .{ seat, data.window });
