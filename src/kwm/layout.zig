@@ -17,8 +17,8 @@ pub const scroller = @import("layout/scroller.zig");
 pub fn arrange(layout: Type, output: *Output) void {
     switch (layout) {
         .float => return,
-        .tile => config.layout.tile.arrange(output),
-        .monocle => config.layout.monocle.arrange(output),
-        .scroller => config.layout.scroller.arrange(output),
+        .tile => config.tile.arrange(output),
+        .monocle => config.monocle.arrange(output),
+        .scroller => config.scroller.arrange(output),
     }
 }

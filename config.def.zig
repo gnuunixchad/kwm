@@ -85,34 +85,29 @@ pub const border_color: BorderColor = .{
 
 
 pub const default_layout: kwm.layout.Type = .tile;
-pub var layout: struct {
-    tile: kwm.layout.tile,
-    monocle: kwm.layout.monocle,
-    scroller: kwm.layout.scroller,
-} = .{
-    .tile = .{
-        .nmaster = 1,
-        .mfact = 0.55,
-        .inner_gap = 12,
-        .outer_gap = 9,
-        .master_location = .left,
-    },
-    .monocle = .{
-        .gap = 9,
-    },
-    .scroller = .{
-        .mfact = 0.5,
-        .inner_gap = 16,
-        .outer_gap = 9,
-        .snap_to_left = false,
-    }
+pub var tile: kwm.layout.tile = .{
+    .nmaster = 1,
+    .mfact = 0.55,
+    .inner_gap = 12,
+    .outer_gap = 9,
+    .master_location = .left,
 };
+pub var monocle: kwm.layout.monocle = .{
+    .gap = 9,
+};
+pub var scroller: kwm.layout.scroller = .{
+    .mfact = 0.5,
+    .inner_gap = 16,
+    .outer_gap = 9,
+    .snap_to_left = false,
+};
+
 
 fn modify_nmaster(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
     std.debug.assert(arg.* == .i);
 
     if (state.layout == .tile) {
-        layout.tile.nmaster = @max(1, layout.tile.nmaster+arg.i);
+        tile.nmaster = @max(1, tile.nmaster+arg.i);
     }
 }
 
@@ -122,8 +117,8 @@ fn modify_mfact(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
 
     if (state.layout) |layout_t| {
         switch (layout_t) {
-            .tile => layout.tile.mfact = @min(1, @max(0, layout.tile.mfact+arg.f)),
-            .scroller => layout.scroller.mfact = @min(1, @max(0, layout.scroller.mfact+arg.f)),
+            .tile => tile.mfact = @min(1, @max(0, tile.mfact+arg.f)),
+            .scroller => scroller.mfact = @min(1, @max(0, scroller.mfact+arg.f)),
             else => {},
         }
     }
@@ -135,9 +130,9 @@ fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
 
     if (state.layout) |layout_t| {
         switch (layout_t) {
-            .tile => layout.tile.inner_gap = @max(border_width*2, layout.tile.inner_gap+arg.i),
-            .monocle => layout.monocle.gap = @max(border_width*2, layout.monocle.gap+arg.i),
-            .scroller => layout.scroller.inner_gap = @max(border_width*2, layout.scroller.inner_gap+arg.i),
+            .tile => tile.inner_gap = @max(border_width*2, tile.inner_gap+arg.i),
+            .monocle => monocle.gap = @max(border_width*2, monocle.gap+arg.i),
+            .scroller => scroller.inner_gap = @max(border_width*2, scroller.inner_gap+arg.i),
             .float => {},
         }
     }
@@ -148,7 +143,7 @@ fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) 
     std.debug.assert(arg.* == .ui);
 
     if (state.layout == .tile) {
-        layout.tile.master_location = switch (arg.ui) {
+        tile.master_location = switch (arg.ui) {
             'l' => .left,
             'r' => .right,
             'u' => .top,
@@ -163,7 +158,7 @@ fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.binding
     std.debug.assert(arg.* == .none);
 
     if (state.layout == .scroller) {
-        layout.scroller.snap_to_left = !layout.scroller.snap_to_left;
+        scroller.snap_to_left = !scroller.snap_to_left;
     }
 }
 
