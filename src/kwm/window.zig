@@ -853,7 +853,7 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
         .pointer_move_requested => |data| {
             log.debug("<{*}> pointer move requested: {*}", .{ window, data.seat });
 
-            if (!window.floating or window.output == null or window.output.?.current_layout() != .float) return;
+            if (!window.floating and (window.output != null and window.output.?.current_layout() != .float)) return;
 
             if (data.seat) |rwm_seat| {
                 const seat: *Seat = @ptrCast(
@@ -866,7 +866,7 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
         .pointer_resize_requested => |data| {
             log.debug("<{*}> pointer resize requested: {*}", .{ window, data.seat });
 
-            if (!window.floating or window.output == null or window.output.?.current_layout() != .float) return;
+            if (!window.floating and (window.output != null and window.output.?.current_layout() != .float)) return;
 
             if (data.seat) |rwm_seat| {
                 const seat: *Seat = @ptrCast(
