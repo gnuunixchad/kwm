@@ -281,6 +281,10 @@ pub fn update_bar_status(self: *Self) void {
             log.debug("read {} bytes data from fd {}", .{ nbytes, fd });
 
             if (nbytes > 0) {
+                if (nbytes < dest_buf.len) {
+                    dest_buf[nbytes] = 0;
+                }
+
                 var show_bar_num: u8 = 0;
                 var it = self.outputs.safeIterator(.forward);
                 while (it.next()) |output| {
