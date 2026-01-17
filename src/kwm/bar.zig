@@ -87,6 +87,11 @@ pub fn handle_click(self: *Self, seat: *const Seat) void {
 
     const pointer_x = seat.pointer_position.x;
     const pointer_y = seat.pointer_position.y;
+
+    // ensure in range
+    if (pointer_x < self.output.x or pointer_x > self.output.x + self.output.width) {
+        return;
+    }
     switch (config.bar.position) {
         .top => {
             if (pointer_y < self.output.y or pointer_y > self.output.y + self.height()) {
@@ -101,7 +106,7 @@ pub fn handle_click(self: *Self, seat: *const Seat) void {
     }
 
     const pad = self.height();
-    var x: i32 = 0;
+    var x: i32 = self.output.x;
     for (0.., config.tags) |i, tag| {
         if (to_utf8(tag)) |utf8| {
             defer utils.allocator.free(utf8);
