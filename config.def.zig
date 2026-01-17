@@ -139,12 +139,19 @@ pub var scroller: kwm.layout.scroller = .{
     .outer_gap = 9,
     .snap_to_left = false,
 };
-pub const layout_tag: std.EnumMap(kwm.layout.Type, []const u8) = .initFullWith(.{ 
-    .tile = "[]=",
-    .monocle = "[=]",
-    .scroller = "[==]",
-    .float = "><>",
-});
+pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
+    return switch (layout) {
+        .tile => switch (tile.master_location) {
+            .left => "[]=",
+            .right => "=[]",
+            .top => "[^]",
+            .bottom => "[_]",
+        },
+        .monocle => "[=]",
+        .scroller => if (scroller.snap_to_left) "[<-]" else "[==]",
+        .float => "><>",
+    };
+}
 
 
 fn modify_nmaster(state: *const kwm.State, arg: *const kwm.binding.Arg) void {

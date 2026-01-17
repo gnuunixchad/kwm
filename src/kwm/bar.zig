@@ -441,7 +441,7 @@ fn render_dynamic_component(self: *Self) void {
 
     x += self.render_str(
         buffer,
-        config.layout_tag.getAssertContains(self.output.current_layout()),
+        config.layout_tag(self.output.current_layout()),
         &normal_fg,
         x+@as(i16, @intCast(@divFloor(pad, 2))),
         y,
