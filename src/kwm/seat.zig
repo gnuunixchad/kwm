@@ -1,5 +1,6 @@
 const Self = @This();
 
+const build_options = @import("build_options");
 const std = @import("std");
 const log = std.log.scoped(.seat);
 
@@ -328,6 +329,13 @@ fn handle_actions(self: *Self) void {
             .switch_layout => |data| {
                 if (context.current_output) |output| {
                     output.set_current_layout(data.layout);
+                }
+            },
+            .toggle_bar => {
+                if (comptime build_options.bar_enabled) {
+                    if (context.current_output) |output| {
+                        output.bar.toggle();
+                    }
                 }
             },
             .custom_fn => |data| {

@@ -70,6 +70,7 @@ pub const Action = union(enum) {
     toggle_swallow,
     zoom,
     switch_layout: struct { layout: layout.Type },
+    toggle_bar,
     custom_fn: struct {
         arg: Arg,
         func: *const fn(*const types.State, *const Arg) void,
