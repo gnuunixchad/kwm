@@ -339,6 +339,8 @@ fn handle_actions(self: *Self) void {
                     if (context.current_output) |output| {
                         output.bar.toggle();
                     }
+                } else {
+                    log.warn("`toggle_bar` while bar disabled", .{});
                 }
             },
             .custom_fn => |data| {
