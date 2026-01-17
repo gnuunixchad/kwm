@@ -42,8 +42,8 @@ pub fn init(self: *Self, parent: *wl.Surface) !void {
 pub fn deinit(self: *Self) void {
     log.debug("<{*}> deinit", .{ self });
 
-    self.wl_surface.destroy();
     self.wl_subsurface.destroy();
+    self.wl_surface.destroy();
     self.buffers[0].deinit();
     self.buffers[1].deinit();
 }

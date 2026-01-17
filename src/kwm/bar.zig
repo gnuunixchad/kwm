@@ -26,10 +26,10 @@ pub var status_buffer = [1]u8 { 0 } ** 256;
 
 font: *fcft.Font,
 
-wl_surface: *wl.Surface,
-rwm_shell_surface: *river.ShellSurfaceV1,
-rwm_shell_surface_node: *river.NodeV1,
-wp_viewport: *wp.Viewport,
+wl_surface: *wl.Surface = undefined,
+rwm_shell_surface: *river.ShellSurfaceV1 = undefined,
+rwm_shell_surface_node: *river.NodeV1 = undefined,
+wp_viewport: *wp.Viewport = undefined,
 static_component: Component = undefined,
 dynamic_component: Component = undefined,
 
@@ -42,49 +42,28 @@ hided: bool = !config.bar.show_default,
 pub fn init(self: *Self, output: *Output) !void {
     log.debug("<{*}> init", .{ self });
 
-    const context = Context.get();
-
     const font = load_font(output.scale) catch unreachable;
     errdefer font.destroy();
 
-    const wl_surface = try context.wl_compositor.createSurface();
-    errdefer wl_surface.destroy();
-
-    const rwm_shell_surface = try context.rwm.getShellSurface(wl_surface);
-    errdefer rwm_shell_surface.destroy();
-
-    const rwm_shell_surface_node = try rwm_shell_surface.getNode();
-    errdefer rwm_shell_surface_node.destroy();
-
-    const wp_viewport = try context.wp_viewporter.getViewport(wl_surface);
-    errdefer wp_viewport.destroy();
-
     self.* = .{
         .font = font,
-        .wl_surface = wl_surface,
-        .rwm_shell_surface = rwm_shell_surface,
-        .rwm_shell_surface_node = rwm_shell_surface_node,
-        .wp_viewport = wp_viewport,
         .output = output,
     };
 
-    try self.static_component.init(wl_surface);
-    errdefer self.static_component.deinit();
-
-    try self.dynamic_component.init(wl_surface);
-    errdefer self.dynamic_component.deinit();
+    if (!self.hided) {
+        try self.show();
+    }
 }
 
 
 pub fn deinit(self: *Self) void {
     log.debug("<{*}> deinit", .{ self });
 
+    if (!self.hided) {
+        self.hided = true;
+        self.hide();
+    }
     self.font.destroy();
-    self.wl_surface.destroy();
-    self.rwm_shell_surface.destroy();
-    self.rwm_shell_surface_node.destroy();
-    self.static_component.deinit();
-    self.dynamic_component.deinit();
 }
 
 
@@ -99,6 +78,22 @@ pub fn reload_font(self: *Self) void {
     const font = load_font(self.output.scale) catch return;
     self.font.destroy();
     self.font = font;
+}
+
+
+pub fn toggle(self: *Self) void {
+    log.debug("<{*}> toggle: {}", .{ self, !self.hided });
+
+    self.hided = !self.hided;
+    if (self.hided) {
+        self.hide();
+    } else {
+        self.show() catch |err| {
+            self.hided = true;
+            log.err("<{*}> failed to show: {}", .{ self, err });
+            return;
+        };
+    }
 }
 
 
@@ -472,6 +467,68 @@ fn render_dynamic_component(self: *Self) void {
     }
 
     self.dynamic_component.render(buffer);
+}
+
+
+fn show(self: *Self) !void {
+    std.debug.assert(!self.hided);
+
+    log.debug("<{*}> show", .{ self });
+
+    const context = Context.get();
+
+    const wl_surface = try context.wl_compositor.createSurface();
+    errdefer wl_surface.destroy();
+
+    const rwm_shell_surface = try context.rwm.getShellSurface(wl_surface);
+    errdefer rwm_shell_surface.destroy();
+
+    const rwm_shell_surface_node = try rwm_shell_surface.getNode();
+    errdefer rwm_shell_surface_node.destroy();
+
+    const wp_viewport = try context.wp_viewporter.getViewport(wl_surface);
+    errdefer wp_viewport.destroy();
+
+    try self.static_component.init(wl_surface);
+    errdefer self.static_component.deinit();
+
+    try self.dynamic_component.init(wl_surface);
+    errdefer self.dynamic_component.deinit();
+
+    self.wl_surface = wl_surface;
+    self.rwm_shell_surface = rwm_shell_surface;
+    self.rwm_shell_surface_node = rwm_shell_surface_node;
+    self.wp_viewport = wp_viewport;
+    self.damage(.all);
+
+    if (config.bar.status != .text and !context.is_listening_status()) {
+        context.start_listening_status();
+    }
+}
+
+
+fn hide(self: *Self) void {
+    std.debug.assert(self.hided);
+
+    log.debug("<{*}> hide", .{ self });
+
+    self.static_component.deinit();
+    self.static_component = undefined;
+
+    self.dynamic_component.deinit();
+    self.dynamic_component = undefined;
+
+    self.wp_viewport.destroy();
+    self.wp_viewport = undefined;
+
+    self.rwm_shell_surface.destroy();
+    self.rwm_shell_surface = undefined;
+
+    self.rwm_shell_surface_node.destroy();
+    self.rwm_shell_surface_node = undefined;
+
+    self.wl_surface.destroy();
+    self.wl_surface = undefined;
 }
 
 

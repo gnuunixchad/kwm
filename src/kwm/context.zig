@@ -78,6 +78,10 @@ pub fn init(
     // initialize once
     if (ctx != null) return;
 
+    if (comptime build_options.bar_enabled) {
+        _ = @import("fcft").init(.auto, false, .err);
+    }
+
     log.info("init context", .{});
 
     ctx = .{
@@ -125,14 +129,6 @@ pub fn init(
         ctx.?.startup_processes[i] = ctx.?.spawn(cmd);
     }
 
-    if (comptime build_options.bar_enabled) {
-        _ = @import("fcft").init(.auto, false, .err);
-
-        if (config.bar.show_default) {
-            ctx.?.start_listening_status();
-        }
-    }
-
     rwm.setListener(*Self, rwm_listener, &ctx.?);
     rwm_input_manager.setListener(*Self, rwm_input_manager_listener, &ctx.?);
     rwm_libinput_config.setListener(*Self, rwm_libinput_config_listener, &ctx.?);
@@ -143,6 +139,10 @@ pub fn deinit() void {
     std.debug.assert(ctx != null);
 
     log.info("deinit context", .{});
+
+    if (comptime build_options.bar_enabled) {
+        @import("fcft").fini();
+    }
 
     defer ctx = null;
 
@@ -202,9 +202,7 @@ pub fn deinit() void {
         ctx.?.libinput_devices.init();
     }
 
-    if (comptime build_options.bar_enabled) {
-        @import("fcft").fini();
-
+    if (ctx.?.is_listening_status()) {
         ctx.?.stop_listening_status();
     }
 
@@ -261,6 +259,11 @@ pub fn stop_listening_status(self: *Self) void {
 }
 
 
+pub inline fn is_listening_status(self: *Self) bool {
+    return self.bar_status_fd != null;
+}
+
+
 pub fn update_bar_status(self: *Self) void {
     if (comptime build_options.bar_enabled) {
         if (self.bar_status_fd) |fd| {
@@ -278,12 +281,17 @@ pub fn update_bar_status(self: *Self) void {
             log.debug("read {} bytes data from fd {}", .{ nbytes, fd });
 
             if (nbytes > 0) {
+                var show_bar_num: u8 = 0;
                 var it = self.outputs.safeIterator(.forward);
                 while (it.next()) |output| {
                     output.bar.damage(.status);
+
+                    if (!output.bar.hided) {
+                        show_bar_num += 1;
+                    }
                 }
 
-                self.rwm.manageDirty();
+                if (show_bar_num > 0) self.rwm.manageDirty();
             } else {
                 self.stop_listening_status();
             }
