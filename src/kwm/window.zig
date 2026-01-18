@@ -108,6 +108,7 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
     defer log.debug("<{*}> created", .{ window });
 
     const rwm_window_node = try rwm_window.getNode();
+    errdefer rwm_window_node.destroy();
 
     window.* = .{
         .rwm_window = rwm_window,

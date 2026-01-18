@@ -41,6 +41,7 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
     const context = Context.get();
 
     const rwm_layer_shell_seat = try context.rwm_layer_shell.getSeat(rwm_seat);
+    errdefer rwm_layer_shell_seat.destroy();
 
     seat.* = .{
         .rwm_seat = rwm_seat,
