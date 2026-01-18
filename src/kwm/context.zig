@@ -33,6 +33,7 @@ wl_compositor: *wl.Compositor,
 wl_subcompositor: *wl.Subcompositor,
 wl_shm: *wl.Shm,
 wp_viewporter: *wp.Viewporter,
+wp_fractional_scale_manager: *wp.FractionalScaleManagerV1,
 wp_single_pixel_buffer_manager: *wp.SinglePixelBufferManagerV1,
 rwm: *river.WindowManagerV1,
 rwm_xkb_bindings: *river.XkbBindingsV1,
@@ -68,6 +69,7 @@ pub fn init(
     wl_subcompositor: *wl.Subcompositor,
     wl_shm: *wl.Shm,
     wp_viewporter: *wp.Viewporter,
+    wp_fractional_scale_manager: *wp.FractionalScaleManagerV1,
     wp_single_pixel_buffer_manager: *wp.SinglePixelBufferManagerV1,
     rwm: *river.WindowManagerV1,
     rwm_xkb_bindings: *river.XkbBindingsV1,
@@ -90,6 +92,7 @@ pub fn init(
         .wl_subcompositor = wl_subcompositor,
         .wl_shm = wl_shm,
         .wp_viewporter = wp_viewporter,
+        .wp_fractional_scale_manager = wp_fractional_scale_manager,
         .wp_single_pixel_buffer_manager = wp_single_pixel_buffer_manager,
         .rwm = rwm,
         .rwm_xkb_bindings = rwm_xkb_bindings,
@@ -151,6 +154,7 @@ pub fn deinit() void {
     ctx.?.wl_subcompositor.destroy();
     ctx.?.wl_shm.destroy();
     ctx.?.wp_viewporter.destroy();
+    ctx.?.wp_fractional_scale_manager.destroy();
     ctx.?.wp_single_pixel_buffer_manager.destroy();
     ctx.?.rwm.destroy();
     ctx.?.rwm_xkb_bindings.destroy();

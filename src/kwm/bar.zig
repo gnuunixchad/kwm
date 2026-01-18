@@ -31,11 +31,13 @@ wl_surface: *wl.Surface = undefined,
 rwm_shell_surface: *river.ShellSurfaceV1 = undefined,
 rwm_shell_surface_node: *river.NodeV1 = undefined,
 wp_viewport: *wp.Viewport = undefined,
+wp_fractional_scale: *wp.FractionalScaleV1 = undefined,
 static_component: Component = undefined,
 dynamic_component: Component = undefined,
 
 output: *Output,
 
+scale: u32,
 backgournd_damaged: bool = true,
 hided: bool = !config.bar.show_default,
 
@@ -43,12 +45,14 @@ hided: bool = !config.bar.show_default,
 pub fn init(self: *Self, output: *Output) !void {
     log.debug("<{*}> init", .{ self });
 
-    const font = load_font(output.scale) catch unreachable;
+    const scale = 120;
+    const font = load_font(scale) catch unreachable;
     errdefer font.destroy();
 
     self.* = .{
         .font = font,
         .output = output,
+        .scale = scale,
     };
 
     if (!self.hided) {
@@ -70,15 +74,6 @@ pub fn deinit(self: *Self) void {
 
 pub inline fn height(self: *Self) i32 {
     return self.font.height;
-}
-
-
-pub fn reload_font(self: *Self) void {
-    log.debug("<{*}> reload font", .{ self });
-
-    const font = load_font(self.output.scale) catch return;
-    self.font.destroy();
-    self.font = font;
 }
 
 
@@ -537,6 +532,9 @@ fn show(self: *Self) !void {
     const wp_viewport = try context.wp_viewporter.getViewport(wl_surface);
     errdefer wp_viewport.destroy();
 
+    const wp_fractional_scale = try context.wp_fractional_scale_manager.getFractionalScale(wl_surface);
+    errdefer wp_fractional_scale.destroy();
+
     try self.static_component.init(wl_surface);
     errdefer self.static_component.deinit();
 
@@ -547,8 +545,10 @@ fn show(self: *Self) !void {
     self.rwm_shell_surface = rwm_shell_surface;
     self.rwm_shell_surface_node = rwm_shell_surface_node;
     self.wp_viewport = wp_viewport;
-    self.damage(.all);
+    self.wp_fractional_scale = wp_fractional_scale;
     utils.set_user_data(river.ShellSurfaceV1, rwm_shell_surface, *Self, self);
+    wp_fractional_scale.setListener(*Self, wp_fractional_scale_listener, self);
+    self.damage(.all);
 
     if (config.bar.status != .text and !context.is_listening_status()) {
         context.start_listening_status();
@@ -570,6 +570,9 @@ fn hide(self: *Self) void {
     self.wp_viewport.destroy();
     self.wp_viewport = undefined;
 
+    self.wp_fractional_scale.destroy();
+    self.wp_fractional_scale = undefined;
+
     self.rwm_shell_surface.destroy();
     self.rwm_shell_surface = undefined;
 
@@ -578,6 +581,32 @@ fn hide(self: *Self) void {
 
     self.wl_surface.destroy();
     self.wl_surface = undefined;
+}
+
+
+fn reload_font(self: *Self) void {
+    log.debug("<{*}> reload font", .{ self });
+
+    const font = load_font(self.scale) catch return;
+    self.font.destroy();
+    self.font = font;
+}
+
+
+fn wp_fractional_scale_listener(wp_fractional_scale: *wp.FractionalScaleV1, event: wp.FractionalScaleV1.Event, bar: *Self) void {
+    std.debug.assert(wp_fractional_scale == bar.wp_fractional_scale);
+
+    switch (event) {
+        .preferred_scale => |data| {
+            log.debug("<{*}> preferred_scale: {}", .{ bar, data.scale });
+
+            if (data.scale != bar.scale) {
+                bar.scale = data.scale;
+                bar.reload_font();
+                bar.damage(.all);
+            }
+        }
+    }
 }
 
 
@@ -600,11 +629,11 @@ fn next_buffer(self: *Self, @"type": enum { static, dynamic }, width: i32, heigh
 }
 
 
-fn load_font(scale: i32) !*fcft.Font {
+fn load_font(scale: u32) !*fcft.Font {
     var buffer: [12]u8 = undefined;
     const backup_font = "monospace:size=10";
     var fonts = [_][*:0]const u8 { @ptrCast(config.bar.font.ptr), backup_font };
-    const attr = try fmt.bufPrint(&buffer, "dpi={}", .{ scale*96 });
+    const attr = try fmt.bufPrint(&buffer, "dpi={}", .{ @divFloor(scale*96, 120) });
     const font = fcft.Font.fromName(&fonts, @ptrCast(attr)) catch |err| {
         log.err("load font `{s}` and backup font `{s}` with attr: {s} failed: {}", .{ config.bar.font, backup_font, attr, err });
         return err;

@@ -27,6 +27,7 @@ pub fn build(b: *std.Build) void {
     const scanner = wayland.Scanner.create(b, .{});
 
     scanner.addSystemProtocol("stable/viewporter/viewporter.xml");
+    scanner.addSystemProtocol("staging/fractional-scale/fractional-scale-v1.xml");
     scanner.addSystemProtocol("staging/single-pixel-buffer/single-pixel-buffer-v1.xml");
     scanner.addCustomProtocol(b.path("protocol/river-window-management-v1.xml"));
     scanner.addCustomProtocol(b.path("protocol/river-xkb-bindings-v1.xml"));
@@ -39,6 +40,7 @@ pub fn build(b: *std.Build) void {
     scanner.generate("wl_shm", 1);
     scanner.generate("wl_output", 4);
     scanner.generate("wp_viewporter", 1);
+    scanner.generate("wp_fractional_scale_manager_v1", 1);
     scanner.generate("wp_single_pixel_buffer_manager_v1", 1);
     scanner.generate("river_window_manager_v1", 2);
     scanner.generate("river_xkb_bindings_v1", 1);

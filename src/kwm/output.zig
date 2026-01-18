@@ -32,7 +32,6 @@ layout_tag: [32]layout.Type = .{ config.default_layout } ** 32,
 fullscreen_window: ?*Window = null,
 
 name: ?[]const u8 = null,
-scale: i32 = 1,
 x: i32 = undefined,
 y: i32 = undefined,
 width: i32 = undefined,
@@ -119,16 +118,6 @@ pub inline fn exclusive_height(self: *Self) i32 {
             if (self.bar.hided) self.height
             else self.height - self.bar.height()
         else self.height;
-}
-
-
-pub fn refresh_bar(self: *Self) void {
-    log.debug("<{*}> refresh bar", .{ self });
-
-    if (comptime @TypeOf(self.bar) != void) {
-        self.bar.reload_font();
-        self.bar.damage(.all);
-    }
 }
 
 
@@ -301,12 +290,6 @@ fn wl_output_listener(wl_output: *wl.Output, event: wl.Output.Event, output: *Se
         },
         .scale => |data| {
             log.debug("<{*}> scale: {}", .{ output, data.factor });
-
-            if (output.scale != data.factor) {
-                output.scale = data.factor;
-                output.refresh_bar();
-                context.rwm.manageDirty();
-            }
         },
         else => {}
     }
