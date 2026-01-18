@@ -591,7 +591,7 @@ pub inline fn set_current_seat(self: *Self, seat: ?*Seat) void {
 
 
 pub fn spawn(self: *Self, argv: []const []const u8) ?process.Child {
-    if (builtins.mode == .Debug) {
+    if (comptime builtins.mode == .Debug) {
         const cmd = mem.join(utils.allocator, " ", argv) catch |err| {
             log.err("join failed: {}", .{ err });
             return null;
@@ -604,7 +604,7 @@ pub fn spawn(self: *Self, argv: []const []const u8) ?process.Child {
     var child = process.Child.init(argv, utils.allocator);
     child.pgid = 0;
     child.env_map = &self.env;
-    child.cwd = switch (config.working_directory) {
+    child.cwd = switch (comptime config.working_directory) {
         .none => null,
         .home => self.env.get("HOME"),
         .custom => |dir| dir,
