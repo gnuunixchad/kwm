@@ -4,6 +4,8 @@ A window manager based on River Wayland Compositor, written in Zig
 
 ![tile](./images/tile.png)
 
+![grid](./images/grid.png)
+
 ![monocle](./images/monocle.png)
 
 ![scroller](./images/scroller.png)
@@ -15,7 +17,7 @@ A window manager based on River Wayland Compositor, written in Zig
 
 ## Features
 
-**Multiple layout:** tile, monocle, scroller, floating
+**Multiple layout:** tile, grid, monocle, scroller, floating
 
 **Tag:** base tags not workspaces (supports separate window layouts for each tag)
 
