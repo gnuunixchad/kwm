@@ -96,18 +96,18 @@ pub const sloppy_focus = false;
 pub const bar: BarConfig = .{
     .show_default = true,
     .position = .top,
-    .font = "monospace:size=10",
+    .font = "SourceCodePro:size=13:weight=Medium",
     .color = .{
         .normal = .{
-            .fg = 0x828bb8ff,
-            .bg = 0x1b1d2bd0,
+            .fg = 0xbbbbbbff,
+            .bg = 0x000000ff,
         },
         .select = .{
-            .fg = 0x444a73ff,
-            .bg = 0xc8d3f5d0,
+            .fg = 0xeeeeeeff,
+            .bg = 0x427b58ff,
         },
     },
-    .status = .{ .text = "kwm" }, // .stdin or .{ .fifo = "fifo file path" }
+    .status = .{ .stdin }, // .stdin or .{ .fifo = "fifo file path" }
 };
 
 pub var auto_swallow = true;
