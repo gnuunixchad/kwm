@@ -126,22 +126,22 @@ pub const default_layout: kwm.layout.Type = .tile;
 pub var tile: kwm.layout.tile = .{
     .nmaster = 1,
     .mfact = 0.50,
-    .inner_gap = 12,
-    .outer_gap = 9,
+    .inner_gap = 0,
+    .outer_gap = 0,
     .master_location = .left,
 };
 pub var grid: kwm.layout.grid = .{
-    .outer_gap = 9,
-    .inner_gap = 12,
+    .outer_gap = 0,
+    .inner_gap = 0,
     .direction = .horizontal,
 };
 pub var monocle: kwm.layout.monocle = .{
-    .gap = 9,
+    .gap = 0,
 };
 pub var scroller: kwm.layout.scroller = .{
     .mfact = 0.5,
-    .inner_gap = 16,
-    .outer_gap = 9,
+    .inner_gap = 0,
+    .outer_gap = 0,
     .snap_to_left = false,
 };
 pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
