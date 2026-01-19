@@ -114,7 +114,7 @@ pub var auto_swallow = true;
 
 pub const default_window_decoration: kwm.WindowDecoration = .ssd;
 
-pub var border_width: i32 = 5;
+pub var border_width: i32 = 2;
 pub const border_color: BorderColor = .{
     .focus = 0x427b58ff,
     .unfocus = 0x000000ff,
