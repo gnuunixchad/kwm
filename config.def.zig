@@ -107,7 +107,7 @@ pub const bar: BarConfig = .{
             .bg = 0x427b58ff,
         },
     },
-    .status = .{ .stdin }, // .stdin or .{ .fifo = "fifo file path" }
+    .status = .stdin // .stdin or .{ .fifo = "fifo file path" }
 };
 
 pub var auto_swallow = true;
