@@ -555,12 +555,12 @@ pub const xkb_bindings = blk: {
         .{
             .keysym = Keysym.p,
             .modifiers = Super,
-            .action = .{ .spawn_shell = .{ .cmd = "wmenu-run" } },
+            .action = .{ .spawn_shell = .{ .cmd = "wmenu-run-color" } },
         },
         .{
             .keysym = Keysym.Return,
             .modifiers = Super|Shift,
-            .action = .{ .spawn = .{ .argv = &[_][]const u8 { "foot" } } },
+            .action = .{ .spawn = .{ .argv = &[_][]const u8 { "footclient" } } },
         },
     };
 
