@@ -130,6 +130,11 @@ pub var tile: kwm.layout.tile = .{
     .outer_gap = 9,
     .master_location = .left,
 };
+pub var grid: kwm.layout.grid = .{
+    .outer_gap = 9,
+    .inner_gap = 12,
+    .direction = .horizontal,
+};
 pub var monocle: kwm.layout.monocle = .{
     .gap = 9,
 };
@@ -146,6 +151,10 @@ pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
             .right => "=[]",
             .top => "[^]",
             .bottom => "[_]",
+        },
+        .grid => switch (grid.direction) {
+            .horizontal => "|+|",
+            .vertical => "|||",
         },
         .monocle => "[=]",
         .scroller => if (scroller.snap_to_left) "[<-]" else "[==]",
@@ -182,6 +191,7 @@ fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
     if (state.layout) |layout_t| {
         switch (layout_t) {
             .tile => tile.inner_gap = @max(border_width*2, tile.inner_gap+arg.i),
+            .grid => grid.inner_gap = @max(border_width*2, grid.inner_gap+arg.i),
             .monocle => monocle.gap = @max(border_width*2, monocle.gap+arg.i),
             .scroller => scroller.inner_gap = @max(border_width*2, scroller.inner_gap+arg.i),
             .float => {},
@@ -202,6 +212,16 @@ fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) 
             else => return,
         };
         state.refresh_current_bar();
+    }
+}
+
+
+fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.binding.Arg) void {
+    if (state.layout == .grid) {
+        grid.direction = switch (grid.direction) {
+            .horizontal => .vertical,
+            .vertical => .horizontal,
+        };
     }
 }
 
@@ -488,6 +508,11 @@ pub const xkb_bindings = blk: {
             .action = .{ .custom_fn = .{ .func = &toggle_auto_swallow, .arg = .none } }
         },
         .{
+            .keysym = Keysym.g,
+            .modifiers = Super|Shift,
+            .action = .{ .custom_fn = .{ .func = &toggle_grid_direction, .arg = .none } },
+        },
+        .{
             .keysym = Keysym.h,
             .modifiers = Super|Shift,
             .action = .{ .custom_fn = .{ .func = &toggle_scroller_snap_to_left, .arg = .none } },
@@ -501,6 +526,11 @@ pub const xkb_bindings = blk: {
             .keysym = Keysym.t,
             .modifiers = Super,
             .action = .{ .switch_layout = .{ .layout = .tile } },
+        },
+        .{
+            .keysym = Keysym.g,
+            .modifiers = Super,
+            .action = .{ .switch_layout = .{ .layout = .grid } },
         },
         .{
             .keysym = Keysym.m,
