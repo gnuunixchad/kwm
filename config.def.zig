@@ -116,9 +116,9 @@ pub const default_window_decoration: kwm.WindowDecoration = .ssd;
 
 pub var border_width: i32 = 5;
 pub const border_color: BorderColor = .{
-    .focus = 0xffc777ff,
-    .unfocus = 0x828bb8ff,
-    .urgent = 0xff0000ff,
+    .focus = 0x427b58ff,
+    .unfocus = 0x000000ff,
+    .urgent = 0xeeeeeeff,
 };
 
 
