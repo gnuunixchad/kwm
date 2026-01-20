@@ -1,4 +1,4 @@
-# kwm - kewuaa's Window Manager
+# <img src="./misc/kwm-repo.png" width="24"/> My build of [kwm](https://github.com/kewuaa/kwm) - kewuaa's Window Manager
 
 A window manager based on River Wayland Compositor, written in Zig
 
