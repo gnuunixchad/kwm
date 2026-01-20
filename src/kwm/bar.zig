@@ -184,7 +184,7 @@ pub fn render(self: *Self) void {
 
 
 inline fn get_pad(self: *Self) u16 {
-    return @intCast(self.height());
+    return @intCast(@divFloor(self.height() * 3, 4)); // 0.75 = 3/4
 }
 
 
