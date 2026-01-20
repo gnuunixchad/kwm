@@ -588,6 +588,11 @@ pub const xkb_bindings = blk: {
             .action = .{ .spawn_shell = .{ .cmd = "footclient sh -c 'sleep 0.03 && lf'" } },
         },
         .{
+            .keysym = Keysym.q,
+            .modifiers = Super,
+            .action = .{ .spawn = .{ .argv = &[_][]const u8 { "qutebrowser" } } },
+        },
+        .{
             .keysym = Keysym.minus,
             .modifiers = Super,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" } },
