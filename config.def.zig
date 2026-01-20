@@ -423,14 +423,14 @@ pub const xkb_bindings = blk: {
             .action = .{ .custom_fn = .{ .func = &modify_nmaster, .arg = .{ .i = -1 } } },
         },
         .{
-            .keysym = Keysym.equal,
-            .modifiers = Super|Alt,
-            .action = .{ .custom_fn = .{ .func = &modify_gap, .arg = .{ .i = 1 } } },
+            .keysym = Keysym.bracketleft,
+            .modifiers = Super|Ctrl,
+            .action = .{ .custom_fn = .{ .func = &modify_gap, .arg = .{ .i = 2 } } },
         },
         .{
-            .keysym = Keysym.minus,
-            .modifiers = Super|Alt,
-            .action = .{ .custom_fn = .{ .func = &modify_gap, .arg = .{ .i = -1 } } },
+            .keysym = Keysym.bracketright,
+            .modifiers = Super|Ctrl,
+            .action = .{ .custom_fn = .{ .func = &modify_gap, .arg = .{ .i = -2 } } },
         },
         .{
             .keysym = Keysym.j,
