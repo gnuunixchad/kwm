@@ -14,6 +14,7 @@ const utils = @import("utils");
 const binding = @import("binding.zig");
 const Window = @import("window.zig");
 const Context = @import("context.zig");
+const ShellSurface = @import("shell_surface.zig");
 
 
 link: wl.list.Link = undefined,
@@ -453,15 +454,18 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
         .shell_surface_interaction => |data| {
             log.debug("<{*}> shell surface interaction: {*}", .{ seat, data.shell_surface });
 
-            if (comptime build_options.bar_enabled) {
-                const Bar = @import("bar.zig");
-                const bar: *Bar = @ptrCast(
-                    @alignCast((data.shell_surface orelse return).getUserData())
-                );
+            const shell_surface: *ShellSurface = @ptrCast(
+                @alignCast((data.shell_surface orelse return).getUserData())
+            );
 
-                log.debug("<{*}> interaction with {*}", .{ seat, bar });
+            log.debug("<{*}> interaction with {*}", .{ seat, shell_surface });
 
-                bar.handle_click(seat);
+            switch (shell_surface.type) {
+                .bar => |bar| if (comptime build_options.bar_enabled) {
+                    log.debug("<{*}> interaction with {*}", .{ seat, bar });
+
+                    bar.handle_click(seat);
+                } else unreachable,
             }
         },
         .window_interaction => |data| {

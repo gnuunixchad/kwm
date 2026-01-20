@@ -19,6 +19,7 @@ const config = @import("config");
 const Context = @import("context.zig");
 const Seat = @import("seat.zig");
 const Output = @import("output.zig");
+const ShellSurface = @import("shell_surface.zig");
 const Buffer = @import("bar/buffer.zig");
 const Component = @import("bar/component.zig");
 
@@ -28,8 +29,7 @@ pub var status_buffer = [1]u8 { 0 } ** 256;
 font: *fcft.Font,
 
 wl_surface: *wl.Surface = undefined,
-rwm_shell_surface: *river.ShellSurfaceV1 = undefined,
-rwm_shell_surface_node: *river.NodeV1 = undefined,
+shell_surface: ShellSurface = undefined,
 wp_viewport: *wp.Viewport = undefined,
 wp_fractional_scale: *wp.FractionalScaleV1 = undefined,
 static_component: Component = undefined,
@@ -189,9 +189,9 @@ fn render_background(self: *Self) void {
     const context = Context.get();
     const h = self.height();
 
-    self.rwm_shell_surface.syncNextCommit();
-    self.rwm_shell_surface_node.placeBottom();
-    self.rwm_shell_surface_node.setPosition(self.output.x, self.output.y + switch (config.bar.position) {
+    self.shell_surface.sync_next_commit();
+    self.shell_surface.place(.bottom);
+    self.shell_surface.set_position(self.output.x, self.output.y + switch (config.bar.position) {
         .top => 0,
         .bottom => self.output.height - self.height(),
     });
@@ -525,11 +525,8 @@ fn show(self: *Self) !void {
     const wl_surface = try context.wl_compositor.createSurface();
     errdefer wl_surface.destroy();
 
-    const rwm_shell_surface = try context.rwm.getShellSurface(wl_surface);
-    errdefer rwm_shell_surface.destroy();
-
-    const rwm_shell_surface_node = try rwm_shell_surface.getNode();
-    errdefer rwm_shell_surface_node.destroy();
+    try self.shell_surface.init(wl_surface, .{ .bar = self });
+    errdefer self.shell_surface.deinit();
 
     const wp_viewport = try context.wp_viewporter.getViewport(wl_surface);
     errdefer wp_viewport.destroy();
@@ -544,11 +541,8 @@ fn show(self: *Self) !void {
     errdefer self.dynamic_component.deinit();
 
     self.wl_surface = wl_surface;
-    self.rwm_shell_surface = rwm_shell_surface;
-    self.rwm_shell_surface_node = rwm_shell_surface_node;
     self.wp_viewport = wp_viewport;
     self.wp_fractional_scale = wp_fractional_scale;
-    utils.set_user_data(river.ShellSurfaceV1, rwm_shell_surface, *Self, self);
     wp_fractional_scale.setListener(*Self, wp_fractional_scale_listener, self);
     self.damage(.all);
 
@@ -575,11 +569,8 @@ fn hide(self: *Self) void {
     self.wp_fractional_scale.destroy();
     self.wp_fractional_scale = undefined;
 
-    self.rwm_shell_surface.destroy();
-    self.rwm_shell_surface = undefined;
-
-    self.rwm_shell_surface_node.destroy();
-    self.rwm_shell_surface_node = undefined;
+    self.shell_surface.deinit();
+    self.shell_surface = undefined;
 
     self.wl_surface.destroy();
     self.wl_surface = undefined;

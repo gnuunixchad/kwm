@@ -1,11 +1,21 @@
 const build_options = @import("build_options");
 
+const wayland = @import("wayland");
+const river = wayland.client.river;
+
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
 
 pub const Direction = enum {
     forward,
     reverse,
+};
+
+pub const PlacePosition = union(enum) {
+    top,
+    bottom,
+    above: *river.NodeV1,
+    below: *river.NodeV1,
 };
 
 pub const State = struct {

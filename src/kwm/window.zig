@@ -224,17 +224,12 @@ pub fn toggle_tag(self: *Self, mask: u32) void {
 }
 
 
-pub fn place(self: *Self, pos: union(enum) {
-    top,
-    bottom,
-    above: *Self,
-    below: *Self,
-}) void {
+pub fn place(self: *Self, pos: types.PlacePosition) void {
     switch (pos) {
         .top => self.rwm_window_node.placeTop(),
         .bottom => self.rwm_window_node.placeBottom(),
-        .above => |window| self.rwm_window_node.placeAbove(window.rwm_window_node),
-        .below => |window| self.rwm_window_node.placeBelow(window.rwm_window_node),
+        .above => |node| self.rwm_window_node.placeAbove(node),
+        .below => |node| self.rwm_window_node.placeBelow(node),
     }
 }
 
