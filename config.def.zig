@@ -722,6 +722,21 @@ pub const xkb_bindings = blk: {
             .modifiers = Super|Ctrl,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/address --multi" } },
         },
+        .{
+            .keysym = Keysym.space,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "mpc toggle && ${HOME}/.local/bin/lsmus" } },
+        },
+        .{
+            .keysym = Keysym.p,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "mpc prev" } },
+        },
+        .{
+            .keysym = Keysym.n,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "mpc next" } },
+        },
     };
 
     const tag_num = tags.len;
