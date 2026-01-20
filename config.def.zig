@@ -373,7 +373,7 @@ pub const xkb_bindings = blk: {
             .action = .close,
         },
         .{
-            .keysym = Keysym.Return,
+            .keysym = Keysym.z,
             .modifiers = Super,
             .action = .zoom,
         },
@@ -559,7 +559,7 @@ pub const xkb_bindings = blk: {
         },
         .{
             .keysym = Keysym.Return,
-            .modifiers = Super|Shift,
+            .modifiers = Super,
             .action = .{ .spawn = .{ .argv = &[_][]const u8 { "footclient" } } },
         },
     };
