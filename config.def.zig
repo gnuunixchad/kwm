@@ -508,7 +508,7 @@ pub const xkb_bindings = blk: {
             .action = .{ .custom_fn = .{ .func = &toggle_auto_swallow, .arg = .none } }
         },
         .{
-            .keysym = Keysym.g,
+            .keysym = Keysym.y,
             .modifiers = Super|Shift,
             .action = .{ .custom_fn = .{ .func = &toggle_grid_direction, .arg = .none } },
         },
@@ -528,7 +528,7 @@ pub const xkb_bindings = blk: {
             .action = .{ .switch_layout = .{ .layout = .tile } },
         },
         .{
-            .keysym = Keysym.g,
+            .keysym = Keysym.y,
             .modifiers = Super,
             .action = .{ .switch_layout = .{ .layout = .grid } },
         },
