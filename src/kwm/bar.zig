@@ -316,7 +316,9 @@ fn render_static_component(self: *Self) void {
     {
         var it = context.windows.safeIterator(.forward);
         while (it.next()) |window| {
-            windows_tag |= window.tag;
+            if (window.output == self.output) {
+                windows_tag |= window.tag;
+            }
         }
     }
 
