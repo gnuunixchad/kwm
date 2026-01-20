@@ -702,6 +702,11 @@ pub const xkb_bindings = blk: {
             .modifiers = Super|Ctrl,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot --all" } },
         },
+        .{
+            .keysym = Keysym.c,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/clip" } },
+        },
     };
 
     const tag_num = tags.len;
