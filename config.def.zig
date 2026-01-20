@@ -373,6 +373,11 @@ pub const xkb_bindings = blk: {
             .action = .{ .spawn = .{ .argv = &[_][]const u8 { "swaylock" } } },
         },
         .{
+            .keysym = Keysym.e,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/hibe" } },
+        },
+        .{
             .keysym = Keysym.c,
             .modifiers = Super|Shift,
             .action = .close,
