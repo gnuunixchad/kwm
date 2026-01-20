@@ -488,8 +488,8 @@ pub const xkb_bindings = blk: {
             .action = .{ .toggle_fullscreen = .{ .in_window = true } },
         },
         .{
-            .keysym = Keysym.f,
-            .modifiers = Super|Shift,
+            .keysym = Keysym.e,
+            .modifiers = Super,
             .action = .{ .toggle_fullscreen = .{} },
         },
         .{
