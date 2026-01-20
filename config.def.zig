@@ -825,11 +825,19 @@ pub const rules = [_]Rule {
     //     .scroller_mfact = 0.5
     // },
     .{ .alter_match_fn = &empty_appid_or_title, .floating = true },
-    .{ .app_id = .{ .str = "zenity" }, .floating = true },
-    .{ .app_id = .{ .str = "DesktopEditors" }, .floating = true },
-    .{ .app_id = .{ .str = "xdg-desktop-portal-gtk" }, .floating = true },
-    .{ .app_id = .{ .str = "chromium" }, .tag = 1 << 1, .scroller_mfact = 0.9 },
-    .{ .app_id = .{ .str = "foot" }, .is_terminal = true, .scroller_mfact = 0.8 },
+    .{ .title = .{ .str = "Floating_Term" }, .floating = true },
+    .{ .title = .{ .str = "Floating_IMG" }, .floating = true },
+    // GIMP
+    .{ .app_id = .compile("file-*"), .floating = true },
+    .{ .title = .{ .str = "script-fu" }, .floating = true },
+    .{ .app_id = .{ .str = "lighting" }, .title = .{ .str = "Lighting Effects" }, .floating = true },
+    // Kdenlive file chooser
+    .{ .app_id = .{ .str = "kdenlive" }, .floating = true },
+    // Code - OSS
+    .{ .app_id = .{ .str = "electron" }, .title = .{ .str = "Open Folder" }, .floating = true },
+    .{ .app_id = .{ .str = "org.fcitx.fcitx5-config-qt" }, .floating = true },
+    .{ .app_id = .{ .str = "qutebrowser" }, .tag = 1 << 1, .scroller_mfact = 0.7 },
+    .{ .app_id = .{ .str = "footclient" }, .is_terminal = true, .scroller_mfact = 0.5 },
 };
 
 // libinput config
