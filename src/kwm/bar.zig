@@ -379,7 +379,7 @@ fn render_static_component(self: *Self) void {
             _ = pixman.Image.fillRectangles(
                 .src,
                 buffer.image,
-                if (is_focused) &transparent else &select_bg,
+                &select_fg,
                 1,
                 &box,
             );
