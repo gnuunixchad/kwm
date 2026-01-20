@@ -10,6 +10,22 @@ A window manager based on River Wayland Compositor, written in Zig
 
 ![scroller](./misc/scroller.png)
 
+## usage
+For changes I've made, check [patches](./patches)
+
+Add below in  `~/.config/river/init`
+```sh
+# Start kwm with damblocks, a line generator with signaling support I wrote
+# https://codeberg.org/unixchad/damblocks
+# https://github.com/gnuunixchad/damblocks
+${HOME}/.local/bin/damblocks | /usr/local/bin/kwm
+```
+
+And run
+```sh
+exec ssh-agent river --no-xwayland
+```
+
 ## Requirements
 
 - Zig 0.15
