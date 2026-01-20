@@ -82,7 +82,17 @@ pub const working_directory: union(enum) {
 } = .home;
 
 pub const startup_cmds = [_][]const []const u8 {
-    // &[_][]const u8 { "swaybg", "-i", "/path/to/wallpaper" },
+    &[_][]const u8 { "fcitx5", "-d" },
+    &[_][]const u8 { "swayidle" },
+    &[_][]const u8 { "gammastep", "-O", "5000" },
+    &[_][]const u8 { "wl-paste", "--watch", "cliphist", "store" },
+    &[_][]const u8 { "kanshi" },
+    &[_][]const u8 { "sh", "-c", "swaybg -i ${HOME}/.local/share/wallpaper -m fill" },
+    &[_][]const u8 { "dunst" },
+    &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/foots" },
+    &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/lucia", "-d" },
+    &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/wobd" },
+    &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/mbs-cron" },
 };
 
 pub const xcursor_theme: ?XcursorTheme = null;
