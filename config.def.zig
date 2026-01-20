@@ -413,12 +413,12 @@ pub const xkb_bindings = blk: {
             .action = .{ .custom_fn = .{ .func = &modify_master_location, .arg = .{ .ui = 'l' } } },
         },
         .{
-            .keysym = Keysym.equal,
+            .keysym = Keysym.i,
             .modifiers = Super,
             .action = .{ .custom_fn = .{ .func = &modify_nmaster, .arg = .{ .i = 1 } } },
         },
         .{
-            .keysym = Keysym.minus,
+            .keysym = Keysym.d,
             .modifiers = Super,
             .action = .{ .custom_fn = .{ .func = &modify_nmaster, .arg = .{ .i = -1 } } },
         },
