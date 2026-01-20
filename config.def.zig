@@ -562,6 +562,11 @@ pub const xkb_bindings = blk: {
             .modifiers = Super,
             .action = .{ .spawn = .{ .argv = &[_][]const u8 { "footclient" } } },
         },
+        .{
+            .keysym = Keysym.r,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "footclient sh -c 'sleep 0.03 && lf'" } },
+        },
     };
 
     const tag_num = tags.len;
