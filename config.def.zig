@@ -82,7 +82,7 @@ pub const working_directory: union(enum) {
 } = .home;
 
 pub const startup_cmds = [_][]const []const u8 {
-    &[_][]const u8 { "fcitx5", "-d" },
+    &[_][]const u8 { "sh", "-c", "fcitx5 -d --verbose '*=0'" },
     &[_][]const u8 { "swayidle" },
     &[_][]const u8 { "gammastep", "-O", "5000" },
     &[_][]const u8 { "wl-paste", "--watch", "cliphist", "store" },
