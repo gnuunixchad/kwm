@@ -657,6 +657,16 @@ pub const xkb_bindings = blk: {
             .modifiers = Super|Ctrl|Shift,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --max" } },
         },
+        .{
+            .keysym = Keysym.m,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "pgrep hyprmag && killall -e hyprmag || hyprmag -r 9999 -s 2" } },
+        },
+        .{
+            .keysym = Keysym.m,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "pgrep hyprmag && killall -e hyprmag || hyprmag" } },
+        },
     };
 
     const tag_num = tags.len;
