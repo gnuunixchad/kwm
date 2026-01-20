@@ -165,7 +165,18 @@ pub fn destroy(self: *Self) void {
 pub fn set_output(self: *Self, output: ?*Output, clear_former: bool) void {
     log.debug("<{*}> set output to {*}", .{ self, output });
 
-    self.output = output;
+    if (self.output != output) {
+        if (comptime build_options.bar_enabled) {
+            if (self.output) |o| o.bar.damage(.tags);
+        }
+
+        self.output = output;
+
+        if (comptime build_options.bar_enabled) {
+            if (self.output) |o| o.bar.damage(.tags);
+        }
+    }
+
     if (clear_former) self.set_former_output(null);
 }
 

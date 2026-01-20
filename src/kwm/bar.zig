@@ -191,7 +191,7 @@ fn render_background(self: *Self) void {
 
     self.rwm_shell_surface.syncNextCommit();
     self.rwm_shell_surface_node.placeBottom();
-    self.rwm_shell_surface_node.setPosition(0, switch (config.bar.position) {
+    self.rwm_shell_surface_node.setPosition(self.output.x, self.output.y + switch (config.bar.position) {
         .top => 0,
         .bottom => self.output.height - self.height(),
     });
@@ -316,7 +316,9 @@ fn render_static_component(self: *Self) void {
     {
         var it = context.windows.safeIterator(.forward);
         while (it.next()) |window| {
-            windows_tag |= window.tag;
+            if (window.output == self.output) {
+                windows_tag |= window.tag;
+            }
         }
     }
 
