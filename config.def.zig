@@ -567,6 +567,56 @@ pub const xkb_bindings = blk: {
             .modifiers = Super,
             .action = .{ .spawn_shell = .{ .cmd = "footclient sh -c 'sleep 0.03 && lf'" } },
         },
+        .{
+            .keysym = Keysym.minus,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" } },
+        },
+        .{
+            .keysym = Keysym.equal,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus10" } },
+        },
+        .{
+            .keysym = Keysym.minus,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus" } },
+        },
+        .{
+            .keysym = Keysym.equal,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus" } },
+        },
+        .{
+            .keysym = Keysym.BackSpace,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --mute" } },
+        },
+        .{
+            .keysym = Keysym.minus,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --minus10" } },
+        },
+        .{
+            .keysym = Keysym.equal,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --plus10" } },
+        },
+        .{
+            .keysym = Keysym.minus,
+            .modifiers = Super|Ctrl|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --minus" } },
+        },
+        .{
+            .keysym = Keysym.equal,
+            .modifiers = Super|Ctrl|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --plus" } },
+        },
+        .{
+            .keysym = Keysym.BackSpace,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --mute" } },
+        },
     };
 
     const tag_num = tags.len;
