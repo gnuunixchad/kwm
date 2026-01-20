@@ -583,6 +583,11 @@ pub const xkb_bindings = blk: {
             .action = .{ .spawn = .{ .argv = &[_][]const u8 { "footclient" } } },
         },
         .{
+            .keysym = Keysym.v,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "footclient -T \"Floating_Term\" -o colors.alpha=0.9 abduco -A dvtm dvtm-status" } },
+        },
+        .{
             .keysym = Keysym.r,
             .modifiers = Super,
             .action = .{ .spawn_shell = .{ .cmd = "footclient sh -c 'sleep 0.03 && lf'" } },
