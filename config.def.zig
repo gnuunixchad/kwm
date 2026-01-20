@@ -617,6 +617,36 @@ pub const xkb_bindings = blk: {
             .modifiers = Super|Ctrl,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --mute" } },
         },
+        .{
+            .keysym = Keysym.bracketleft,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus10" } },
+        },
+        .{
+            .keysym = Keysym.bracketright,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus10" } },
+        },
+        .{
+            .keysym = Keysym.bracketleft,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus" } },
+        },
+        .{
+            .keysym = Keysym.bracketright,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus" } },
+        },
+        .{
+            .keysym = Keysym.bracketleft,
+            .modifiers = Super|Ctrl|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --min" } },
+        },
+        .{
+            .keysym = Keysym.bracketright,
+            .modifiers = Super|Ctrl|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --max" } },
+        },
     };
 
     const tag_num = tags.len;
