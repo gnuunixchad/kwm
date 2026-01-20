@@ -1,0 +1,22 @@
+commit 070e31da3a3c19e103dfe1f2e3c280a0056111f7
+Author: nate zhou <gnuunixchad@outlook.com>
+Date:   Tue Jan 20 13:08:08 2026 +0800
+
+    Mod(bar.zig): solid box color with select_fg
+
+    This changes the box color on the top-left corner of tags, to always be
+    the select_fg, like the default dwm's bar(or river-classic's dam bar).
+
+diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
+index ce190a8..9a909f9 100644
+--- a/src/kwm/bar.zig
++++ b/src/kwm/bar.zig
+@@ -379,7 +379,7 @@ fn render_static_component(self: *Self) void {
+             _ = pixman.Image.fillRectangles(
+                 .src,
+                 buffer.image,
+-                if (is_focused) &transparent else &select_bg,
++                &select_fg,
+                 1,
+                 &box,
+             );
