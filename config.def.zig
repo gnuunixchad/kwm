@@ -737,6 +737,11 @@ pub const xkb_bindings = blk: {
             .modifiers = Super|Ctrl,
             .action = .{ .spawn_shell = .{ .cmd = "mpc next" } },
         },
+        .{
+            .keysym = Keysym.s,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/wsk" } },
+        },
     };
 
     const tag_num = tags.len;
