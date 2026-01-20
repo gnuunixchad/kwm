@@ -687,6 +687,21 @@ pub const xkb_bindings = blk: {
             .modifiers = Super|Ctrl|Shift,
             .action = .{ .spawn_shell = .{ .cmd = "dunstctl close-all" } },
         },
+        .{
+            .keysym = Keysym.g,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot" } },
+        },
+        .{
+            .keysym = Keysym.g,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot --geo" } },
+        },
+        .{
+            .keysym = Keysym.g,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot --all" } },
+        },
     };
 
     const tag_num = tags.len;
