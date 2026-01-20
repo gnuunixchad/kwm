@@ -368,6 +368,11 @@ pub const xkb_bindings = blk: {
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/exiland -river" } },
         },
         .{
+            .keysym = Keysym.w,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn = .{ .argv = &[_][]const u8 { "swaylock" } } },
+        },
+        .{
             .keysym = Keysym.c,
             .modifiers = Super|Shift,
             .action = .close,
