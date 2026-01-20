@@ -667,6 +667,11 @@ pub const xkb_bindings = blk: {
             .modifiers = Super|Ctrl,
             .action = .{ .spawn_shell = .{ .cmd = "pgrep hyprmag && killall -e hyprmag || hyprmag" } },
         },
+        .{
+            .keysym = Keysym.space,
+            .modifiers = Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "fcitx5-remote -t" } },
+        },
     };
 
     const tag_num = tags.len;
