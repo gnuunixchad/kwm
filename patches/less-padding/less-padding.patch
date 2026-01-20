@@ -1,0 +1,19 @@
+commit f7ad86ac3a6ac1ac5f1ef6f7579fe7b222af29d5
+Author: nate zhou <gnuunixchad@outlook.com>
+Date:   Tue Jan 20 12:34:58 2026 +0800
+
+    Mod(bar.zig): reduce tag padding to 0.75
+
+diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
+index b83cfa9..ce190a8 100644
+--- a/src/kwm/bar.zig
++++ b/src/kwm/bar.zig
+@@ -293,7 +293,7 @@ fn render_static_component(self: *Self) void {
+         }
+     }
+ 
+-    const pad: u16 = @intCast(self.height());
++    const pad: u16 = @intCast(@divFloor(self.height() * 3, 4));
+     const w: u16 = blk: {
+         var width: u16 = 0;
+         for (texts) |text| {
