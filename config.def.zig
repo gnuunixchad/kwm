@@ -498,12 +498,12 @@ pub const xkb_bindings = blk: {
             .action = .toggle_floating,
         },
         .{
-            .keysym = Keysym.a,
+            .keysym = Keysym.w,
             .modifiers = Super,
             .action = .toggle_swallow,
         },
         .{
-            .keysym = Keysym.a,
+            .keysym = Keysym.w,
             .modifiers = Super|Shift,
             .action = .{ .custom_fn = .{ .func = &toggle_auto_swallow, .arg = .none } }
         },
