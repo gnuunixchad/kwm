@@ -100,7 +100,7 @@ pub fn handle_click(self: *Self, seat: *const Seat) void {
         }
     }
 
-    const pad = self.height();
+    const pad: i16 = @intCast(self.get_pad());
     var x: i32 = self.output.x;
     for (0.., config.tags) |i, tag| {
         if (to_utf8(tag)) |utf8| {
@@ -180,6 +180,11 @@ pub fn render(self: *Self) void {
 
         self.render_background();
     }
+}
+
+
+inline fn get_pad(self: *Self) u16 {
+    return @intCast(self.height());
 }
 
 
@@ -293,7 +298,7 @@ fn render_static_component(self: *Self) void {
         }
     }
 
-    const pad: u16 = @intCast(self.height());
+    const pad = self.get_pad();
     const w: u16 = blk: {
         var width: u16 = 0;
         for (texts) |text| {
@@ -421,7 +426,7 @@ fn render_dynamic_component(self: *Self) void {
     const select_fg = color(config.bar.color.select.fg);
     const transparent = mem.zeroes(pixman.Color);
 
-    const pad: u16 = @intCast(self.height());
+    const pad = self.get_pad();
     const w: u16 = @intCast(self.output.width-self.static_component.width.?);
     const h: u16 = @intCast(self.height());
 
