@@ -365,7 +365,7 @@ pub const xkb_bindings = blk: {
         .{
             .keysym = Keysym.q,
             .modifiers = Super|Shift,
-            .action = .quit,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/exiland -river" } },
         },
         .{
             .keysym = Keysym.c,
