@@ -2,13 +2,13 @@
 
 A window manager based on River Wayland Compositor, written in Zig
 
-![tile](./images/tile.png)
+![tile](./misc/tile.png)
 
-![grid](./images/grid.png)
+![grid](./misc/grid.png)
 
-![monocle](./images/monocle.png)
+![monocle](./misc/monocle.png)
 
-![scroller](./images/scroller.png)
+![scroller](./misc/scroller.png)
 
 ## Requirements
 
