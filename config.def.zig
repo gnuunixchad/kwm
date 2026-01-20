@@ -742,6 +742,11 @@ pub const xkb_bindings = blk: {
             .modifiers = Super|Shift,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/wsk" } },
         },
+        .{
+            .keysym = Keysym.b,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "pgrep gammastep && killall gammastep || gammastep -O 5000" } },
+        },
     };
 
     const tag_num = tags.len;
