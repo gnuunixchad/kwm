@@ -672,6 +672,21 @@ pub const xkb_bindings = blk: {
             .modifiers = Ctrl,
             .action = .{ .spawn_shell = .{ .cmd = "fcitx5-remote -t" } },
         },
+        .{
+            .keysym = Keysym.n,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "dunstctl history-pop" } },
+        },
+        .{
+            .keysym = Keysym.n,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "dunstctl close" } },
+        },
+        .{
+            .keysym = Keysym.n,
+            .modifiers = Super|Ctrl|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "dunstctl close-all" } },
+        },
     };
 
     const tag_num = tags.len;
