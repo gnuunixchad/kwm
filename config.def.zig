@@ -707,6 +707,21 @@ pub const xkb_bindings = blk: {
             .modifiers = Super,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/clip" } },
         },
+        .{
+            .keysym = Keysym.a,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/address" } },
+        },
+        .{
+            .keysym = Keysym.a,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/address --record" } },
+        },
+        .{
+            .keysym = Keysym.a,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/address --multi" } },
+        },
     };
 
     const tag_num = tags.len;
