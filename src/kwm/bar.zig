@@ -293,7 +293,7 @@ fn render_static_component(self: *Self) void {
         }
     }
 
-    const pad: u16 = @intCast(@divFloor(self.height() * 3, 4));
+    const pad: u16 = @intCast(self.height());
     const w: u16 = blk: {
         var width: u16 = 0;
         for (texts) |text| {
