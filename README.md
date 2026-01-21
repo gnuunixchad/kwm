@@ -81,6 +81,11 @@ exec ssh-agent river --no-xwayland
 # (in case a software doesn't support wayland, I use xwayland-satellite)
 ```
 
+To restart the bar script
+```sh
+nohup damblocks --fifo &
+```
+
 ## Thanks to these reference project
 
 - https://github.com/riverwm/river - River Wayland compositor
