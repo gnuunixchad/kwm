@@ -480,6 +480,8 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
                 .bar => |bar| if (comptime build_options.bar_enabled) {
                     log.debug("<{*}> interaction with {*}", .{ seat, bar });
 
+                    context.set_current_output(bar.output);
+
                     bar.handle_click(seat);
                 } else unreachable,
             }
