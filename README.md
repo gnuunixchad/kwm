@@ -58,12 +58,21 @@ export XKB_DEFAULT_OPTIONS=caps:swapescape,altwin:swap_alt_win
 For all options available see `man 7 xkeyboard-config`
 
 ### How I run kwm with river
+Read status from a fifo(to restart the status command without restarting kwm)
+```zig
+// config.zig
+.status = .{ .fifo = "/run/user/1000/damblocks.fifo" },
+```
 Add below in  `~/.config/river/init`
 ```sh
+/usr/local/bin/kwm &
+
 # Start kwm with damblocks, a line generator with signaling support I wrote
 # https://codeberg.org/unixchad/damblocks
 # https://github.com/gnuunixchad/damblocks
-${HOME}/.local/bin/damblocks | /usr/local/bin/kwm
+killall -q mpc
+${HOME}/.local/bin/damblocks -fifo
+${HOME}/.local/bin/damblocks-mpdd
 ```
 
 And run

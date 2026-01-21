@@ -116,7 +116,7 @@ pub const bar: BarConfig = .{
             .bg = 0x427b58ff,
         },
     },
-    .status = .stdin, // .stdin or .{ .fifo = "fifo file path" }
+    .status = .{ .fifo = "/run/user/1000/damblocks.fifo" }, // .stdin or .{ .fifo = "fifo file path" }
     // bar clicked callback
     // each part support left/right/middle
     .click = .init(.{
