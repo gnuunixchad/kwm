@@ -567,8 +567,8 @@ pub const xkb_bindings = blk: {
             .action = .{ .send_to_output = .{ .direction = .reverse } },
         },
         .{
-            .keysym = Keysym.m,
-            .modifiers = Super|Shift,
+            .keysym = Keysym.w,
+            .modifiers = Super,
             .action = .{ .toggle_fullscreen = .{ .in_window = true } },
         },
         .{
