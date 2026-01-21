@@ -78,6 +78,7 @@ ${HOME}/.local/bin/damblocks-mpdd
 And run
 ```sh
 exec ssh-agent river --no-xwayland
+# (in case a software doesn't support wayland, I use xwayland-satellite)
 ```
 
 ## Thanks to these reference project
