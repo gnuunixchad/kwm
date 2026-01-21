@@ -66,3 +66,7 @@ Make your custom modifications in `config.zig`.
 - https://codeberg.org/machi/machi - River based window manager
 - https://codeberg.org/dwl/dwl - dwm for wayland
 - https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch - swallow window patch for dwl
+
+## License
+
+The source code in this project is released under the GPL-3.0 license.

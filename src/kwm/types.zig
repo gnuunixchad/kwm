@@ -6,6 +6,12 @@ const river = wayland.client.river;
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
 
+pub const Button = enum(u32) {
+    left = 0x110,
+    right = 0x111,
+    middle = 0x112,
+};
+
 pub const Direction = enum {
     forward,
     reverse,

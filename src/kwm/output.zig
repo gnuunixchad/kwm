@@ -122,7 +122,7 @@ pub inline fn exclusive_height(self: *Self) i32 {
 
 
 pub fn set_tag(self: *Self, tag: u32) void {
-    if (tag == 0) return;
+    if (tag == 0 or self.tag == tag) return;
 
     log.debug("<{*}> set tag: {b}", .{ self, tag });
 

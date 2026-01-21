@@ -80,8 +80,5 @@ fn rwm_pointer_binding_listener(rwm_pointer_binding: *river.PointerBindingV1, ev
         or (event == .released and pointer_binding.event == .pressed)
     ) return;
 
-    pointer_binding.seat.unhandled_actions.append(utils.allocator, pointer_binding.action) catch |err| {
-        log.err("append action failed: {}", .{ err });
-        return;
-    };
+    pointer_binding.seat.append_action(pointer_binding.action);
 }

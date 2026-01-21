@@ -16,11 +16,7 @@ const Alt: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod1);
 const Super: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod4);
 const Ctrl: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.ctrl);
 const Shift: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.shift);
-const Button = struct {
-    const left = 0x110;
-    const right = 0x111;
-    const middle = 0x112;
-};
+const Button = kwm.Button;
 const XcursorTheme = struct {
     name: []const u8,
     size: u32,
@@ -45,6 +41,7 @@ const BarConfig = struct {
         stdin,
         fifo: []const u8,
     },
+    click: std.EnumMap(enum { tag, layout, mode, title, status }, std.EnumMap(Button, kwm.binding.Action)),
 };
 const XkbBinding = struct {
     mode: Mode = .default,
@@ -55,7 +52,7 @@ const XkbBinding = struct {
 };
 const PointerBinding = struct {
     mode: Mode = .default,
-    button: u32,
+    button: Button,
     modifiers: u32,
     action: kwm.binding.Action,
     event: river.PointerBindingV1.Event = .pressed,
@@ -70,6 +67,8 @@ const BorderColor = struct {
 ////////////////////////////////////////////////////////
 // Configure part
 ////////////////////////////////////////////////////////
+
+const term_cmd = "footclient";
 
 pub const env = [_] struct { []const u8, []const u8 } {
     // .{ "key", "value" },
@@ -117,7 +116,29 @@ pub const bar: BarConfig = .{
             .bg = 0x427b58ff,
         },
     },
-    .status = .stdin // .stdin or .{ .fifo = "fifo file path" }
+    .status = .stdin, // .stdin or .{ .fifo = "fifo file path" }
+    // bar clicked callback
+    // each part support left/right/middle
+    .click = .init(.{
+        .tag = .init(.{
+            // could use undefined there because it will be replace with the tag clicked
+            .left = .{ .set_output_tag = undefined },
+            .right = .{ .toggle_output_tag = undefined },
+            .middle = .{ .toggle_window_tag = undefined },
+        }),
+        .layout = .init(.{
+            //
+        }),
+        .mode = .init(.{
+            .left = .{ .switch_mode = .{ .mode = .default } },
+        }),
+        .title = .init(.{
+            .left = .zoom,
+        }),
+        .status = .init(.{
+            .middle = .{ .spawn = .{ .argv = &[_][]const u8 { term_cmd } } }
+        })
+    }),
 };
 
 pub var auto_swallow = true;
@@ -590,7 +611,7 @@ pub const xkb_bindings = blk: {
         .{
             .keysym = Keysym.Return,
             .modifiers = Super,
-            .action = .{ .spawn = .{ .argv = &[_][]const u8 { "footclient" } } },
+            .action = .{ .spawn = .{ .argv = &[_][]const u8 { term_cmd } } },
         },
         .{
             .keysym = Keysym.v,
@@ -873,7 +894,7 @@ pub const disable_while_trackpointing: InputConfig(river.LibinputDeviceV1.DwtpSt
 pub const left_handed: InputConfig(river.LibinputDeviceV1.LeftHandedState)                  = .{ .value = .disabled };
 pub const middle_button_emulation: InputConfig(river.LibinputDeviceV1.MiddleEmulationState) = .{ .value = .disabled };
 pub const scroll_method: InputConfig(river.LibinputDeviceV1.ScrollMethod)                   = .{ .value = .two_finger };
-pub const scroll_button: InputConfig(u32)                                                   = .{ .value = Button.middle };
+pub const scroll_button: InputConfig(Button)                                                = .{ .value = .middle };
 pub const scroll_button_lock: InputConfig(river.LibinputDeviceV1.ScrollButtonLockState)     = .{ .value = .disabled };
 pub const click_method: InputConfig(river.LibinputDeviceV1.ClickMethod)                     = .{ .value = .button_areas };
 pub const clickfinger_button_map: InputConfig(river.LibinputDeviceV1.ClickfingerButtonMap)  = .{ .value = .lrm };

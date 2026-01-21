@@ -522,8 +522,8 @@ fn rwm_libinput_device_listener(rwm_libinput_device: *river.LibinputDeviceV1, ev
 
             if (!libinput_device.is_match(@TypeOf(config.scroll_button), &config.scroll_button)) return;
 
-            if (data.button != config.scroll_button.value) {
-                libinput_device.set_scroll_button(config.scroll_button.value);
+            if (data.button != @intFromEnum(config.scroll_button.value)) {
+                libinput_device.set_scroll_button(@intFromEnum(config.scroll_button.value));
             }
         },
         .scroll_button_lock_default => |data| {

@@ -38,6 +38,7 @@ pub fn build(b: *std.Build) void {
     scanner.generate("wl_compositor", 4);
     scanner.generate("wl_subcompositor", 1);
     scanner.generate("wl_shm", 1);
+    scanner.generate("wl_seat", 7);
     scanner.generate("wl_output", 4);
     scanner.generate("wp_viewporter", 1);
     scanner.generate("wp_fractional_scale_manager_v1", 1);

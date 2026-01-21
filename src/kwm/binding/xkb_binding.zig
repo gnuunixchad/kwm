@@ -81,8 +81,5 @@ fn rwm_xkb_binding_listener(rwm_xkb_binding: *river.XkbBindingV1, event: river.X
         or (event == .released and xkb_binding.event == .pressed)
     ) return;
 
-    xkb_binding.seat.unhandled_actions.append(utils.allocator, xkb_binding.action) catch |err| {
-        log.err("append action failed: {}", .{ err });
-        return;
-    };
+    xkb_binding.seat.append_action(xkb_binding.action);
 }
