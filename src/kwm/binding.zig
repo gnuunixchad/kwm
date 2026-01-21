@@ -66,6 +66,7 @@ pub const Action = union(enum) {
     toggle_output_tag: struct { mask: u32 },
     toggle_window_tag: struct { mask: u32 },
     switch_to_previous_tag,
+    shifttag: i2,
     toggle_floating,
     toggle_swallow,
     zoom,
