@@ -151,58 +151,6 @@ pub fn switch_to_previous_tag(self: *Self) void {
     if (comptime build_options.bar_enabled) self.bar.damage(.tags);
 }
 
-pub fn shifttag(self: *Self, step: i2) void {
-    if (step == 0) return;
-
-    log.debug("<{*}> shift tag: {}", .{ self, step });
-
-    const context = Context.get();
-    const total_tags = self.layout_tag.len;
-    const current_index = @ctz(self.main_tag);
-
-    var occupied_tags: u32 = 0;
-    {
-        var it = context.windows.safeIterator(.forward);
-        while (it.next()) |window| {
-            if (window.output == self) {
-                occupied_tags |= window.tag;
-            }
-        }
-    }
-
-    if (occupied_tags == 0) {
-        var new_index: u6 = undefined;
-        if (step > 0) {
-            new_index = @intCast((current_index + 1) % total_tags);
-        } else {
-            new_index = @intCast((current_index + total_tags - 1) % total_tags);
-        }
-        const new_tag_mask = @as(u32, 1) << @as(u5, @intCast(new_index));
-        self.set_tag(new_tag_mask);
-        return;
-    }
-
-    var new_index: u6 = current_index;
-    var attempts: u6 = 0;
-
-    while (attempts < total_tags) {
-        if (step > 0) {
-            new_index = @intCast((new_index + 1) % total_tags);
-        } else {
-            new_index = @intCast((new_index + total_tags - 1) % total_tags);
-        }
-
-        const candidate_tag = @as(u32, 1) << @as(u5, @intCast(new_index));
-
-        if (occupied_tags & candidate_tag != 0) {
-            self.set_tag(candidate_tag);
-            return;
-        }
-        attempts += 1;
-    }
-
-    log.warn("<{*}> failed to find occupied tag", .{ self });
-}
 
 pub fn toggle_tag(self: *Self, mask: u32) void {
     if (self.tag ^ mask == 0) return;

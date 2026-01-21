@@ -329,11 +329,6 @@ fn handle_actions(self: *Self) void {
                     output.switch_to_previous_tag();
                 }
             },
-            .shifttag => |step| {
-                if (context.current_output) |output| {
-                    output.shifttag(step);
-                }
-            },
             .toggle_floating => {
                 if (context.focused_window()) |window| {
                     window.toggle_floating();
