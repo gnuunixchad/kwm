@@ -21,6 +21,14 @@ Add below in  `~/.config/river/init`
 ${HOME}/.local/bin/damblocks | /usr/local/bin/kwm
 ```
 
+To set XKB layout options, in your login shell's profile
+```sh
+# swap CapsLock with Escape, and Alt with Super
+export export XKB_DEFAULT_OPTIONS=caps:swapescape,altwin:swap_alt_win
+# All possible options
+man 7 xkeyboard-config
+```
+
 And run
 ```sh
 exec ssh-agent river --no-xwayland
