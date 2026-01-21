@@ -158,21 +158,21 @@ pub var tile: kwm.layout.tile = .{
     .nmaster = 1,
     .mfact = 0.50,
     .inner_gap = 0,
-    .outer_gap = 0,
+    .outer_gap = 2,
     .master_location = .left,
 };
 pub var grid: kwm.layout.grid = .{
-    .outer_gap = 0,
+    .outer_gap = 2,
     .inner_gap = 0,
     .direction = .horizontal,
 };
 pub var monocle: kwm.layout.monocle = .{
-    .gap = 0,
+    .gap = 2,
 };
 pub var scroller: kwm.layout.scroller = .{
     .mfact = 0.5,
     .inner_gap = 0,
-    .outer_gap = 0,
+    .outer_gap = 2,
     .snap_to_left = false,
 };
 pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
