@@ -150,7 +150,7 @@ pub fn switch_to_previous_tag(self: *Self) void {
     if (comptime build_options.bar_enabled) self.bar.damage(.tags);
 }
 
-pub fn shifttag(self: *Self, step: i2) void {
+pub fn shift_tag(self: *Self, step: i2) void {
     if (step == 0) return;
 
     log.debug("<{*}> shift tag: {}", .{ self, step });

@@ -313,9 +313,9 @@ fn handle_actions(self: *Self) void {
                     output.switch_to_previous_tag();
                 }
             },
-            .shifttag => |step| {
+            .shift_tag => |step| {
                 if (context.current_output) |output| {
-                    output.shifttag(step);
+                    output.shift_tag(step);
                 }
             },
             .toggle_floating => {
