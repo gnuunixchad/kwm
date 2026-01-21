@@ -10,29 +10,7 @@ A window manager based on River Wayland Compositor, written in Zig
 
 ![scroller](./misc/scroller.png)
 
-## usage
 For changes I've made, check [patches](./patches)
-
-Add below in  `~/.config/river/init`
-```sh
-# Start kwm with damblocks, a line generator with signaling support I wrote
-# https://codeberg.org/unixchad/damblocks
-# https://github.com/gnuunixchad/damblocks
-${HOME}/.local/bin/damblocks | /usr/local/bin/kwm
-```
-
-To set XKB layout options, in your login shell's profile
-```sh
-# swap CapsLock with Escape, and Alt with Super
-export export XKB_DEFAULT_OPTIONS=caps:swapescape,altwin:swap_alt_win
-# All possible options
-man 7 xkeyboard-config
-```
-
-And run
-```sh
-exec ssh-agent river --no-xwayland
-```
 
 ## Requirements
 
@@ -72,6 +50,27 @@ Make your custom modifications in `config.zig`.
 Run `kwm` in your river init file or run with `river -c kwm`.
 
 You could see all bindings in `config.zig`. It should be noted that the `quit` action only quit the kwm but not quit river session. It allow you restart kwm directly. If you want to quit river session, try to use `Ctrl+Alt+Delete`.
+
+To set XKB layout options, in your login shell's profile
+```sh
+# swap CapsLock with Escape, and Alt with Super
+export export XKB_DEFAULT_OPTIONS=caps:swapescape,altwin:swap_alt_win
+# All possible options
+man 7 xkeyboard-config
+```
+
+Add below in  `~/.config/river/init`
+```sh
+# Start kwm with damblocks, a line generator with signaling support I wrote
+# https://codeberg.org/unixchad/damblocks
+# https://github.com/gnuunixchad/damblocks
+${HOME}/.local/bin/damblocks | /usr/local/bin/kwm
+```
+
+And run
+```sh
+exec ssh-agent river --no-xwayland
+```
 
 ## Thanks to these reference project
 
