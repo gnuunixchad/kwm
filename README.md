@@ -71,7 +71,7 @@ Add below in  `~/.config/river/init`
 # https://codeberg.org/unixchad/damblocks
 # https://github.com/gnuunixchad/damblocks
 killall -q mpc
-${HOME}/.local/bin/damblocks -fifo
+${HOME}/.local/bin/damblocks --fifo
 ${HOME}/.local/bin/damblocks-mpdd
 ```
 
