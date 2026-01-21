@@ -213,10 +213,10 @@ pub fn try_focus(self: *Self) void {
 
 
 pub fn append_action(self: *Self, action: binding.Action) void {
-    log.debug("<{*}> append action: {s}", .{ @tagName(action) });
+    log.debug("<{*}> append action: {s}", .{ self, @tagName(action) });
 
     self.unhandled_actions.append(utils.allocator, action) catch |err| {
-        log.err("<{*}> append action failed: {}", .{ err });
+        log.err("<{*}> append action failed: {}", .{ self, err });
         return;
     };
 }
