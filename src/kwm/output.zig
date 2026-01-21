@@ -151,62 +151,68 @@ pub fn switch_to_previous_tag(self: *Self) void {
     if (comptime build_options.bar_enabled) self.bar.damage(.tags);
 }
 
+
 pub fn shift_tag(self: *Self, direction: types.Direction) void {
-    const step: i2 = switch (direction) {
-        .forward => 1,
-        .reverse => -1,
-    };
-
-    if (step == 0) return;
-
-    log.debug("<{*}> shift tag: {} ({})", .{ self, direction, step });
-
     const context = Context.get();
     const total_tags = config.tags.len;
-    const current_index = @ctz(self.main_tag);
 
-    var occupied_tags: u32 = 0;
-    {
-        var it = context.windows.safeIterator(.forward);
-        while (it.next()) |window| {
-            if (window.output == self) {
-                occupied_tags |= window.tag;
-            }
-        }
-    }
+    log.debug("<{*}> shift tag: {}", .{ self, direction });
 
-    if (occupied_tags == 0) {
-        var new_index: u6 = undefined;
-        if (direction == .forward) {
-            new_index = @intCast((current_index + 1) % total_tags);
-        } else {
-            new_index = @intCast((current_index + total_tags - 1) % total_tags);
-        }
-        const new_tag_mask = @as(u32, 1) << @as(u5, @intCast(new_index));
-        self.set_tag(new_tag_mask);
+    const current_tags = self.tag;
+    if (current_tags == 0) {
+        log.warn("<{*}> no tags selected", .{ self });
         return;
     }
 
-    var new_index: u6 = current_index;
-    var attempts: u6 = 0;
-
-    while (attempts < total_tags) {
-        if (direction == .forward) {
-            new_index = @intCast((new_index + 1) % total_tags);
-        } else {
-            new_index = @intCast((new_index + total_tags - 1) % total_tags);
-        }
-
-        const candidate_tag = @as(u32, 1) << @as(u5, @intCast(new_index));
-
-        if (occupied_tags & candidate_tag != 0) {
-            self.set_tag(candidate_tag);
-            return;
-        }
-        attempts += 1;
+    var occupied_tags: u32 = 0;
+    var it = context.windows.safeIterator(.forward);
+    while (it.next()) |window| {
+        if (window.output == self) occupied_tags |= window.tag;
     }
 
-    log.warn("<{*}> failed to find occupied tag", .{ self });
+    if (occupied_tags == 0) {
+        var new_tags = current_tags;
+        if (direction == .forward) {
+            new_tags = (new_tags << 1) | (new_tags >> @as(u5, @intCast(total_tags - 1)));
+        } else {
+            new_tags = (new_tags >> 1) | (new_tags << @as(u5, @intCast(total_tags - 1)));
+        }
+        new_tags &= (1 << total_tags) - 1;
+        if (new_tags != 0) self.set_tag(new_tags);
+        return;
+    }
+
+    var new_tags: u32 = 0;
+    var tag_mask: u32 = 1;
+
+    for (0..total_tags) |i| {
+        if (current_tags & tag_mask != 0) {
+            var found = false;
+            var test_index = i;
+
+            for (0..total_tags) |_| {
+                test_index = if (direction == .forward)
+                    (test_index + 1) % total_tags
+                else if (test_index == 0)
+                    total_tags - 1
+                else
+                    test_index - 1;
+
+                const test_mask = @as(u32, 1) << @as(u5, @intCast(test_index));
+                if (occupied_tags & test_mask != 0) {
+                    new_tags |= test_mask;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found and (occupied_tags & tag_mask != 0)) new_tags |= tag_mask;
+        }
+        tag_mask <<= 1;
+    }
+
+    if (new_tags != 0) self.set_tag(new_tags)
+    else log.warn("<{*}> no valid tags found after shifting", .{ self });
 }
 
 
