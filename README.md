@@ -67,6 +67,12 @@ You can use `-Dconfig` to specify custom config file path, `-Dbar` to enable/dis
 
 Make your custom modifications in `config.zig`.
 
+## usage
+
+Run `kwm` in your river init file or run with `river -c kwm`.
+
+You could see all bindings in `config.zig`. It should be noted that the `quit` action only quit the kwm but not quit river session. It allow you restart kwm directly. If you want to quit river session, try to use `Ctrl+Alt+Delete`.
+
 ## Thanks to these reference project
 
 - https://github.com/riverwm/river - River Wayland compositor
@@ -77,4 +83,4 @@ Make your custom modifications in `config.zig`.
 
 ## License
 
-The source code in this project is released under the GPL-3.0 license.
+The source code in this project is released under the [GPL-3.0](./LICENSE)
