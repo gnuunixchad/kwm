@@ -70,8 +70,8 @@ Add below in  `~/.config/river/init`
 # Start kwm with damblocks, a line generator with signaling support I wrote
 # https://codeberg.org/unixchad/damblocks
 # https://github.com/gnuunixchad/damblocks
+${HOME}/.local/bin/damblocks --fifo &
 killall -q mpc
-${HOME}/.local/bin/damblocks --fifo
 ${HOME}/.local/bin/damblocks-mpdd
 ```
 
