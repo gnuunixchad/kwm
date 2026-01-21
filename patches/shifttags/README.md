@@ -1,6 +1,9 @@
 ### Description
-Change the focusing tag to the next/previous occupied one. When there's no
-occupied tags, shift through the defined tags.
+Change the focusing tag to the next/previous occupied one.
+- When the output has no occupied tags, each focused tag shifts to its
+  next/previous tag.
+- When the focused tags are all occupied tags, each focused tag shifts to its
+  next/previous occupied tag.
 
 Default keybindings:
 - shift next: `<Super + apostrophe>`(`'`)

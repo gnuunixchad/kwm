@@ -1,123 +1,130 @@
-commit 19e1574332fbfb24a10e70d31e3a71ee75cce8ed
-Author: nate zhou <gnuunixchad@outlook.com>
-Date:   Wed Jan 21 10:39:14 2026 +0800
-
-    Feat: shift tags
-    
-    Change the focusing tag to the next/previous occupied one. When there's
-    no occupied tags, shift through the defined tags.
-    
-    Default keybindings:
-        - shift next: `<Super + apostrophe>`(`'`)
-        - shift prev: `<Super + semicolon>` (`;`)
-
 diff --git a/config.def.zig b/config.def.zig
-index 46f0197..2ad01c3 100644
+index 9b033db..75624a1 100644
 --- a/config.def.zig
 +++ b/config.def.zig
-@@ -567,6 +567,16 @@ pub const xkb_bindings = blk: {
+@@ -547,6 +547,16 @@ pub const xkb_bindings = blk: {
              .modifiers = Super,
              .action = .switch_to_previous_tag,
          },
 +        .{
 +            .keysym = Keysym.apostrophe,
 +            .modifiers = Super,
-+            .action = .{ .shifttag = 1 },
++            .action = .{ .shift_tag = .{ .direction = .forward } },
 +        },
 +        .{
 +            .keysym = Keysym.semicolon,
 +            .modifiers = Super,
-+            .action = .{ .shifttag = -1 },
++            .action = .{ .shift_tag = .{ .direction = .reverse } },
 +        },
          .{
              .keysym = Keysym.@"0",
              .modifiers = Super,
 diff --git a/src/kwm/binding.zig b/src/kwm/binding.zig
-index 4af4af0..2cfa8de 100644
+index 4af4af0..ed5ca9b 100644
 --- a/src/kwm/binding.zig
 +++ b/src/kwm/binding.zig
 @@ -66,6 +66,7 @@ pub const Action = union(enum) {
      toggle_output_tag: struct { mask: u32 },
      toggle_window_tag: struct { mask: u32 },
      switch_to_previous_tag,
-+    shifttag: i2,
++    shift_tag: struct { direction: types.Direction },
      toggle_floating,
      toggle_swallow,
      zoom,
 diff --git a/src/kwm/output.zig b/src/kwm/output.zig
-index 51ddf81..6fd66be 100644
+index 51ddf81..66cedbd 100644
 --- a/src/kwm/output.zig
 +++ b/src/kwm/output.zig
-@@ -150,6 +150,58 @@ pub fn switch_to_previous_tag(self: *Self) void {
-     if (comptime build_options.bar_enabled) self.bar.damage(.tags);
+@@ -16,6 +16,7 @@ const config = @import("config");
+ const layout = @import("layout.zig");
+ const Context = @import("context.zig");
+ const Window = @import("window.zig");
++const types = @import("types.zig");
+ 
+ 
+ link: wl.list.Link = undefined,
+@@ -151,6 +152,70 @@ pub fn switch_to_previous_tag(self: *Self) void {
  }
  
-+pub fn shifttag(self: *Self, step: i2) void {
-+    if (step == 0) return;
-+
-+    log.debug("<{*}> shift tag: {}", .{ self, step });
-+
+ 
++pub fn shift_tag(self: *Self, direction: types.Direction) void {
 +    const context = Context.get();
-+    const total_tags = self.layout_tag.len;
-+    const current_index = @ctz(self.main_tag);
++    const total_tags = config.tags.len;
 +
-+    var occupied_tags: u32 = 0;
-+    {
-+        var it = context.windows.safeIterator(.forward);
-+        while (it.next()) |window| {
-+            if (window.output == self) {
-+                occupied_tags |= window.tag;
-+            }
-+        }
-+    }
++    log.debug("<{*}> shift tag: {}", .{ self, direction });
 +
-+    if (occupied_tags == 0) {
-+        var new_index: u6 = undefined;
-+        if (step > 0) {
-+            new_index = @intCast((current_index + 1) % total_tags);
-+        } else {
-+            new_index = @intCast((current_index + total_tags - 1) % total_tags);
-+        }
-+        const new_tag_mask = @as(u32, 1) << @as(u5, @intCast(new_index));
-+        self.set_tag(new_tag_mask);
++    const current_tags = self.tag;
++    if (current_tags == 0) {
++        log.warn("<{*}> no tags selected", .{ self });
 +        return;
 +    }
 +
-+    var new_index: u6 = current_index;
-+    var attempts: u6 = 0;
-+
-+    while (attempts < total_tags) {
-+        if (step > 0) {
-+            new_index = @intCast((new_index + 1) % total_tags);
-+        } else {
-+            new_index = @intCast((new_index + total_tags - 1) % total_tags);
-+        }
-+
-+        const candidate_tag = @as(u32, 1) << @as(u5, @intCast(new_index));
-+
-+        if (occupied_tags & candidate_tag != 0) {
-+            self.set_tag(candidate_tag);
-+            return;
-+        }
-+        attempts += 1;
++    var occupied_tags: u32 = 0;
++    var it = context.windows.safeIterator(.forward);
++    while (it.next()) |window| {
++        if (window.output == self) occupied_tags |= window.tag;
 +    }
 +
-+    log.warn("<{*}> failed to find occupied tag", .{ self });
++    if (occupied_tags == 0) {
++        var new_tags = current_tags;
++        if (direction == .forward) {
++            new_tags = (new_tags << 1) | (new_tags >> @as(u5, @intCast(total_tags - 1)));
++        } else {
++            new_tags = (new_tags >> 1) | (new_tags << @as(u5, @intCast(total_tags - 1)));
++        }
++        new_tags &= (1 << total_tags) - 1;
++        if (new_tags != 0) self.set_tag(new_tags);
++        return;
++    }
++
++    var new_tags: u32 = 0;
++    var tag_mask: u32 = 1;
++
++    for (0..total_tags) |i| {
++        if (current_tags & tag_mask != 0) {
++            var found = false;
++            var test_index = i;
++
++            for (0..total_tags) |_| {
++                test_index = if (direction == .forward)
++                    (test_index + 1) % total_tags
++                else if (test_index == 0)
++                    total_tags - 1
++                else
++                    test_index - 1;
++
++                const test_mask = @as(u32, 1) << @as(u5, @intCast(test_index));
++                if (occupied_tags & test_mask != 0) {
++                    new_tags |= test_mask;
++                    found = true;
++                    break;
++                }
++            }
++
++            if (!found and (occupied_tags & tag_mask != 0)) new_tags |= tag_mask;
++        }
++        tag_mask <<= 1;
++    }
++
++    if (new_tags != 0) self.set_tag(new_tags)
++    else log.warn("<{*}> no valid tags found after shifting", .{ self });
 +}
- 
++
++
  pub fn toggle_tag(self: *Self, mask: u32) void {
      if (self.tag ^ mask == 0) return;
+ 
 diff --git a/src/kwm/seat.zig b/src/kwm/seat.zig
-index fc2d51a..0ad58e5 100644
+index fc2d51a..7c3226e 100644
 --- a/src/kwm/seat.zig
 +++ b/src/kwm/seat.zig
 @@ -313,6 +313,11 @@ fn handle_actions(self: *Self) void {
                      output.switch_to_previous_tag();
                  }
              },
-+            .shifttag => |step| {
++            .shift_tag => |data| {
 +                if (context.current_output) |output| {
-+                    output.shifttag(step);
++                    output.shift_tag(data.direction);
 +                }
 +            },
              .toggle_floating => {
