@@ -520,7 +520,9 @@ pub fn handle_events(self: *Self) void {
                 log.debug("<{*}> managing unfullscreen", .{ self });
 
                 switch (self.fullscreen) {
-                    .none => unreachable,
+                    .none => {
+                        log.warn("<{*}> unfullscreen while window is not fullscreen", .{ self });
+                    },
                     .window => {
                         self.rwm_window.informNotFullscreen();
                     },
