@@ -329,6 +329,11 @@ fn handle_actions(self: *Self) void {
                     output.switch_to_previous_tag();
                 }
             },
+            .shift_tag => |data| {
+                if (context.current_output) |output| {
+                    output.shift_tag(data.direction);
+                }
+            },
             .toggle_floating => {
                 if (context.focused_window()) |window| {
                     window.toggle_floating();

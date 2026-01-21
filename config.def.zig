@@ -632,6 +632,16 @@ pub const xkb_bindings = blk: {
             .action = .switch_to_previous_tag,
         },
         .{
+            .keysym = Keysym.apostrophe,
+            .modifiers = Super,
+            .action = .{ .shift_tag = .{ .direction = .forward } },
+        },
+        .{
+            .keysym = Keysym.semicolon,
+            .modifiers = Super,
+            .action = .{ .shift_tag = .{ .direction = .reverse } },
+        },
+        .{
             .keysym = Keysym.@"0",
             .modifiers = Super,
             .action = .{ .set_output_tag = .{ .tag = 0xffffffff } }
