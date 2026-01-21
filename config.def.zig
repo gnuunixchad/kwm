@@ -815,12 +815,12 @@ pub const xkb_bindings = blk: {
         };
         tag_binddings[i*4+2] = .{
             .keysym = Keysym.@"1"+i,
-            .modifiers = Super|Ctrl,
+            .modifiers = Ctrl,
             .action = .{ .toggle_output_tag = .{ .mask = 1 << i } },
         };
         tag_binddings[i*4+3] = .{
             .keysym = Keysym.@"1"+i,
-            .modifiers = Super|Ctrl|Shift,
+            .modifiers = Super|Ctrl,
             .action = .{ .toggle_window_tag = .{ .mask = 1 << i } },
         };
     }
