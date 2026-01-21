@@ -391,6 +391,49 @@ pub const xkb_bindings = blk: {
             .action = .{ .snap = .{ .edge = .top } }
         },
 
+        // lock
+        .{
+            .mode = .lock,
+            .keysym = Keysym.space,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "mpc toggle && ${HOME}/.local/bin/lsmus" } },
+        },
+        .{
+            .mode = .lock,
+            .keysym = Keysym.p,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "mpc prev" } },
+        },
+        .{
+            .mode = .lock,
+            .keysym = Keysym.n,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "mpc next" } },
+        },
+        .{
+            .mode = .lock,
+            .keysym = Keysym.minus,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" } },
+        },
+        .{
+            .mode = .lock,
+            .keysym = Keysym.equal,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus10" } },
+        },
+        .{
+            .mode = .lock,
+            .keysym = Keysym.bracketleft,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus10" } },
+        },
+        .{
+            .mode = .lock,
+            .keysym = Keysym.bracketright,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus10" } },
+        },
 
         // default
         .{
