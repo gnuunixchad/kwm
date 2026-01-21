@@ -29,6 +29,7 @@ main_tag: u32 = 1,
 prev_tag: u32 = 1,
 prev_main_tag: u32 = 1,
 layout_tag: [32]layout.Type = .{ config.default_layout } ** 32,
+prev_layout_tag: [32]layout.Type = .{ config.default_layout } ** 32,
 fullscreen_window: ?*Window = null,
 
 name: ?[]const u8 = null,
@@ -230,11 +231,23 @@ pub fn current_layout(self: *Self) layout.Type {
 pub fn set_current_layout(self: *Self, layout_t: layout.Type) void {
     std.debug.assert(self.main_tag != 0 and self.main_tag & (self.main_tag-1) == 0);
 
+    const i = @ctz(self.main_tag);
+    if (self.layout_tag[i] == layout_t) return;
+
     log.debug("<{*}>(tag: {b}) set layout to {s}", .{ self, self.main_tag, @tagName(layout_t) });
 
-    self.layout_tag[@ctz(self.main_tag)] = layout_t;
+    self.prev_layout_tag[i] = self.layout_tag[i];
+    self.layout_tag[i] = layout_t;
 
     if (comptime build_options.bar_enabled) self.bar.damage(.layout);
+}
+
+
+pub fn switch_to_previous_layout(self: *Self) void {
+    log.debug("<{*}> tag {b} switch to previous layout", .{ self, self.main_tag });
+
+    const i = @ctz(self.main_tag);
+    mem.swap(layout.Type, &self.layout_tag[i], &self.prev_layout_tag[i]);
 }
 
 

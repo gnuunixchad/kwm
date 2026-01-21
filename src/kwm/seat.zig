@@ -357,6 +357,11 @@ fn handle_actions(self: *Self) void {
                     output.set_current_layout(data.layout);
                 }
             },
+            .switch_to_previous_layout => {
+                if (context.current_output) |output| {
+                    output.switch_to_previous_layout();
+                }
+            },
             .toggle_bar => {
                 if (comptime build_options.bar_enabled) {
                     if (context.current_output) |output| {

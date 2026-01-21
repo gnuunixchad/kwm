@@ -31,8 +31,8 @@ pub fn arrange(self: *const Self, output: *Output) void {
     const master_x = if (self.snap_to_left) self.outer_gap else @divFloor(available_width-master_width, 2);
     const y = self.outer_gap;
 
-    focus_top.move(master_x, y);
-    focus_top.resize(master_width, height);
+    focus_top.unbound_move(master_x, y);
+    focus_top.unbound_resize(master_width, height);
 
     {
         var link = &focus_top.link;

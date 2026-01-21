@@ -127,7 +127,7 @@ pub const bar: BarConfig = .{
             .middle = .{ .toggle_window_tag = undefined },
         }),
         .layout = .init(.{
-            //
+            .left = .switch_to_previous_layout,
         }),
         .mode = .init(.{
             .left = .{ .switch_mode = .{ .mode = .default } },
