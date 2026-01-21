@@ -16,11 +16,7 @@ const Alt: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod1);
 const Super: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod4);
 const Ctrl: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.ctrl);
 const Shift: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.shift);
-const Button = struct {
-    const left = 0x110;
-    const right = 0x111;
-    const middle = 0x112;
-};
+const Button = kwm.Button;
 const XcursorTheme = struct {
     name: []const u8,
     size: u32,
@@ -55,7 +51,7 @@ const XkbBinding = struct {
 };
 const PointerBinding = struct {
     mode: Mode = .default,
-    button: u32,
+    button: Button,
     modifiers: u32,
     action: kwm.binding.Action,
     event: river.PointerBindingV1.Event = .pressed,
@@ -650,7 +646,7 @@ pub const disable_while_trackpointing: InputConfig(river.LibinputDeviceV1.DwtpSt
 pub const left_handed: InputConfig(river.LibinputDeviceV1.LeftHandedState)                  = .{ .value = .disabled };
 pub const middle_button_emulation: InputConfig(river.LibinputDeviceV1.MiddleEmulationState) = .{ .value = .disabled };
 pub const scroll_method: InputConfig(river.LibinputDeviceV1.ScrollMethod)                   = .{ .value = .two_finger };
-pub const scroll_button: InputConfig(u32)                                                   = .{ .value = Button.middle };
+pub const scroll_button: InputConfig(Button)                                                = .{ .value = .middle };
 pub const scroll_button_lock: InputConfig(river.LibinputDeviceV1.ScrollButtonLockState)     = .{ .value = .disabled };
 pub const click_method: InputConfig(river.LibinputDeviceV1.ClickMethod)                     = .{ .value = .button_areas };
 pub const clickfinger_button_map: InputConfig(river.LibinputDeviceV1.ClickfingerButtonMap)  = .{ .value = .lrm };

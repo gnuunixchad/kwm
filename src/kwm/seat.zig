@@ -11,6 +11,7 @@ const river = wayland.client.river;
 const config = @import("config");
 const utils = @import("utils");
 
+const types = @import("types.zig");
 const binding = @import("binding.zig");
 const Window = @import("window.zig");
 const Context = @import("context.zig");
@@ -19,10 +20,13 @@ const ShellSurface = @import("shell_surface.zig");
 
 link: wl.list.Link = undefined,
 
+wl_seat: ?*wl.Seat = null,
+wl_pointer: ?*wl.Pointer = null,
 rwm_seat: *river.SeatV1,
 rwm_layer_shell_seat: *river.LayerShellSeatV1,
 
 mode: ?config.Mode = null,
+button: types.Button = undefined,
 focus_exclusive: bool = false,
 pointer_position: struct {
     x: i32, y: i32,
@@ -83,7 +87,7 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
             utils.allocator,
             try binding.PointerBinding.create(
                 seat,
-                pointer_binding.button,
+                @intFromEnum(pointer_binding.button),
                 @bitCast(pointer_binding.modifiers),
                 pointer_binding.action,
                 pointer_binding.event,
@@ -106,6 +110,8 @@ pub fn destroy(self: *Self) void {
     defer log.debug("<{*}> destroied", .{ self });
 
     self.link.remove();
+    if (self.wl_seat) |wl_seat| wl_seat.destroy();
+    if (self.wl_pointer) |wl_pointer| wl_pointer.destroy();
     self.rwm_seat.destroy();
     self.rwm_layer_shell_seat.destroy();
 
@@ -479,6 +485,10 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
         },
         .wl_seat => |data| {
             log.debug("<{*}> wl_seat: {}", .{ seat, data.name });
+
+            const wl_seat = context.wl_registry.bind(data.name, wl.Seat, 7) catch return;
+            seat.wl_seat = wl_seat;
+            wl_seat.setListener(*Self, wl_seat_listener, seat);
         },
     }
 }
@@ -501,5 +511,37 @@ fn rwm_layer_shell_seat_listener(rwm_layer_shell_seat: *river.LayerShellSeatV1, 
 
             seat.focus_exclusive = false;
         }
+    }
+}
+
+
+fn wl_seat_listener(wl_seat: *wl.Seat, event: wl.Seat.Event, seat: *Self) void {
+    std.debug.assert(wl_seat == seat.wl_seat);
+
+    switch (event) {
+        .name => |data| {
+            log.debug("<{*}> name: {s}", .{ seat, data.name });
+        },
+        .capabilities => |data| {
+            if (data.capabilities.pointer) {
+                const wl_pointer = wl_seat.getPointer() catch return;
+                seat.wl_pointer = wl_pointer;
+                wl_pointer.setListener(*Self, wl_pointer_listener, seat);
+            }
+        }
+    }
+}
+
+
+fn wl_pointer_listener(wl_pointer: *wl.Pointer, event: wl.Pointer.Event, seat: *Self) void {
+    std.debug.assert(wl_pointer == seat.wl_pointer);
+
+    switch (event) {
+        .button => |data| {
+            log.debug("<{*}> button: {}, state: {s}", .{ seat, data.button, @tagName(data.state) });
+
+            seat.button = @enumFromInt(data.button);
+        },
+        else => {}
     }
 }
