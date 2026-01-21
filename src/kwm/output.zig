@@ -162,7 +162,7 @@ pub fn shift_tag(self: *Self, direction: types.Direction) void {
     log.debug("<{*}> shift tag: {} ({})", .{ self, direction, step });
 
     const context = Context.get();
-    const total_tags = self.layout_tag.len;
+    const total_tags = config.tags.len;
     const current_index = @ctz(self.main_tag);
 
     var occupied_tags: u32 = 0;
