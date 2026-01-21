@@ -396,7 +396,7 @@ pub const xkb_bindings = blk: {
             .mode = .lock,
             .keysym = Keysym.space,
             .modifiers = Super|Ctrl,
-            .action = .{ .spawn_shell = .{ .cmd = "mpc toggle && ${HOME}/.local/bin/lsmus" } },
+            .action = .{ .spawn_shell = .{ .cmd = "mpc toggle" } },
         },
         .{
             .mode = .lock,
