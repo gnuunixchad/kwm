@@ -16,6 +16,7 @@ const fcft = @import("fcft");
 const utils = @import("utils");
 const config = @import("config");
 
+const binding = @import("binding.zig");
 const Context = @import("context.zig");
 const Seat = @import("seat.zig");
 const Output = @import("output.zig");
@@ -77,8 +78,10 @@ pub inline fn height(self: *Self) i32 {
 }
 
 
-pub fn handle_click(self: *Self, seat: *const Seat) void {
+pub fn handle_click(self: *Self, seat: *Seat) void {
     log.debug("<{*}> handle click by {*}", .{ self, seat });
+
+    const context = Context.get();
 
     const pointer_x = seat.pointer_position.x;
     const pointer_y = seat.pointer_position.y;
@@ -100,27 +103,71 @@ pub fn handle_click(self: *Self, seat: *const Seat) void {
         }
     }
 
+    var action: ?binding.Action = null;
+    defer if (action) |a| {
+        seat.append_action(a);
+    };
+
     const pad: i16 = @intCast(self.get_pad());
     var x: i32 = self.output.x;
-    for (0.., config.tags) |i, tag| {
-        if (to_utf8(tag)) |utf8| {
-            defer utils.allocator.free(utf8);
 
-            const text = self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
-                log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
-                return;
+    if (pointer_x > self.static_component.width.?) x += self.static_component.width.?
+    else for (0.., config.tags) |i, label| {
+        const tw: i32 = @intCast(str_width(self.font, label) orelse return);
+        defer x += tw + pad;
+
+        if (pointer_x >= x and pointer_x < x + tw + pad) {
+            const tag = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
+            const callback_action = (config.bar.click.get(.tag) orelse return).get(seat.button) orelse return;
+            action = switch (callback_action) {
+                .set_window_tag => .{ .set_window_tag = .{ .tag = tag } },
+                .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
+                .set_output_tag => .{ .set_output_tag = .{ .tag = tag } },
+                .toggle_output_tag => .{ .toggle_output_tag = .{ .mask = tag } },
+                else => callback_action,
             };
-            defer text.destroy();
-
-            const tw: i32 = @intCast(text_width(text));
-            defer x += tw + pad;
-
-            if (pointer_x >= x and pointer_x < x + tw + pad) {
-                self.output.set_tag(@as(u32, @intCast(1)) << @as(u5, @intCast(i)));
-                break;
-            }
+            return;
         }
     }
+
+    const layout = self.output.current_layout();
+    {
+        const tw: i32 = @intCast(str_width(self.font, config.layout_tag(layout)) orelse return);
+        defer x += tw + pad;
+
+        if (pointer_x >= x and pointer_x < x + tw + pad) {
+            action = (config.bar.click.get(.layout) orelse return).get(seat.button) orelse return;
+            return;
+        }
+    }
+
+    const mode_tag =
+        if (config.mode_tag.contains(context.mode)) config.mode_tag.getAssertContains(context.mode)
+        else @tagName(context.mode);
+    if (mode_tag.len > 0) {
+        const tw: i32 = @intCast(str_width(self.font, mode_tag) orelse return);
+        defer x += tw + pad;
+
+        if (pointer_x >= x and pointer_x < x + tw + pad) {
+            action = (config.bar.click.get(.mode) orelse return).get(seat.button) orelse return;
+            return;
+        }
+    }
+
+    const status_text: []const u8 = switch (config.bar.status) {
+        .text => |text| text,
+        else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
+    };
+    if (status_text.len > 0) {
+        const tw: i32 = @intCast(str_width(self.font, status_text) orelse return);
+
+        if (pointer_x >= self.output.x+self.output.width-tw-pad) {
+            action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
+            return;
+        }
+    }
+
+    action = (config.bar.click.get(.title) orelse return).get(seat.button) orelse return;
 }
 
 
@@ -671,4 +718,19 @@ fn text_width(text: *const fcft.TextRun) u32 {
         width += @intCast(text.glyphs[i].advance.x);
     }
     return width;
+}
+
+fn str_width(font: *fcft.Font, str: []const u8) ?u32 {
+    if (to_utf8(str)) |utf8| {
+        defer utils.allocator.free(utf8);
+
+        const text = font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
+            log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
+            return null;
+        };
+        defer text.destroy();
+
+        return text_width(text);
+    }
+    return null;
 }

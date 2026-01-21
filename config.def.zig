@@ -41,6 +41,7 @@ const BarConfig = struct {
         stdin,
         fifo: []const u8,
     },
+    click: std.EnumMap(enum { tag, layout, mode, title, status }, std.EnumMap(Button, kwm.binding.Action)),
 };
 const XkbBinding = struct {
     mode: Mode = .default,
@@ -66,6 +67,8 @@ const BorderColor = struct {
 ////////////////////////////////////////////////////////
 // Configure part
 ////////////////////////////////////////////////////////
+
+const term_cmd = "foot";
 
 pub const env = [_] struct { []const u8, []const u8 } {
     // .{ "key", "value" },
@@ -104,6 +107,28 @@ pub const bar: BarConfig = .{
         },
     },
     .status = .{ .text = "kwm" }, // .stdin or .{ .fifo = "fifo file path" }
+    // bar clicked callback
+    // each part support left/right/middle
+    .click = .init(.{
+        .tag = .init(.{
+            // could use undefined there because it will be replace with the tag clicked
+            .left = .{ .set_output_tag = undefined },
+            .right = .{ .toggle_output_tag = undefined },
+            .middle = .{ .toggle_window_tag = undefined },
+        }),
+        .layout = .init(.{
+            //
+        }),
+        .mode = .init(.{
+            .left = .{ .switch_mode = .{ .mode = .default } },
+        }),
+        .title = .init(.{
+            .left = .zoom,
+        }),
+        .status = .init(.{
+            .middle = .{ .spawn = .{ .argv = &[_][]const u8 { term_cmd } } }
+        })
+    }),
 };
 
 pub var auto_swallow = true;
@@ -556,7 +581,7 @@ pub const xkb_bindings = blk: {
         .{
             .keysym = Keysym.Return,
             .modifiers = Super|Shift,
-            .action = .{ .spawn = .{ .argv = &[_][]const u8 { "foot" } } },
+            .action = .{ .spawn = .{ .argv = &[_][]const u8 { term_cmd } } },
         },
     };
 
