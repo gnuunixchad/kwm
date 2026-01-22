@@ -89,7 +89,7 @@ pub const startup_cmds = [_][]const []const u8 {
     &[_][]const u8 { "sh", "-c", "swaybg -i ${HOME}/.local/share/wallpaper -m fill" },
     &[_][]const u8 { "dunst" },
     &[_][]const u8 { "foot", "--server" },
-    &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/lucia", "-d" },
+    &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/lucia -d" },
     &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/wobd" },
     &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/mbs-cron" },
 };
