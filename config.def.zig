@@ -469,12 +469,12 @@ pub const xkb_bindings = blk: {
         .{
             .keysym = Keysym.l,
             .modifiers = Super,
-            .action = .{ .custom_fn = .{ .func = &modify_mfact, .arg = .{ .f = 0.01 } } },
+            .action = .{ .custom_fn = .{ .func = &modify_mfact, .arg = .{ .f = 0.05 } } },
         },
         .{
             .keysym = Keysym.h,
             .modifiers = Super,
-            .action = .{ .custom_fn = .{ .func = &modify_mfact, .arg = .{ .f = -0.01 } } },
+            .action = .{ .custom_fn = .{ .func = &modify_mfact, .arg = .{ .f = -0.05 } } },
         },
         .{
             .keysym = Keysym.j,
