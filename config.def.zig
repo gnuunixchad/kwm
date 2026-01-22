@@ -910,6 +910,8 @@ pub const rules = [_]Rule {
     .{ .app_id = .compile("file-*"), .floating = true },
     .{ .title = .{ .str = "script-fu" }, .floating = true },
     .{ .app_id = .{ .str = "lighting" }, .title = .{ .str = "Lighting Effects" }, .floating = true },
+    // Inkspace
+    .{ .app_id = .{ .str = "org.inkscape.Inkscape" }, .title = .compile("Select file*"), .floating = true },
     // Kdenlive file chooser
     .{ .app_id = .{ .str = "kdenlive" }, .floating = true },
     // Code - OSS
