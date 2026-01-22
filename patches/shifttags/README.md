@@ -1,4 +1,7 @@
 ### Description
+>[!note]
+> This patch has been merged into upstream.
+
 Change the focusing tag to the next/previous occupied one.
 - When the output has no occupied tags, each focused tag shifts to its
   next/previous tag.
