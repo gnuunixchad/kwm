@@ -24,6 +24,7 @@ const Output = @import("output.zig");
 const Window = @import("window.zig");
 const InputDevice = @import("input_device.zig");
 const LibinputDevice = @import("libinput_device.zig");
+const XkbKeyboard = @import("xkb_keyboard.zig");
 
 var ctx: ?Self = null;
 
@@ -50,6 +51,7 @@ current_output: ?*Output = null,
 
 input_devices: wl.list.Head(InputDevice, .link) = undefined,
 libinput_devices: wl.list.Head(LibinputDevice, .link) = undefined,
+xkb_keyboards: wl.list.Head(XkbKeyboard, .link) = undefined,
 libinput_config_applied: bool = false,
 
 windows: wl.list.Head(Window, .link) = undefined,
@@ -114,6 +116,7 @@ pub fn init(
     ctx.?.windows.init();
     ctx.?.input_devices.init();
     ctx.?.libinput_devices.init();
+    ctx.?.xkb_keyboards.init();
     ctx.?.focus_stack.init();
 
     for (config.env) |pair| {
@@ -139,6 +142,7 @@ pub fn init(
     rwm.setListener(*Self, rwm_listener, &ctx.?);
     rwm_input_manager.setListener(*Self, rwm_input_manager_listener, &ctx.?);
     rwm_libinput_config.setListener(*Self, rwm_libinput_config_listener, &ctx.?);
+    rwm_xkb_config.setListener(*Self, rwm_xkb_config_listener, &ctx.?);
 }
 
 
@@ -209,6 +213,14 @@ pub fn deinit() void {
             libinput_device.destroy();
         }
         ctx.?.libinput_devices.init();
+    }
+
+    {
+        var it = ctx.?.xkb_keyboards.safeIterator(.forward);
+        while (it.next()) |xkb_config| {
+            xkb_config.destroy();
+        }
+        ctx.?.xkb_keyboards.init();
     }
 
     if (ctx.?.is_listening_status()) {
@@ -887,6 +899,28 @@ fn rwm_libinput_config_listener(rwm_libinput_config: *river.LibinputConfigV1, ev
 
             rwm_libinput_config.destroy();
             context.rwm_libinput_config = null;
+        }
+    }
+}
+
+
+fn rwm_xkb_config_listener(rwm_xkb_config: *river.XkbConfigV1, event: river.XkbConfigV1.Event, context: *Self) void {
+    std.debug.assert(rwm_xkb_config == context.rwm_xkb_config);
+
+    switch (event) {
+        .xkb_keyboard => |data| {
+            const xkb_keyboard = XkbKeyboard.create(data.id) catch |err| {
+                log.err("create xkb_keyboard failed: {}", .{ err });
+                return;
+            };
+
+            context.xkb_keyboards.append(xkb_keyboard);
+        },
+        .finished => {
+            log.debug("{*} finished", .{ rwm_xkb_config });
+
+            rwm_xkb_config.destroy();
+            context.rwm_xkb_config = null;
         }
     }
 }
