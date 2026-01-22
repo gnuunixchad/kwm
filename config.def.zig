@@ -906,18 +906,13 @@ pub const rules = [_]Rule {
     .{ .alter_match_fn = &empty_appid_or_title, .floating = true },
     .{ .title = .{ .str = "Floating_Term" }, .floating = true },
     .{ .title = .{ .str = "Floating_IMG" }, .floating = true },
-    // GIMP
-    .{ .app_id = .compile("file-*"), .floating = true },
-    .{ .title = .{ .str = "script-fu" }, .floating = true },
-    .{ .app_id = .{ .str = "lighting" }, .title = .{ .str = "Lighting Effects" }, .floating = true },
-    // Inkspace
+    .{ .app_id = .compile("file-*"), .floating = true }, // gimp
+    .{ .app_id = .{ .str = "gimp" }, .floating = true },
     .{ .app_id = .{ .str = "org.inkscape.Inkscape" }, .title = .compile("Select file*"), .floating = true },
-    // Kdenlive file chooser
     .{ .app_id = .{ .str = "kdenlive" }, .floating = true },
-    // Code - OSS
-    .{ .app_id = .{ .str = "electron" }, .title = .{ .str = "Open Folder" }, .floating = true },
+    .{ .app_id = .{ .str = "electron" }, .title = .{ .str = "Open Folder" }, .floating = true }, // code-oss
     .{ .app_id = .{ .str = "org.fcitx.fcitx5-config-qt" }, .floating = true },
-    .{ .app_id = .{ .str = "qutebrowser" }, .tag = 1 << 1, .scroller_mfact = 0.7 },
+    .{ .app_id = .{ .str = "org.qutebrowser.qutebrowser" }, .scroller_mfact = 0.7 },
     .{ .app_id = .{ .str = "footclient" }, .is_terminal = true, .scroller_mfact = 0.5 },
 };
 
