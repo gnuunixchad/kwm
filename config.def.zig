@@ -276,6 +276,7 @@ pub const Mode = enum {
     default,
     floating,
     passthrough,
+    mouse,
 };
 // if not set, will use @tagName(mode) as replacement
 // if set to empty string, will hide
@@ -284,6 +285,7 @@ pub const mode_tag: std.EnumMap(Mode, []const u8) = .init(.{
     .default = "",
     .floating = "F",
     .passthrough = "P",
+    .mouse = "/",
 });
 
 pub const tags = [_][]const u8 {
@@ -303,6 +305,79 @@ pub const xkb_bindings = blk: {
             .keysym = Keysym.Escape,
             .modifiers = Super|Shift,
             .action = .{ .switch_mode = .{ .mode = .default } }
+        },
+
+        // mouse
+        .{
+            .keysym = Keysym.slash,
+            .modifiers = Super,
+            .action = .{ .switch_mode = .{ .mode = .mouse } }
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.slash,
+            .modifiers = Super,
+            .action = .{ .switch_mode = .{ .mode = .default } }
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.h,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer move -90 0" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.j,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer move 0 90" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.k,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer move 0 -90" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.l,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer move 90 0" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.h,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer move -15 0" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.j,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer move 0 15" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.k,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer move 0 -15" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.l,
+            .modifiers = Super|Shift,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer move 15 0" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.comma,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer click left" } },
+        },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.period,
+            .modifiers = Super,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer click right" } },
         },
 
 
