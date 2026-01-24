@@ -49,6 +49,7 @@ current_output: ?*Output = null,
 
 input_devices: wl.list.Head(InputDevice, .link) = undefined,
 libinput_devices: wl.list.Head(LibinputDevice, .link) = undefined,
+libinput_config_applied: bool = false,
 
 windows: wl.list.Head(Window, .link) = undefined,
 focus_stack: wl.list.Head(Window, .flink) = undefined,
@@ -660,6 +661,15 @@ fn promote_new_seat(self: *Self) void {
 
 fn prepare_manage(self: *Self) void {
     log.debug("prepare to manage", .{});
+
+    if (!self.libinput_config_applied) {
+        defer self.libinput_config_applied = true;
+
+        var it = self.libinput_devices.safeIterator(.forward);
+        while (it.next()) |libinput_device| {
+            libinput_device.apply_config();
+        }
+    }
 
     {
         var it = self.seats.safeIterator(.forward);
