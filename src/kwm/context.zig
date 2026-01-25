@@ -251,6 +251,8 @@ pub inline fn get() *Self {
 
 
 pub fn reload_input_config(self: *Self) void {
+    if (!self.input_config_applied) return;
+
     log.debug("reload input config", .{});
 
     self.input_config_applied = false;
@@ -892,6 +894,7 @@ fn rwm_input_manager_listener(rwm_input_manager: *river.InputManagerV1, event: r
             };
 
             context.input_devices.append(input_device);
+            context.reload_input_config();
         },
         .finished => {
             log.debug("{*} finished", .{ rwm_input_manager });
@@ -916,6 +919,7 @@ fn rwm_libinput_config_listener(rwm_libinput_config: *river.LibinputConfigV1, ev
             };
 
             context.libinput_devices.append(libinput_device);
+            context.reload_input_config();
         },
         .finished => {
             log.debug("{*} finished", .{ rwm_libinput_config });
@@ -938,6 +942,7 @@ fn rwm_xkb_config_listener(rwm_xkb_config: *river.XkbConfigV1, event: river.XkbC
             };
 
             context.xkb_keyboards.append(xkb_keyboard);
+            context.reload_input_config();
         },
         .finished => {
             log.debug("{*} finished", .{ rwm_xkb_config });
