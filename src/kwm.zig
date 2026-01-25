@@ -12,3 +12,8 @@ pub const KeyboardNumlockState = types.KeyboardNumlockState;
 pub const KeyboardCapslockState = types.KeyboardCapslockState;
 pub const KeyboardLayout = types.KeyboardLayout;
 pub const Keymap = types.Keymap;
+
+
+pub inline fn reload_input_config() void {
+    Context.get().reload_input_config();
+}

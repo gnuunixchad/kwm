@@ -243,6 +243,13 @@ pub fn deinit() void {
 }
 
 
+pub fn reload_input_config(self: *Self) void {
+    log.debug("reload input config", .{});
+
+    self.input_config_applied = false;
+}
+
+
 pub fn start_listening_status(self: *Self) void {
     self.stop_listening_status();
 
