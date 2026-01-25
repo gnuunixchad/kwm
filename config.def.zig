@@ -129,8 +129,8 @@ pub const scroll_button_lock: InputConfig(river.LibinputDeviceV1.ScrollButtonLoc
 pub const disable_while_typing: InputConfig(river.LibinputDeviceV1.DwtState)                = .{ .value = .enabled };
 pub const disable_while_trackpointing: InputConfig(river.LibinputDeviceV1.DwtpState)        = .{ .value = .enabled };
 pub const rotation_angle: InputConfig(u32)                                                  = .{ .value = null };
-pub const numlock: InputConfig(kwm.KeyboardNumlockState)                                    = .{ .value = .enabled };
-pub const capslock: InputConfig(kwm.KeyboardCapslockState)                                  = .{ .value = .enabled };
+pub const numlock: InputConfig(kwm.KeyboardNumlockState)                                    = .{ .value = null };
+pub const capslock: InputConfig(kwm.KeyboardCapslockState)                                  = .{ .value = null };
 pub const keyboard_layout: InputConfig(kwm.KeyboardLayout)                                  = .{ .value = null };
 pub const keymap: InputConfig(kwm.Keymap)                                                   = .{ .value = null };
 
