@@ -22,6 +22,8 @@ rwm_libinput_device: *river.LibinputDeviceV1,
 
 input_device: ?*InputDevice = null,
 
+new: bool = true,
+
 send_events_support: river.LibinputDeviceV1.SendEventsModes = mem.zeroes(river.LibinputDeviceV1.SendEventsModes),
 send_events_current: river.LibinputDeviceV1.SendEventsModes = undefined,
 
@@ -96,7 +98,17 @@ pub fn destroy(self: *Self) void {
 }
 
 
-pub fn apply_config(self: *Self) void {
+pub fn manage(self: *Self) void {
+    log.debug("<{*}> manage", .{ self });
+
+    if (self.new) {
+        self.new = false;
+        self.apply_config();
+    }
+}
+
+
+fn apply_config(self: *Self) void {
     log.debug("<{*}> apply config", .{ self });
 
     var bits: u32 = undefined;

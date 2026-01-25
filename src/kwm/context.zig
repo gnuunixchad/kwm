@@ -52,7 +52,6 @@ current_output: ?*Output = null,
 input_devices: wl.list.Head(InputDevice, .link) = undefined,
 libinput_devices: wl.list.Head(LibinputDevice, .link) = undefined,
 xkb_keyboards: wl.list.Head(XkbKeyboard, .link) = undefined,
-input_config_applied: bool = false,
 
 windows: wl.list.Head(Window, .link) = undefined,
 focus_stack: wl.list.Head(Window, .flink) = undefined,
@@ -247,13 +246,6 @@ pub inline fn get() *Self {
     std.debug.assert(ctx != null);
 
     return &ctx.?;
-}
-
-
-pub fn reload_input_config(self: *Self) void {
-    log.debug("reload input config", .{});
-
-    self.input_config_applied = false;
 }
 
 
@@ -685,28 +677,24 @@ fn promote_new_seat(self: *Self) void {
 fn prepare_manage(self: *Self) void {
     log.debug("prepare to manage", .{});
 
-    if (!self.input_config_applied) {
-        defer self.input_config_applied = true;
-
-        {
-            var it = self.input_devices.safeIterator(.forward);
-            while (it.next()) |input_device| {
-                input_device.apply_config();
-            }
+    {
+        var it = self.input_devices.safeIterator(.forward);
+        while (it.next()) |input_device| {
+            input_device.manage();
         }
+    }
 
-        {
-            var it = self.libinput_devices.safeIterator(.forward);
-            while (it.next()) |libinput_device| {
-                libinput_device.apply_config();
-            }
+    {
+        var it = self.libinput_devices.safeIterator(.forward);
+        while (it.next()) |libinput_device| {
+            libinput_device.manage();
         }
+    }
 
-        {
-            var it = self.xkb_keyboards.safeIterator(.forward);
-            while (it.next()) |xkb_keyboard| {
-                xkb_keyboard.apply_config();
-            }
+    {
+        var it = self.xkb_keyboards.safeIterator(.forward);
+        while (it.next()) |xkb_keyboard| {
+            xkb_keyboard.manage();
         }
     }
 
