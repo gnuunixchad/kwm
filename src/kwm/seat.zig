@@ -374,6 +374,12 @@ fn handle_actions(self: *Self) void {
             .custom_fn => |data| {
                 const state = context.state();
                 data.func(&state, &data.arg);
+                if (comptime build_options.bar_enabled) {
+                    var it = context.outputs.safeIterator(.forward);
+                    while (it.next()) |output| {
+                        output.bar.damage(.dynamic);
+                    }
+                }
             }
         }
     }

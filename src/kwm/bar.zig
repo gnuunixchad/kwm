@@ -193,8 +193,6 @@ pub fn damage(self: *Self, @"type": enum { all, tags, dynamic, layout, mode, tit
     switch (@"type") {
         .all => {
             self.backgournd_damaged = true;
-            self.static_component.damaged = true;
-            self.dynamic_component.damaged = true;
         },
         .tags => {
             self.static_component.damaged = true;
@@ -210,13 +208,13 @@ pub fn render(self: *Self) void {
 
     log.debug("<{*}> rendering", .{ self });
 
-    if (self.static_component.damaged) {
+    if (self.static_component.damaged or self.backgournd_damaged) {
         defer self.static_component.damaged = false;
 
         self.render_static_component();
     }
 
-    if (self.dynamic_component.damaged) {
+    if (self.dynamic_component.damaged or self.backgournd_damaged) {
         defer self.dynamic_component.damaged = false;
 
         self.render_dynamic_component();

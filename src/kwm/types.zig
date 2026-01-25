@@ -6,6 +6,11 @@ const river = wayland.client.river;
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
 
+const KeyboardState = enum {
+    enabled,
+    disabled,
+};
+
 pub const Button = enum(u32) {
     left = 0x110,
     right = 0x111,
@@ -24,28 +29,21 @@ pub const PlacePosition = union(enum) {
     below: *river.NodeV1,
 };
 
+pub const KeyboardRepeatInfo = struct {
+    rate: i32,
+    delay: i32,
+};
+pub const KeyboardNumlockState = KeyboardState;
+pub const KeyboardCapslockState = KeyboardState;
+pub const KeyboardLayout = union(enum) {
+    index: u32,
+    name: [*:0]const u8,
+};
+pub const Keymap = struct {
+    file: []const u8,
+    format: river.XkbConfigV1.KeymapFormat,
+};
+
 pub const State = struct {
     layout: ?layout.Type,
-
-    pub fn refresh_current_bar(_: *const @This()) void {
-        if (comptime build_options.bar_enabled) {
-            const context = Context.get();
-            if (context.current_output) |output| {
-                output.bar.damage(.dynamic);
-            }
-        }
-    }
-
-
-    pub fn refresh_all_bar(_: *const @This()) void {
-        if (comptime build_options.bar_enabled) {
-            const context = Context.get();
-            {
-                var it = context.outputs.safeIterator(.forward);
-                while (it.next()) |output| {
-                    output.bar.damage(.dynamic);
-                }
-            }
-        }
-    }
 };
