@@ -18,6 +18,7 @@ link: wl.list.Link = undefined,
 
 rwm_input_device: *river.InputDeviceV1,
 
+new: bool = true,
 name: ?[]const u8 = null,
 type: union(river.InputDeviceV1.Type) {
     keyboard: ?types.KeyboardRepeatInfo,
@@ -58,7 +59,17 @@ pub fn destroy(self: *Self) void {
 }
 
 
-pub fn apply_config(self: *Self) void {
+pub fn manage(self: *Self) void {
+    log.debug("<{*}> manage", .{ self });
+
+    if (self.new) {
+        self.new = false;
+        self.apply_config();
+    }
+}
+
+
+fn apply_config(self: *Self) void {
     log.debug("<{*}> apply config", .{ self });
 
     switch (self.type) {

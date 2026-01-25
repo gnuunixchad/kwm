@@ -24,6 +24,7 @@ rwm_xkb_keyboard: *river.XkbKeyboardV1,
 
 input_device: ?*InputDevice = null,
 
+new: bool = true,
 numlock: types.KeyboardNumlockState = undefined,
 capslock: types.KeyboardCapslockState = undefined,
 layout_index: u32 = undefined,
@@ -63,7 +64,17 @@ pub fn destroy(self: *Self) void {
 }
 
 
-pub fn apply_config(self: *Self) void {
+pub fn manage(self: *Self) void {
+    log.debug("<{*}> manage", .{ self });
+
+    if (self.new) {
+        self.new = false;
+        self.apply_config();
+    }
+}
+
+
+fn apply_config(self: *Self) void {
     log.debug("<{*}> apply config", .{ self });
 
     if (self.get_from_config(types.KeyboardNumlockState, &config.numlock)) |state| {

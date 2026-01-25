@@ -52,7 +52,6 @@ current_output: ?*Output = null,
 input_devices: wl.list.Head(InputDevice, .link) = undefined,
 libinput_devices: wl.list.Head(LibinputDevice, .link) = undefined,
 xkb_keyboards: wl.list.Head(XkbKeyboard, .link) = undefined,
-input_config_applied: bool = false,
 
 windows: wl.list.Head(Window, .link) = undefined,
 focus_stack: wl.list.Head(Window, .flink) = undefined,
@@ -247,15 +246,6 @@ pub inline fn get() *Self {
     std.debug.assert(ctx != null);
 
     return &ctx.?;
-}
-
-
-pub fn reload_input_config(self: *Self) void {
-    if (!self.input_config_applied) return;
-
-    log.debug("reload input config", .{});
-
-    self.input_config_applied = false;
 }
 
 
@@ -687,28 +677,24 @@ fn promote_new_seat(self: *Self) void {
 fn prepare_manage(self: *Self) void {
     log.debug("prepare to manage", .{});
 
-    if (!self.input_config_applied) {
-        defer self.input_config_applied = true;
-
-        {
-            var it = self.input_devices.safeIterator(.forward);
-            while (it.next()) |input_device| {
-                input_device.apply_config();
-            }
+    {
+        var it = self.input_devices.safeIterator(.forward);
+        while (it.next()) |input_device| {
+            input_device.manage();
         }
+    }
 
-        {
-            var it = self.libinput_devices.safeIterator(.forward);
-            while (it.next()) |libinput_device| {
-                libinput_device.apply_config();
-            }
+    {
+        var it = self.libinput_devices.safeIterator(.forward);
+        while (it.next()) |libinput_device| {
+            libinput_device.manage();
         }
+    }
 
-        {
-            var it = self.xkb_keyboards.safeIterator(.forward);
-            while (it.next()) |xkb_keyboard| {
-                xkb_keyboard.apply_config();
-            }
+    {
+        var it = self.xkb_keyboards.safeIterator(.forward);
+        while (it.next()) |xkb_keyboard| {
+            xkb_keyboard.manage();
         }
     }
 
@@ -894,7 +880,6 @@ fn rwm_input_manager_listener(rwm_input_manager: *river.InputManagerV1, event: r
             };
 
             context.input_devices.append(input_device);
-            context.reload_input_config();
         },
         .finished => {
             log.debug("{*} finished", .{ rwm_input_manager });
@@ -919,7 +904,6 @@ fn rwm_libinput_config_listener(rwm_libinput_config: *river.LibinputConfigV1, ev
             };
 
             context.libinput_devices.append(libinput_device);
-            context.reload_input_config();
         },
         .finished => {
             log.debug("{*} finished", .{ rwm_libinput_config });
@@ -942,7 +926,6 @@ fn rwm_xkb_config_listener(rwm_xkb_config: *river.XkbConfigV1, event: river.XkbC
             };
 
             context.xkb_keyboards.append(xkb_keyboard);
-            context.reload_input_config();
         },
         .finished => {
             log.debug("{*} finished", .{ rwm_xkb_config });
