@@ -98,6 +98,15 @@ fn touchpad_config(name: ?[]const u8) ?river.LibinputDeviceV1.NaturalScrollState
     return if (pattern.is_match(name orelse return null)) .enabled else null;
 }
 
+///////////////////////
+// input config
+//////////////////////
+// if set .value:
+//      if null will do nothing
+//      else will apply it
+// if set .func:
+//      will dynamicly call the function, and get it's return value
+//      then same as .value
 pub const repeat_info: InputConfig(kwm.KeyboardRepeatInfo)                                  = .{ .value = .{ .rate = 50, .delay = 300 } };
 pub const scroll_factor: InputConfig(f64)                                                   = .{ .value = null };
 pub const send_events_modes: InputConfig(river.LibinputDeviceV1.SendEventsModes.Enum)       = .{ .value = .enabled };
