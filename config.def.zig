@@ -117,7 +117,7 @@ fn touchpad_config(name: ?[]const u8) ?river.LibinputDeviceV1.NaturalScrollState
 // if set .func:
 //      will dynamicly call the function, and get it's return value
 //      then same as .value
-pub const repeat_info: InputConfig(kwm.KeyboardRepeatInfo)                                  = .{ .value = .{ .rate = 50, .delay = 300 } };
+pub const repeat_info: InputConfig(kwm.KeyboardRepeatInfo)                                  = .{ .value = .{ .rate = 30, .delay = 200 } };
 pub const scroll_factor: InputConfig(f64)                                                   = .{ .value = null };
 pub const send_events_modes: InputConfig(river.LibinputDeviceV1.SendEventsModes.Enum)       = .{ .value = .enabled };
 pub const tap: InputConfig(river.LibinputDeviceV1.TapState)                                 = .{ .value = .enabled };
