@@ -386,6 +386,7 @@ fn handle_actions(self: *Self) void {
             },
             .custom_fn => |data| {
                 const state: types.State = .{
+                    .mode = context.mode,
                     .layout = if (context.current_output) |output| output.current_layout() else null,
                     .focused_window = if (context.focused_window()) |window| .{
                         .title = window.title,
