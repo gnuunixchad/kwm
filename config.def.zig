@@ -440,49 +440,49 @@ pub const xkb_bindings = blk: {
             .mode = .floating,
             .keysym = Keysym.l,
             .modifiers = Super,
-            .action = .{ .move = .{ .step = .{ .horizontal = 10 } } }
+            .action = .{ .move = .{ .step = .{ .horizontal = 50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.h,
             .modifiers = Super,
-            .action = .{ .move = .{ .step = .{ .horizontal = -10 } } }
+            .action = .{ .move = .{ .step = .{ .horizontal = -50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.j,
             .modifiers = Super,
-            .action = .{ .move = .{ .step = .{ .vertical = 10 } } }
+            .action = .{ .move = .{ .step = .{ .vertical = 50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.k,
             .modifiers = Super,
-            .action = .{ .move = .{ .step = .{ .vertical = -10 } } }
+            .action = .{ .move = .{ .step = .{ .vertical = -50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.l,
-            .modifiers = Super|Ctrl,
-            .action = .{ .resize = .{ .step = .{ .horizontal = 10 } } }
+            .modifiers = Ctrl,
+            .action = .{ .resize = .{ .step = .{ .horizontal = 50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.h,
-            .modifiers = Super|Ctrl,
-            .action = .{ .resize = .{ .step = .{ .horizontal = -10 } } }
+            .modifiers = Ctrl,
+            .action = .{ .resize = .{ .step = .{ .horizontal = -50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.j,
-            .modifiers = Super|Ctrl,
-            .action = .{ .resize = .{ .step = .{ .vertical = 10 } } }
+            .modifiers = Ctrl,
+            .action = .{ .resize = .{ .step = .{ .vertical = 50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.k,
-            .modifiers = Super|Ctrl,
-            .action = .{ .resize = .{ .step = .{ .vertical = -10 } } }
+            .modifiers = Ctrl,
+            .action = .{ .resize = .{ .step = .{ .vertical = -50 } } }
         },
         .{
             .mode = .floating,
