@@ -664,6 +664,21 @@ pub const xkb_bindings = blk: {
     break :blk bindings ++ tag_binddings;
 };
 
+fn show_appid(state: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
+    const static = struct {
+        pub var buffer: [32]u8 = undefined;
+        pub var argv = [_][]const u8 { "notify-send", &buffer };
+    };
+
+    if (state.window_below_pointer) |window| {
+        if (window.app_id) |app_id| {
+            static.argv[1] = fmt.bufPrint(&static.buffer, "APP_ID: {s}", .{ app_id }) catch return null;
+            return .{ .spawn = .{ .argv = &static.argv } };
+        }
+    }
+    return null;
+}
+
 pub const pointer_bindings = [_]PointerBinding {
     .{
         .button = Button.left,
@@ -675,6 +690,11 @@ pub const pointer_bindings = [_]PointerBinding {
         .modifiers = Super,
         .action = .pointer_resize,
     },
+    .{
+        .button = .middle,
+        .modifiers = Super,
+        .action = .{ .custom_fn = .{ .func = &show_appid, .arg = .none } },
+    }
 };
 
 
