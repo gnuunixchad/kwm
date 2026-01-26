@@ -62,6 +62,7 @@ For all options available see `man 7 xkeyboard-config`
 - https://codeberg.org/machi/machi - River based window manager
 - https://codeberg.org/dwl/dwl - dwm for wayland
 - https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch - swallow window patch for dwl
+- https://github.com/mnemnion/mvzr - regex support
 
 ## License
 
