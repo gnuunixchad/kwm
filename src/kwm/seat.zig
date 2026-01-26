@@ -226,7 +226,11 @@ fn handle_actions(self: *Self) void {
     defer self.unhandled_actions.clearRetainingCapacity();
 
     const context = Context.get();
-    for (self.unhandled_actions.items) |action| {
+
+    var i: usize = 0;
+    while (i < self.unhandled_actions.items.len) : (i += 1) {
+        const action = self.unhandled_actions.items[i];
+
         switch (action) {
             .quit => {
                 context.quit();
@@ -373,7 +377,11 @@ fn handle_actions(self: *Self) void {
             },
             .custom_fn => |data| {
                 const state = context.state();
-                data.func(&state, &data.arg);
+
+                if (data.func(&state, &data.arg)) |new_action| {
+                    self.append_action(new_action);
+                }
+
                 if (comptime build_options.bar_enabled) {
                     var it = context.outputs.safeIterator(.forward);
                     while (it.next()) |output| {

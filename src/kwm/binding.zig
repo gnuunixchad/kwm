@@ -75,6 +75,6 @@ pub const Action = union(enum) {
     toggle_bar,
     custom_fn: struct {
         arg: Arg,
-        func: *const fn(*const types.State, *const Arg) void,
+        func: *const fn(*const types.State, *const Arg) ?Action,
     },
 };

@@ -212,16 +212,18 @@ pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
 }
 
 
-fn modify_nmaster(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn modify_nmaster(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .i);
 
     if (state.layout == .tile) {
         tile.nmaster = @max(1, tile.nmaster+arg.i);
     }
+
+    return null;
 }
 
 
-fn modify_mfact(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn modify_mfact(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .f);
 
     if (state.layout) |layout_t| {
@@ -231,10 +233,12 @@ fn modify_mfact(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
             else => {},
         }
     }
+
+    return null;
 }
 
 
-fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .i);
 
     if (state.layout) |layout_t| {
@@ -246,10 +250,12 @@ fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
             .float => {},
         }
     }
+
+    return null;
 }
 
 
-fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .ui);
 
     if (state.layout == .tile) {
@@ -258,33 +264,41 @@ fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) 
             'r' => .right,
             'u' => .top,
             'd' => .bottom,
-            else => return,
+            else => return null,
         };
     }
+
+    return null;
 }
 
 
-fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.binding.Arg) void {
+fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
     if (state.layout == .grid) {
         grid.direction = switch (grid.direction) {
             .horizontal => .vertical,
             .vertical => .horizontal,
         };
     }
+
+    return null;
 }
 
 
-fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .none);
 
     if (state.layout == .scroller) {
         scroller.snap_to_left = !scroller.snap_to_left;
     }
+
+    return null;
 }
 
 
-fn toggle_auto_swallow(_: *const kwm.State, _: *const kwm.binding.Arg) void {
+fn toggle_auto_swallow(_: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
     auto_swallow = !auto_swallow;
+
+    return null;
 }
 
 
