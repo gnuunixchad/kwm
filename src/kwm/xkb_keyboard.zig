@@ -29,7 +29,6 @@ numlock: types.KeyboardNumlockState = undefined,
 capslock: types.KeyboardCapslockState = undefined,
 layout_index: u32 = undefined,
 layout_name: ?[]const u8 = null,
-keymap: ?types.Keymap = null,
 
 
 pub fn create(rwm_xkb_keyboard: *river.XkbKeyboardV1) !*Self {
@@ -77,29 +76,31 @@ pub fn manage(self: *Self) void {
 fn apply_config(self: *Self) void {
     log.debug("<{*}> apply config", .{ self });
 
-    if (self.get_from_config(types.KeyboardNumlockState, &config.numlock)) |state| {
+    const cfg = switch (config.keyboard) {
+        .value => |value| value,
+        .func => |func| func((self.input_device orelse return).name),
+    };
+
+    if (cfg.numlock) |state| {
         if (self.numlock != state) self.set_numlock(state);
     }
 
-    if (self.get_from_config(types.KeyboardCapslockState, &config.capslock)) |state| {
+    if (cfg.capslock) |state| {
         if (self.capslock != state) self.set_capslock(state);
     }
 
-    if (self.get_from_config(types.KeyboardLayout, &config.keyboard_layout)) |layout| {
+    if (cfg.layout) |layout| {
         if (switch (layout) {
             .index => |index| index != self.layout_index,
             .name => |name| self.layout_name == null or mem.order(u8, mem.span(name), self.layout_name.?) != .eq,
         }) self.set_layout(layout);
     }
 
-    if (self.get_from_config(types.Keymap, &config.keymap)) |keymap| blk: {
-        if (self.keymap == null or self.keymap.?.format != keymap.format or mem.order(u8, self.keymap.?.file, keymap.file) != .eq) {
-            self.set_keymap(keymap) catch |err| {
-                log.err("<{*}> set keymap failed: {}", .{ self, err });
-                break :blk;
-            };
-            self.keymap = keymap;
-        }
+    if (cfg.keymap) |keymap| blk: {
+        self.set_keymap(keymap) catch |err| {
+            log.err("<{*}> set keymap failed: {}", .{ self, err });
+            break :blk;
+        };
     }
 }
 

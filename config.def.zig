@@ -62,12 +62,38 @@ const BorderColor = struct {
     unfocus: u32,
     urgent: u32,
 };
-pub fn InputConfig(comptime T: type) type {
-    return union(enum(u2)) {
-        value: ?T,
-        func: *const fn(?[]const u8) ?T,
-    };
-}
+const KeyboardRepeatInfo = struct {
+    rate: i32,
+    delay: i32,
+};
+const LibinputConfig = struct {
+    send_events_modes: ?river.LibinputDeviceV1.SendEventsModes.Enum       = null,
+    tap: ?river.LibinputDeviceV1.TapState                                 = null,
+    drag: ?river.LibinputDeviceV1.DragState                               = null,
+    drag_lock: ?river.LibinputDeviceV1.DragLockState                      = null,
+    tap_button_map: ?river.LibinputDeviceV1.TapButtonMap                  = null,
+    three_finger_drag: ?river.LibinputDeviceV1.ThreeFingerDragState       = null,
+    calibration_matrix: ?[6]f32                                           = null,
+    accel_profile: ?river.LibinputDeviceV1.AccelProfile                   = null,
+    accel_speed: ?f64                                                     = null,
+    natural_scroll: ?river.LibinputDeviceV1.NaturalScrollState            = null,
+    left_handed: ?river.LibinputDeviceV1.LeftHandedState                  = null,
+    click_method: ?river.LibinputDeviceV1.ClickMethod                     = null,
+    clickfinger_button_map: ?river.LibinputDeviceV1.ClickfingerButtonMap  = null,
+    middle_button_emulation: ?river.LibinputDeviceV1.MiddleEmulationState = null,
+    scroll_method: ?river.LibinputDeviceV1.ScrollMethod                   = null,
+    scroll_button: ?Button                                                = null,
+    scroll_button_lock: ?river.LibinputDeviceV1.ScrollButtonLockState     = null,
+    disable_while_typing: ?river.LibinputDeviceV1.DwtState                = null,
+    disable_while_trackpointing: ?river.LibinputDeviceV1.DwtpState        = null,
+    rotation_angle: ?u32                                                  = null,
+};
+const KeyboardConfig = struct {
+    numlock: ?kwm.KeyboardNumlockState                                    = null,
+    capslock: ?kwm.KeyboardCapslockState                                  = null,
+    layout: ?kwm.KeyboardLayout                                           = null,
+    keymap: ?kwm.Keymap                                                   = null,
+};
 
 
 ////////////////////////////////////////////////////////
@@ -101,48 +127,6 @@ pub const startup_cmds = [_][]const []const u8 {
 };
 
 pub const xcursor_theme: ?XcursorTheme = null;
-
-
-fn touchpad_config(name: ?[]const u8) ?river.LibinputDeviceV1.NaturalScrollState {
-    const pattern: Rule.Pattern = .compile(".*[tT]ouchpad");
-    return if (pattern.is_match(name orelse return null)) .enabled else null;
-}
-
-///////////////////////
-// input config
-//////////////////////
-// if set .value:
-//      if null will do nothing
-//      else will apply it
-// if set .func:
-//      will dynamicly call the function, and get it's return value
-//      then same as .value
-pub const repeat_info: InputConfig(kwm.KeyboardRepeatInfo)                                  = .{ .value = .{ .rate = 30, .delay = 200 } };
-pub const scroll_factor: InputConfig(f64)                                                   = .{ .value = null };
-pub const send_events_modes: InputConfig(river.LibinputDeviceV1.SendEventsModes.Enum)       = .{ .value = .enabled };
-pub const tap: InputConfig(river.LibinputDeviceV1.TapState)                                 = .{ .value = .enabled };
-pub const drag: InputConfig(river.LibinputDeviceV1.DragState)                               = .{ .value = .enabled };
-pub const drag_lock: InputConfig(river.LibinputDeviceV1.DragLockState)                      = .{ .value = .disabled };
-pub const tap_button_map: InputConfig(river.LibinputDeviceV1.TapButtonMap)                  = .{ .value = .lrm };
-pub const three_finger_drag: InputConfig(river.LibinputDeviceV1.ThreeFingerDragState)       = .{ .value = .disabled };
-pub const calibration_matrix: InputConfig([6]f32)                                           = .{ .value = null };
-pub const accel_profile: InputConfig(river.LibinputDeviceV1.AccelProfile)                   = .{ .value = null };
-pub const accel_speed: InputConfig(f64)                                                     = .{ .value = null };
-pub const natural_scroll: InputConfig(river.LibinputDeviceV1.NaturalScrollState)            = .{ .func = touchpad_config };
-pub const left_handed: InputConfig(river.LibinputDeviceV1.LeftHandedState)                  = .{ .value = .disabled };
-pub const click_method: InputConfig(river.LibinputDeviceV1.ClickMethod)                     = .{ .value = .button_areas };
-pub const clickfinger_button_map: InputConfig(river.LibinputDeviceV1.ClickfingerButtonMap)  = .{ .value = .lrm };
-pub const middle_button_emulation: InputConfig(river.LibinputDeviceV1.MiddleEmulationState) = .{ .value = .disabled };
-pub const scroll_method: InputConfig(river.LibinputDeviceV1.ScrollMethod)                   = .{ .value = .two_finger };
-pub const scroll_button: InputConfig(Button)                                                = .{ .value = .middle };
-pub const scroll_button_lock: InputConfig(river.LibinputDeviceV1.ScrollButtonLockState)     = .{ .value = .disabled };
-pub const disable_while_typing: InputConfig(river.LibinputDeviceV1.DwtState)                = .{ .value = .enabled };
-pub const disable_while_trackpointing: InputConfig(river.LibinputDeviceV1.DwtpState)        = .{ .value = .enabled };
-pub const rotation_angle: InputConfig(u32)                                                  = .{ .value = null };
-pub const numlock: InputConfig(kwm.KeyboardNumlockState)                                    = .{ .value = null };
-pub const capslock: InputConfig(kwm.KeyboardCapslockState)                                  = .{ .value = null };
-pub const keyboard_layout: InputConfig(kwm.KeyboardLayout)                                  = .{ .value = null };
-pub const keymap: InputConfig(kwm.Keymap)                                                   = .{ .value = null };
 
 pub const sloppy_focus = false;
 
@@ -1038,3 +1022,34 @@ pub const rules = [_]Rule {
     .{ .app_id = .{ .str = "org.qutebrowser.qutebrowser" }, .scroller_mfact = 0.7 },
     .{ .app_id = .{ .str = "footclient" }, .is_terminal = true, .scroller_mfact = 0.5 },
 };
+
+
+///////////////////////
+// input config
+//////////////////////
+fn UnionWrap(comptime T: type) type {
+    return union(enum(u2)) {
+        value: T,                       // directly set config
+        func: *const fn(?[]const u8) T, // dynamicly return a config
+    };
+}
+
+fn libinput_config(name: ?[]const u8) LibinputConfig {
+    if (name == null) return .{};
+
+    const pattern: Rule.Pattern = .compile(".*[tT]ouchpad");
+
+    return .{
+        // enable tap and drag
+        .tap = .enabled,
+        .drag = .enabled,
+        // only enable natural_scroll for the device that who's name matches ".*[tT]ouchpad"
+        // else keep default by setting to null
+        .natural_scroll = if (pattern.is_match(name.?)) .enabled else null,
+    };
+}
+
+pub const repeat_info: UnionWrap(?KeyboardRepeatInfo)    = .{ .value = .{ .rate = 30, .delay = 200 } };
+pub const scroll_factor: UnionWrap(?f64)                 = .{ .value = null };
+pub const libinput: UnionWrap(LibinputConfig)            = .{ .func = libinput_config };
+pub const keyboard: UnionWrap(KeyboardConfig)            = .{ .value = .{} };

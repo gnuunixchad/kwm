@@ -111,11 +111,16 @@ pub fn manage(self: *Self) void {
 fn apply_config(self: *Self) void {
     log.debug("<{*}> apply config", .{ self });
 
+    const cfg = switch (config.libinput) {
+        .value => |value| value,
+        .func => |func| func((self.input_device orelse return).name),
+    };
+
     var bits: u32 = undefined;
 
     bits = @bitCast(self.send_events_support);
     if (bits != 0) {
-        if (self.get_from_config(river.LibinputDeviceV1.SendEventsModes.Enum, &config.send_events_modes)) |mode| {
+        if (cfg.send_events_modes) |mode| {
             const modes: river.LibinputDeviceV1.SendEventsModes = @bitCast(@as(u32, @intCast(@intFromEnum(mode))));
 
             if (mode == .enabled or @as(u32, @bitCast(modes)) & bits != 0) {
@@ -125,32 +130,32 @@ fn apply_config(self: *Self) void {
     }
 
     if (self.tap_support != 0) {
-        if (self.get_from_config(river.LibinputDeviceV1.TapState, &config.tap)) |state| {
+        if (cfg.tap) |state| {
             if (self.tap_current != state) self.set_tap(state);
         }
 
-        if (self.get_from_config(river.LibinputDeviceV1.DragState, &config.drag)) |state| {
+        if (cfg.drag) |state| {
             if (self.drag_current != state) self.set_drag(state);
         }
 
-        if (self.get_from_config(river.LibinputDeviceV1.DragLockState, &config.drag_lock)) |state| {
+        if (cfg.drag_lock) |state| {
             if (self.drag_lock_current != state) self.set_drag_lock(state);
         }
 
-        if (self.get_from_config(river.LibinputDeviceV1.TapButtonMap, &config.tap_button_map)) |button_map| {
+        if (cfg.tap_button_map) |button_map| {
             if (self.tap_button_map_current != button_map) self.set_tap_button_map(button_map);
         }
     }
 
     if (self.three_finger_drag_support >= 3) {
-        if (self.get_from_config(river.LibinputDeviceV1.ThreeFingerDragState, &config.three_finger_drag)) |state| blk: {
+        if (cfg.three_finger_drag) |state| blk: {
             if (state == .enabled_4fg and self.three_finger_drag_support < 4) break :blk;
             if (self.three_finger_drag_current != state) self.set_three_finger_drag(state);
         }
     }
 
     if (self.calibration_matrix_support) {
-        if (self.get_from_config([6]f32, &config.calibration_matrix)) |matrix| blk: {
+        if (cfg.calibration_matrix) |matrix| blk: {
             for (0..6) |i| {
                 if (@abs(self.calibration_matrix_current[i]-matrix[i]) > 1e-6) {
                     self.set_calibration_matrix(&matrix);
@@ -162,13 +167,13 @@ fn apply_config(self: *Self) void {
 
     bits = @bitCast(self.accel_profiles_support);
     if (bits != 0) {
-        if (self.get_from_config(river.LibinputDeviceV1.AccelProfile, &config.accel_profile)) |profile| {
+        if (cfg.accel_profile) |profile| {
             if (profile == .none or @as(u32, @intCast(@intFromEnum(profile))) & bits != 0) {
                 if (self.accel_profile_current != profile) self.set_accel_profile(profile);
             }
         }
 
-        if (self.get_from_config(f64, &config.accel_speed)) |speed| {
+        if (cfg.accel_speed) |speed| {
             if (@abs(speed) > 1) {
                 log.err("accel_speed must between [-1, 1], but found: {}", .{ speed });
             } else {
@@ -179,71 +184,71 @@ fn apply_config(self: *Self) void {
 
 
     if (self.natural_scroll_support) {
-        if (self.get_from_config(river.LibinputDeviceV1.NaturalScrollState, &config.natural_scroll)) |state| {
+        if (cfg.natural_scroll) |state| {
             if (self.natural_scroll_current != state) self.set_natural_scroll(state);
         }
     }
 
     if (self.left_handed_support) {
-        if (self.get_from_config(river.LibinputDeviceV1.LeftHandedState, &config.left_handed)) |state| {
+        if (cfg.left_handed) |state| {
             if (self.left_handed_current != state) self.set_left_handed(state);
         }
     }
 
     bits = @bitCast(self.click_method_support);
     if (bits != 0) {
-        if (self.get_from_config(river.LibinputDeviceV1.ClickMethod, &config.click_method)) |method| {
+        if (cfg.click_method) |method| {
             if (method == .none or @as(u32, @intCast(@intFromEnum(method))) & bits != 0) {
                 if (self.click_method_current != method) self.set_click_method(method);
             }
         }
 
         if (self.click_method_support.clickfinger) {
-            if (self.get_from_config(river.LibinputDeviceV1.ClickfingerButtonMap, &config.clickfinger_button_map)) |button_map| {
+            if (cfg.clickfinger_button_map) |button_map| {
                 if (self.clickfinger_button_map_current != button_map) self.set_clickfinger_button_map(button_map);
             }
         }
     }
 
     if (self.middle_emulation_support) {
-        if (self.get_from_config(river.LibinputDeviceV1.MiddleEmulationState, &config.middle_button_emulation)) |state| {
+        if (cfg.middle_button_emulation) |state| {
             if (self.middle_emulation_current != state) self.set_middle_emulation(state);
         }
     }
 
     bits = @bitCast(self.scroll_method_support);
     if (bits != 0) {
-        if (self.get_from_config(river.LibinputDeviceV1.ScrollMethod, &config.scroll_method)) |method| {
+        if (cfg.scroll_method) |method| {
             if (method == .no_scroll or @as(u32, @intCast(@intFromEnum(method))) & bits != 0) {
                 if (self.scroll_method_current != method) self.set_scroll_method(method);
             }
         }
 
         if (self.scroll_method_support.on_button_down) {
-            if (self.get_from_config(types.Button, &config.scroll_button)) |button| {
+            if (cfg.scroll_button) |button| {
                 if (self.scroll_button_current != button) self.set_scroll_button(@intFromEnum(button));
             }
 
-            if (self.get_from_config(river.LibinputDeviceV1.ScrollButtonLockState, &config.scroll_button_lock)) |state| {
+            if (cfg.scroll_button_lock) |state| {
                 if (self.scroll_button_lock_current != state) self.set_scroll_button_lock(state);
             }
         }
     }
 
     if (self.dwt_support) {
-        if (self.get_from_config(river.LibinputDeviceV1.DwtState, &config.disable_while_typing)) |state| {
+        if (cfg.disable_while_typing) |state| {
             if (self.dwt_current != state) self.set_dwt(state);
         }
     }
 
     if (self.dwtp_support) {
-        if (self.get_from_config(river.LibinputDeviceV1.DwtpState, &config.disable_while_trackpointing)) |state| {
+        if (cfg.disable_while_trackpointing) |state| {
             if (self.dwtp_current != state) self.set_dwtp(state);
         }
     }
 
     if (self.rotation_support) {
-        if (self.get_from_config(u32, &config.rotation_angle)) |angle| {
+        if (cfg.rotation_angle) |angle| {
             if (self.rotation_current != angle) self.set_rotation(angle);
         }
     }

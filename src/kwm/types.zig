@@ -29,10 +29,6 @@ pub const PlacePosition = union(enum) {
     below: *river.NodeV1,
 };
 
-pub const KeyboardRepeatInfo = struct {
-    rate: i32,
-    delay: i32,
-};
 pub const KeyboardNumlockState = KeyboardState;
 pub const KeyboardCapslockState = KeyboardState;
 pub const KeyboardLayout = union(enum) {
