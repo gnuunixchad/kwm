@@ -385,7 +385,17 @@ fn handle_actions(self: *Self) void {
                 }
             },
             .custom_fn => |data| {
-                const state = context.state();
+                const state: types.State = .{
+                    .layout = if (context.current_output) |output| output.current_layout() else null,
+                    .focused_window = if (context.focused_window()) |window| .{
+                        .title = window.title,
+                        .app_id = window.app_id,
+                    } else null,
+                    .window_below_pointer = if (self.window_below_pointer) |window| .{
+                        .title = window.title,
+                        .app_id = window.app_id,
+                    } else null,
+                };
 
                 if (data.func(&state, &data.arg)) |new_action| {
                     self.append_action(new_action);

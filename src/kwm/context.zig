@@ -351,17 +351,6 @@ pub fn handle_signal(self: *Self, sig: i32) void {
 }
 
 
-pub fn state(self: *Self) types.State {
-    const layout =
-        if (self.current_output) |output|
-            output.current_layout()
-        else null;
-    return .{
-        .layout = layout,
-    };
-}
-
-
 pub fn quit(self: *Self) void {
     log.debug("quit kwm", .{});
 

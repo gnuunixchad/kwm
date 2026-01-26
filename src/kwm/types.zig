@@ -40,6 +40,12 @@ pub const Keymap = struct {
     format: river.XkbConfigV1.KeymapFormat,
 };
 
+const Window = struct {
+    title: ?[]const u8,
+    app_id: ?[]const u8,
+};
 pub const State = struct {
     layout: ?layout.Type,
+    focused_window: ?Window,
+    window_below_pointer: ?Window,
 };
