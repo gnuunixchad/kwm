@@ -1,0 +1,98 @@
+commit acff2849f4cae3c161afeae04ea20f54d339f418
+Author: nate zhou <gnuunixchad@outlook.com>
+Date:   Tue Jan 27 17:47:06 2026 +0800
+
+    Feat: toggle sticky
+    
+    Add a keybinding(`<Super Shift s>`) to toggle a window to be sticky.
+
+diff --git a/config.def.zig b/config.def.zig
+index 02d4185..47b6e3e 100644
+--- a/config.def.zig
++++ b/config.def.zig
+@@ -567,6 +567,11 @@ pub const xkb_bindings = blk: {
+             .modifiers = Super,
+             .action = .toggle_floating,
+         },
++        .{
++            .keysym = Keysym.s,
++            .modifiers = Super|Shift,
++            .action = .toggle_sticky,
++        },
+         .{
+             .keysym = Keysym.a,
+             .modifiers = Super,
+diff --git a/src/kwm/binding.zig b/src/kwm/binding.zig
+index 4321826..87a6253 100644
+--- a/src/kwm/binding.zig
++++ b/src/kwm/binding.zig
+@@ -68,6 +68,7 @@ pub const Action = union(enum) {
+     switch_to_previous_tag,
+     shift_tag: struct { direction: types.Direction },
+     toggle_floating,
++    toggle_sticky,
+     toggle_swallow,
+     zoom,
+     switch_layout: struct { layout: layout.Type },
+diff --git a/src/kwm/seat.zig b/src/kwm/seat.zig
+index 227e368..6f5eade 100644
+--- a/src/kwm/seat.zig
++++ b/src/kwm/seat.zig
+@@ -343,6 +343,11 @@ fn handle_actions(self: *Self) void {
+                     window.toggle_floating();
+                 }
+             },
++            .toggle_sticky => {
++                if (context.focused_window()) |window| {
++                    window.toggle_sticky();
++                }
++            },
+             .toggle_swallow => {
+                 if (context.focused_window()) |window| {
+                     window.toggle_swallow();
+diff --git a/src/kwm/window.zig b/src/kwm/window.zig
+index 2cfc115..37b2c40 100644
+--- a/src/kwm/window.zig
++++ b/src/kwm/window.zig
+@@ -58,6 +58,7 @@ fullscreen: union(enum) {
+ } = .none,
+ maximize: bool = false,
+ floating: bool = false,
++sticky: bool = false,
+ hided: bool = false,
+ clip_state: enum {
+     unknow,
+@@ -401,11 +402,19 @@ pub fn toggle_floating(self: *Self) void {
+ }
+ 
+ 
++pub fn toggle_sticky(self: *Self) void {
++    log.debug("<{*}> toggle sticky: {}", .{ self, !self.sticky });
++
++    self.sticky = !self.sticky;
++}
++
++
+ pub fn is_visible(self: *Self) bool {
+     if (self.output) |output| {
+-        return
++        return (
++            self.sticky or
+             (self.tag & output.tag) != 0
+-            and self.swallowed_by == null;
++        ) and self.swallowed_by == null;
+     }
+     return false;
+ }
+@@ -428,7 +437,10 @@ pub fn is_visible_in(self: *Self, output: *Output) bool {
+ 
+     if (self.output.? != output) return false;
+ 
+-    return (self.tag & output.tag) != 0 and self.swallowed_by == null;
++    return (
++        self.sticky or
++        (self.tag & output.tag) != 0
++        ) and self.swallowed_by == null;
+ }
+ 
+ 
