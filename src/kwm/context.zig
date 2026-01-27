@@ -278,7 +278,7 @@ pub fn stop_listening_status(self: *Self) void {
         .text => {},
         .stdin => self.bar_status_fd = null,
         .fifo => if (self.bar_status_fd) |fd| {
-            log.debug("close fd {}`", .{ fd });
+            log.debug("close fd {}", .{ fd });
             posix.close(fd);
             self.bar_status_fd = null;
         }
