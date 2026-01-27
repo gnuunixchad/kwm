@@ -961,11 +961,6 @@ pub const xkb_bindings = blk: {
             .action = .{ .spawn_shell = .{ .cmd = "mpc next" } },
         },
         .{
-            .keysym = Keysym.s,
-            .modifiers = Super|Shift,
-            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/wsk" } },
-        },
-        .{
             .keysym = Keysym.b,
             .modifiers = Super|Shift,
             .action = .{ .spawn_shell = .{ .cmd = "pgrep gammastep && killall gammastep || gammastep -O 5000" } },
