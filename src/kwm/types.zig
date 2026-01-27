@@ -3,6 +3,8 @@ const build_options = @import("build_options");
 const wayland = @import("wayland");
 const river = wayland.client.river;
 
+const config = @import("config");
+
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
 
@@ -40,6 +42,13 @@ pub const Keymap = struct {
     format: river.XkbConfigV1.KeymapFormat,
 };
 
+const Window = struct {
+    title: ?[]const u8,
+    app_id: ?[]const u8,
+};
 pub const State = struct {
+    mode: config.Mode,
     layout: ?layout.Type,
+    focused_window: ?Window,
+    window_below_pointer: ?Window,
 };

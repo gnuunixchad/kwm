@@ -93,6 +93,7 @@ nohup damblocks --fifo >/dev/null 2>&1 &
 - https://codeberg.org/machi/machi - River based window manager
 - https://codeberg.org/dwl/dwl - dwm for wayland
 - https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch - swallow window patch for dwl
+- https://github.com/mnemnion/mvzr - regex support
 
 ## License
 

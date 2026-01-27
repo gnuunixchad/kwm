@@ -226,7 +226,11 @@ fn handle_actions(self: *Self) void {
     defer self.unhandled_actions.clearRetainingCapacity();
 
     const context = Context.get();
-    for (self.unhandled_actions.items) |action| {
+
+    var i: usize = 0;
+    while (i < self.unhandled_actions.items.len) : (i += 1) {
+        const action = self.unhandled_actions.items[i];
+
         switch (action) {
             .quit => {
                 context.quit();
@@ -362,6 +366,15 @@ fn handle_actions(self: *Self) void {
                     output.switch_to_previous_layout();
                 }
             },
+            .modify_scroller_mfact => |data| {
+                if (context.focused_window()) |window| {
+                    std.debug.assert(window.output != null);
+
+                    if (!window.floating and window.output.?.current_layout() == .scroller) {
+                        window.scroller_mfact = @min(1.0, @max(0, window.scroller_mfact + data.step));
+                    }
+                }
+            },
             .toggle_bar => {
                 if (comptime build_options.bar_enabled) {
                     if (context.current_output) |output| {
@@ -372,8 +385,23 @@ fn handle_actions(self: *Self) void {
                 }
             },
             .custom_fn => |data| {
-                const state = context.state();
-                data.func(&state, &data.arg);
+                const state: types.State = .{
+                    .mode = context.mode,
+                    .layout = if (context.current_output) |output| output.current_layout() else null,
+                    .focused_window = if (context.focused_window()) |window| .{
+                        .title = window.title,
+                        .app_id = window.app_id,
+                    } else null,
+                    .window_below_pointer = if (self.window_below_pointer) |window| .{
+                        .title = window.title,
+                        .app_id = window.app_id,
+                    } else null,
+                };
+
+                if (data.func(&state, &data.arg)) |new_action| {
+                    self.append_action(new_action);
+                }
+
                 if (comptime build_options.bar_enabled) {
                     var it = context.outputs.safeIterator(.forward);
                     while (it.next()) |output| {

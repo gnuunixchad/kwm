@@ -222,29 +222,41 @@ pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
 }
 
 
-fn modify_nmaster(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+//////////////////////////////////////////////////////////
+// custom function for `custom_fn` binding action
+// below are some useful example
+// it could use to modify some variable define above or
+// dynamicly return a binding action
+// You could define other functions as you wish
+//////////////////////////////////////////////////////////
+
+fn modify_nmaster(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .i);
 
     if (state.layout == .tile) {
         tile.nmaster = @max(1, tile.nmaster+arg.i);
     }
+
+    return null;
 }
 
 
-fn modify_mfact(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn modify_mfact(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .f);
 
     if (state.layout) |layout_t| {
         switch (layout_t) {
             .tile => tile.mfact = @min(1, @max(0, tile.mfact+arg.f)),
-            .scroller => scroller.mfact = @min(1, @max(0, scroller.mfact+arg.f)),
+            .scroller => return .{ .modify_scroller_mfact = .{ .step = arg.f } },
             else => {},
         }
     }
+
+    return null;
 }
 
 
-fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .i);
 
     if (state.layout) |layout_t| {
@@ -256,10 +268,12 @@ fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
             .float => {},
         }
     }
+
+    return null;
 }
 
 
-fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .ui);
 
     if (state.layout == .tile) {
@@ -268,33 +282,41 @@ fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) 
             'r' => .right,
             'u' => .top,
             'd' => .bottom,
-            else => return,
+            else => return null,
         };
     }
+
+    return null;
 }
 
 
-fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.binding.Arg) void {
+fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
     if (state.layout == .grid) {
         grid.direction = switch (grid.direction) {
             .horizontal => .vertical,
             .vertical => .horizontal,
         };
     }
+
+    return null;
 }
 
 
-fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.binding.Arg) void {
+fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
     std.debug.assert(arg.* == .none);
 
     if (state.layout == .scroller) {
         scroller.snap_to_left = !scroller.snap_to_left;
     }
+
+    return null;
 }
 
 
-fn toggle_auto_swallow(_: *const kwm.State, _: *const kwm.binding.Arg) void {
+fn toggle_auto_swallow(_: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
     auto_swallow = !auto_swallow;
+
+    return null;
 }
 
 
@@ -978,6 +1000,19 @@ pub const xkb_bindings = blk: {
     break :blk bindings ++ tag_binddings;
 };
 
+fn show_appid(state: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
+    const static = struct {
+        pub var buffer: [32]u8 = undefined;
+        pub var argv = [_][]const u8 { "notify-send", &buffer };
+    };
+
+    if (state.window_below_pointer) |window| {
+        static.argv[1] = fmt.bufPrint(&static.buffer, "APP_ID: {s}", .{ window.app_id orelse "NULL" }) catch return null;
+        return .{ .spawn = .{ .argv = &static.argv } };
+    }
+    return null;
+}
+
 pub const pointer_bindings = [_]PointerBinding {
     .{
         .button = Button.left,
@@ -989,6 +1024,11 @@ pub const pointer_bindings = [_]PointerBinding {
         .modifiers = Super,
         .action = .pointer_resize,
     },
+    .{
+        .button = .middle,
+        .modifiers = Super,
+        .action = .{ .custom_fn = .{ .func = &show_appid, .arg = .none } },
+    }
 };
 
 

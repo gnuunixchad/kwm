@@ -25,7 +25,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
     const available_height = output.exclusive_height();
 
     const master_width: i32 = @intFromFloat(
-        @as(f32, @floatFromInt(available_width)) * (focus_top.scroller_mfact orelse self.mfact)
+        @as(f32, @floatFromInt(available_width)) * focus_top.scroller_mfact
     );
     const height = available_height - 2*self.outer_gap;
     const master_x = if (self.snap_to_left) self.outer_gap else @divFloor(available_width-master_width, 2);
@@ -47,7 +47,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
                 window.hide();
             } else {
                 const width: i32 = @intFromFloat(
-                    @as(f32, @floatFromInt(available_width)) * (window.scroller_mfact orelse self.mfact)
+                    @as(f32, @floatFromInt(available_width)) * window.scroller_mfact
                 );
 
                 x -= width;
@@ -70,7 +70,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
                 window.hide();
             } else {
                 const width: i32 = @intFromFloat(
-                    @as(f32, @floatFromInt(available_width)) * (window.scroller_mfact orelse self.mfact)
+                    @as(f32, @floatFromInt(available_width)) * window.scroller_mfact
                 );
 
                 window.unbound_move(x, y);

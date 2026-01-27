@@ -85,7 +85,7 @@ width: i32 = 0,
 height: i32 = 0,
 min_width: i32 = 1,
 min_height: i32 = 1,
-scroller_mfact: ?f32 = null,
+scroller_mfact: f32 = undefined,
 operator: union(enum) {
     none,
     move: struct {
@@ -114,6 +114,7 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
         .rwm_window = rwm_window,
         .rwm_window_node = rwm_window_node,
         .unhandled_events = try .initCapacity(utils.allocator, 2),
+        .scroller_mfact = config.scroller.mfact,
     };
     window.link.init();
     window.flink.init();
