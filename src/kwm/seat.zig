@@ -343,6 +343,11 @@ fn handle_actions(self: *Self) void {
                     window.toggle_floating();
                 }
             },
+            .toggle_sticky => {
+                if (context.focused_window()) |window| {
+                    window.toggle_sticky();
+                }
+            },
             .toggle_swallow => {
                 if (context.focused_window()) |window| {
                     window.toggle_swallow();

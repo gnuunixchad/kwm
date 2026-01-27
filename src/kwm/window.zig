@@ -58,6 +58,7 @@ fullscreen: union(enum) {
 } = .none,
 maximize: bool = false,
 floating: bool = false,
+sticky: bool = false,
 hided: bool = false,
 clip_state: enum {
     unknow,
@@ -398,11 +399,19 @@ pub fn toggle_floating(self: *Self) void {
 }
 
 
+pub fn toggle_sticky(self: *Self) void {
+    log.debug("<{*}> toggle sticky: {}", .{ self, !self.sticky });
+
+    self.sticky = !self.sticky;
+}
+
+
 pub fn is_visible(self: *Self) bool {
     if (self.output) |output| {
-        return
+        return (
+            self.sticky or
             (self.tag & output.tag) != 0
-            and self.swallowed_by == null;
+        ) and self.swallowed_by == null;
     }
     return false;
 }
@@ -425,7 +434,10 @@ pub fn is_visible_in(self: *Self, output: *Output) bool {
 
     if (self.output.? != output) return false;
 
-    return (self.tag & output.tag) != 0 and self.swallowed_by == null;
+    return (
+        self.sticky or
+        (self.tag & output.tag) != 0
+    ) and self.swallowed_by == null;
 }
 
 
