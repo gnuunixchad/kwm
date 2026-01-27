@@ -68,6 +68,7 @@ pub const Action = union(enum) {
     switch_to_previous_tag,
     shift_tag: struct { direction: types.Direction },
     toggle_floating,
+    toggle_sticky,
     toggle_swallow,
     zoom,
     switch_layout: struct { layout: layout.Type },
