@@ -288,18 +288,18 @@ pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
         .{ self, self.width, self.height },
     );
 
-    self.width = @max(
-        self.min_width,
-        @min(
+    self.width = @min(
+        self.output.?.exclusive_width()-self.x-config.border_width,
+        @max(
             width orelse self.width,
-            self.output.?.exclusive_width()-self.x-config.border_width
+            self.min_width,
         )
     );
-    self.height = @max(
-        self.min_height,
-        @min(
+    self.height = @min(
+        self.output.?.exclusive_height()-self.y-config.border_width,
+        @max(
             height orelse self.height,
-            self.output.?.exclusive_height()-self.y-config.border_width
+            self.min_height,
         )
     );
 }
@@ -384,6 +384,9 @@ pub fn set_border(self: *Self, width: i32, rgb: u32) void {
 
 
 pub fn ensure_floating(self: *Self) void {
+    if (self.output) |output| {
+        if (output.current_layout() == .float) return;
+    }
     if (!self.floating) {
         log.debug("<{*}> turning floating", .{ self });
 
@@ -437,7 +440,7 @@ pub fn is_visible_in(self: *Self, output: *Output) bool {
     return (
         self.sticky or
         (self.tag & output.tag) != 0
-    ) and self.swallowed_by == null;
+        ) and self.swallowed_by == null;
 }
 
 

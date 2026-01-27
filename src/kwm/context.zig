@@ -758,19 +758,28 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
             log.debug("render start", .{});
 
             const focused = context.focused_window();
+            var top_windows: std.ArrayList(*Window) = .empty;
+            defer top_windows.deinit(utils.allocator);
+
             {
-                var it = context.windows.safeIterator(.forward);
+                var it = context.focus_stack.safeIterator(.forward);
                 while (it.next()) |window| {
                     if (!window.is_visible() or window.is_under_fullscreen_window()) {
                         window.hide();
+                    } else {
+                        window.set_border(
+                            if (window.fullscreen == .output) 0 else config.border_width,
+                            if (!context.focus_exclusive() and window == focused)
+                                config.border_color.focus
+                            else config.border_color.unfocus
+                        );
+                        if (window.floating) {
+                            top_windows.append(utils.allocator, window) catch |err| {
+                                log.warn("append floating window failed: {}", .{ err });
+                            };
+                        }
                     }
 
-                    window.set_border(
-                        if (window.fullscreen == .output) 0 else config.border_width,
-                        if (!context.focus_exclusive() and window == focused)
-                            config.border_color.focus
-                        else config.border_color.unfocus
-                    );
                     window.render();
                 }
             }
@@ -779,8 +788,20 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
                 // move focus to head of focus_stack
                 context.focus(window);
 
-                // place focused window top
-                window.place(.top);
+                (
+                    if (window.floating) top_windows.insert(utils.allocator, 0, window)
+                    else top_windows.append(utils.allocator, window)
+                ) catch |err| {
+                    log.warn("insert or append focused window failed: {}", .{ err });
+                    window.place(.top);
+                };
+            }
+
+            {
+                var i: i32 = @as(i32, @intCast(top_windows.items.len)) - 1;
+                while (i >= 0) : (i -= 1) {
+                    top_windows.items[@intCast(i)].place(.top);
+                }
             }
 
             if (comptime build_options.bar_enabled) {

@@ -111,7 +111,7 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
     const pad: i16 = @intCast(self.get_pad());
     var x: i32 = self.output.x;
 
-    if (pointer_x > self.static_component.width.?) x += self.static_component.width.?
+    if (pointer_x > self.output.x + self.static_component.width.?) x += self.static_component.width.?
     else for (0.., config.tags) |i, label| {
         const tw: i32 = @intCast(str_width(self.font, label) orelse return);
         defer x += tw + pad;
