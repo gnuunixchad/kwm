@@ -433,7 +433,7 @@ fn render_static_component(self: *Self) void {
             const box = [_]pixman.Rectangle16 {
                 .{
                     .x = x + box_offset,
-                    .y = y,
+                    .y = y + 1,
                     .width = box_size,
                     .height = box_size,
                 }
@@ -536,7 +536,7 @@ fn render_dynamic_component(self: *Self) void {
             const box = [_]pixman.Rectangle16 {
                 .{
                     .x = x + box_offset,
-                    .y = y,
+                    .y = y + 1,
                     .width = box_size,
                     .height = box_size,
                 }
