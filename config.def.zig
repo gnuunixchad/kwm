@@ -438,6 +438,12 @@ pub const xkb_bindings = blk: {
             .modifiers = 0,
             .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer click right" } },
         },
+        .{
+            .mode = .mouse,
+            .keysym = Keysym.m,
+            .modifiers = 0,
+            .action = .{ .spawn_shell = .{ .cmd = "wlrctl pointer click middle" } },
+        },
 
 
         // floating
