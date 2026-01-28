@@ -233,6 +233,15 @@ inline fn get_pad(self: *Self) u16 {
 }
 
 
+fn get_box(self: *Self) struct { u16, i16 } {
+    const h: u16 = @intCast(self.height());
+    return .{
+        @intCast(@divFloor(h, 6) + 2),
+        @intCast(@divFloor(h, 9)),
+    };
+}
+
+
 fn render_background(self: *Self) void {
     log.debug("<{*}> rendering background", .{ self });
 
@@ -393,8 +402,7 @@ fn render_static_component(self: *Self) void {
 
     var x: i16 = 0;
     const y: i16 = 0;
-    const box_size: u16 = @intCast(@divFloor(h, 6) + 2);
-    const box_offset: i16 = @intCast(@divFloor(h, 9));
+    const box_size, const box_offset = self.get_box();
     for (0.., texts) |i, text| {
         const tag: u32 = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
 
@@ -521,6 +529,25 @@ fn render_dynamic_component(self: *Self) void {
             bg_rect[0].x = x;
             bg_rect[0].width = w - @as(u16, @intCast(x));
             _ = pixman.Image.fillRectangles(.src, buffer.image, &select_bg, 1, &bg_rect);
+        }
+
+        if (window.sticky) {
+            const box_size, const box_offset = self.get_box();
+            const box = [_]pixman.Rectangle16 {
+                .{
+                    .x = x + box_offset,
+                    .y = y,
+                    .width = box_size,
+                    .height = box_size,
+                }
+            };
+            _ = pixman.Image.fillRectangles(
+                .src,
+                buffer.image,
+                &select_fg,
+                1,
+                &box,
+            );
         }
 
         if (window.title) |title| {
