@@ -376,10 +376,6 @@ fn render_static_component(self: *Self) void {
         var it = context.windows.safeIterator(.forward);
         while (it.next()) |window| {
             if (window.output == self.output) {
-                if (window.sticky) {
-                    windows_tag = @as(u32, @intCast(0)) -% 1;
-                    break;
-                }
                 windows_tag |= window.tag;
             }
         }
