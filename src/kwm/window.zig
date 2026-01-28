@@ -402,7 +402,7 @@ pub fn toggle_sticky(self: *Self) void {
     self.sticky = !self.sticky;
 
     if (comptime build_options.bar_enabled) {
-        if (self.output) |output| output.bar.damage(.tags);
+        if (self.output) |output| output.bar.damage(.title);
     }
 }
 
