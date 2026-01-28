@@ -278,7 +278,7 @@ pub fn stop_listening_status(self: *Self) void {
         .text => {},
         .stdin => self.bar_status_fd = null,
         .fifo => if (self.bar_status_fd) |fd| {
-            log.debug("close fd {}`", .{ fd });
+            log.debug("close fd {}", .{ fd });
             posix.close(fd);
             self.bar_status_fd = null;
         }
@@ -491,6 +491,10 @@ pub fn prepare_remove_output(self: *Self, output: *Output) void {
                 window.set_former_output(output.name);
                 window.set_output(new_output, false);
             }
+            switch (window.fullscreen) {
+                .output => |o| if (o == output) window.prepare_unfullscreen(),
+                else => {}
+            }
         }
     }
 }
@@ -529,14 +533,12 @@ pub fn shift_to_head(self: *Self, window: *Window) void {
 
 pub fn toggle_fullscreen(self: *Self, in_window: bool) void {
     if (self.current_output) |output| {
-        if (output.fullscreen_window) |window| {
+        if (output.fullscreen_window()) |window| {
             window.prepare_unfullscreen();
-        } else {
-            if (self.focused_window()) |window| {
-                switch (window.fullscreen) {
-                    .none => window.prepare_fullscreen(if (in_window) null else window.output.?),
-                    else => window.prepare_unfullscreen(),
-                }
+        } else if (self.focused_window()) |window| {
+            switch (window.fullscreen) {
+                .none => window.prepare_fullscreen(if (in_window) null else window.output.?),
+                else => window.prepare_unfullscreen(),
             }
         }
     }
@@ -729,10 +731,8 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
             {
                 var it = context.outputs.safeIterator(.forward);
                 while (it.next()) |output| {
-                    if (output.fullscreen_window) |window| {
-                        if (window.is_visible_in(output)) {
-                            continue;
-                        }
+                    if (output.fullscreen_window() != null) {
+                        continue;
                     }
                     output.manage();
                 }
@@ -764,7 +764,7 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
             {
                 var it = context.focus_stack.safeIterator(.forward);
                 while (it.next()) |window| {
-                    if (!window.is_visible() or window.is_under_fullscreen_window()) {
+                    if (!window.is_visible()) {
                         window.hide();
                     } else {
                         window.set_border(

@@ -89,7 +89,7 @@ pub fn create(rwm_libinput_device: *river.LibinputDeviceV1) !*Self {
 
 
 pub fn destroy(self: *Self) void {
-    log.debug("<{*}> destroied", .{ self });
+    log.debug("<{*}> destroyed", .{ self });
 
     self.link.remove();
     self.rwm_libinput_device.destroy();

@@ -31,7 +31,6 @@ prev_tag: u32 = 1,
 prev_main_tag: u32 = 1,
 layout_tag: [32]layout.Type = .{ config.default_layout } ** 32,
 prev_layout_tag: [32]layout.Type = .{ config.default_layout } ** 32,
-fullscreen_window: ?*Window = null,
 
 name: ?[]const u8 = null,
 x: i32 = undefined,
@@ -72,14 +71,9 @@ pub fn create(
 
 
 pub fn destroy(self: *Self) void {
-    defer log.debug("<{*}> destroied", .{ self });
+    defer log.debug("<{*}> destroyed", .{ self });
 
     self.set_name(null);
-
-    if (self.fullscreen_window) |window| {
-        window.prepare_unfullscreen();
-        self.fullscreen_window = null;
-    }
 
     self.link.remove();
     self.rwm_output.destroy();
@@ -120,6 +114,29 @@ pub inline fn exclusive_height(self: *Self) i32 {
             if (self.bar.hided) self.height
             else self.height - self.bar.height()
         else self.height;
+}
+
+
+pub fn fullscreen_window(self: *Self) ?*Window {
+    const context = Context.get();
+
+    {
+        var it = context.windows.safeIterator(.forward);
+        while (it.next()) |window| {
+            if (!window.is_visible_in(self)) continue;
+
+            switch (window.fullscreen) {
+                .output => |output| {
+                    if (output == self) {
+                        return window;
+                    }
+                },
+                else => {}
+            }
+        }
+    }
+
+    return null;
 }
 
 

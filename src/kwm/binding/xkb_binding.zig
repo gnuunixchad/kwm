@@ -49,7 +49,7 @@ pub fn create(
 
 
 pub fn destroy(self: *Self) void {
-    defer log.debug("<{*}> destroied", .{ self });
+    defer log.debug("<{*}> destroyed", .{ self });
 
     self.rwm_xkb_binding.destroy();
 

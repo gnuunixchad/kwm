@@ -107,7 +107,7 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
 
 
 pub fn destroy(self: *Self) void {
-    defer log.debug("<{*}> destroied", .{ self });
+    defer log.debug("<{*}> destroyed", .{ self });
 
     self.link.remove();
     if (self.wl_seat) |wl_seat| wl_seat.destroy();

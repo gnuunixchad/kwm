@@ -132,7 +132,7 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
 
 
 pub fn destroy(self: *Self) void {
-    defer log.debug("<{*}> destroied", .{ self });
+    defer log.debug("<{*}> destroyed", .{ self });
 
     self.set_former_output(null);
 
@@ -141,12 +141,6 @@ pub fn destroy(self: *Self) void {
         context.unregister_terminal(self);
     }
     self.unswallow();
-
-    // fix: after close fullscreen window, next time toggle_floating will panic for invalid pointer `output.fullscreen_window`
-    switch (self.fullscreen) {
-        .output => |output| output.fullscreen_window = null,
-        else => {}
-    }
 
     if (comptime build_options.bar_enabled) {
         if (self.output) |output| output.bar.damage(.tags);
@@ -406,6 +400,10 @@ pub fn toggle_sticky(self: *Self) void {
     log.debug("<{*}> toggle sticky: {}", .{ self, !self.sticky });
 
     self.sticky = !self.sticky;
+
+    if (comptime build_options.bar_enabled) {
+        if (self.output) |output| output.bar.damage(.tags);
+    }
 }
 
 
@@ -415,18 +413,6 @@ pub fn is_visible(self: *Self) bool {
             self.sticky or
             (self.tag & output.tag) != 0
         ) and self.swallowed_by == null;
-    }
-    return false;
-}
-
-
-pub fn is_under_fullscreen_window(self: *Self) bool {
-    if (self.output) |output| {
-        if (output.fullscreen_window) |window| {
-            if (window != self) {
-                return window.is_visible();
-            }
-        }
     }
     return false;
 }
@@ -522,10 +508,6 @@ pub fn handle_events(self: *Self) void {
 
                     self.rwm_window.fullscreen(output.rwm_output);
                     self.fullscreen = .{ .output = output };
-
-                    std.debug.assert(output.fullscreen_window == null);
-
-                    output.fullscreen_window = self;
                 } else {
                     log.debug("<{*}> fullscreen on window", .{ self });
 
@@ -542,11 +524,9 @@ pub fn handle_events(self: *Self) void {
                     .window => {
                         self.rwm_window.informNotFullscreen();
                     },
-                    .output => |output| {
+                    .output => {
                         self.rwm_window.informNotFullscreen();
                         self.rwm_window.exitFullscreen();
-
-                        output.fullscreen_window = null;
                     }
                 }
                 self.fullscreen = .none;

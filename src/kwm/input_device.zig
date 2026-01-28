@@ -41,7 +41,7 @@ pub fn create(rwm_input_device: *river.InputDeviceV1) !*Self {
 
 
 pub fn destroy(self: *Self) void {
-    log.debug("<{*}> destroied", .{ self });
+    log.debug("<{*}> destroyed", .{ self });
 
     if (self.name) |name| {
         utils.allocator.free(name);
