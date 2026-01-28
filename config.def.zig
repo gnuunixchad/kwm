@@ -368,6 +368,16 @@ pub const xkb_bindings = blk: {
             .modifiers = Super,
             .action = .{ .switch_mode = .{ .mode = .default } }
         },
+        .{ .mode = .mouse,
+            .keysym = Keysym.space,
+            .modifiers = 0,
+            .action = .{ .switch_mode = .{ .mode = .default } }
+        },
+        .{ .mode = .mouse,
+            .keysym = Keysym.Escape,
+            .modifiers = 0,
+            .action = .{ .switch_mode = .{ .mode = .default } }
+        },
         .{
             .mode = .mouse,
             .keysym = Keysym.h,
@@ -440,6 +450,18 @@ pub const xkb_bindings = blk: {
             .mode = .floating,
             .keysym = Keysym.f,
             .modifiers = Super|Ctrl,
+            .action = .{ .switch_mode = .{ .mode = .default } },
+        },
+        .{
+            .mode = .floating,
+            .keysym = Keysym.space,
+            .modifiers = 0,
+            .action = .{ .switch_mode = .{ .mode = .default } },
+        },
+        .{
+            .mode = .floating,
+            .keysym = Keysym.Escape,
+            .modifiers = 0,
             .action = .{ .switch_mode = .{ .mode = .default } },
         },
         .{
