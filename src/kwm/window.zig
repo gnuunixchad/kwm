@@ -400,6 +400,10 @@ pub fn toggle_sticky(self: *Self) void {
     log.debug("<{*}> toggle sticky: {}", .{ self, !self.sticky });
 
     self.sticky = !self.sticky;
+
+    if (comptime build_options.bar_enabled) {
+        if (self.output) |output| output.bar.damage(.tags);
+    }
 }
 
 
