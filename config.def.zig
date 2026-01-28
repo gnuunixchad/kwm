@@ -749,7 +749,7 @@ pub const xkb_bindings = blk: {
             .action = .{ .custom_fn = .{ .func = &toggle_auto_swallow, .arg = .none } }
         },
         .{
-            .keysym = Keysym.y,
+            .keysym = Keysym.g,
             .modifiers = Super|Shift,
             .action = .{ .custom_fn = .{ .func = &toggle_grid_direction, .arg = .none } },
         },
@@ -769,7 +769,7 @@ pub const xkb_bindings = blk: {
             .action = .{ .switch_layout = .{ .layout = .tile } },
         },
         .{
-            .keysym = Keysym.y,
+            .keysym = Keysym.g,
             .modifiers = Super,
             .action = .{ .switch_layout = .{ .layout = .grid } },
         },
@@ -944,17 +944,17 @@ pub const xkb_bindings = blk: {
             .action = .{ .spawn_shell = .{ .cmd = "dunstctl close-all" } },
         },
         .{
-            .keysym = Keysym.g,
+            .keysym = Keysym.y,
             .modifiers = Super,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot" } },
         },
         .{
-            .keysym = Keysym.g,
+            .keysym = Keysym.y,
             .modifiers = Super|Shift,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot --geo" } },
         },
         .{
-            .keysym = Keysym.g,
+            .keysym = Keysym.y,
             .modifiers = Super|Ctrl,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot --all" } },
         },
