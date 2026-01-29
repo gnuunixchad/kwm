@@ -1080,7 +1080,9 @@ pub const rules = [_]Rule {
     //     .scroller_mfact = 0.5
     // },
     .{ .alter_match_fn = &empty_appid_or_title, .floating = true },
-    .{ .title = .{ .str = "Floating_Term" }, .floating = true },
+    .{ .title = .{ .str = "Floating_Term" },
+       .floating = true,
+       .dimension = .{ .width = 1200, .height = 800} },
     .{ .title = .{ .str = "Floating_IMG" }, .floating = true },
     .{ .app_id = .compile("file-*"), .floating = true }, // gimp
     .{ .app_id = .{ .str = "gimp" }, .floating = true },
