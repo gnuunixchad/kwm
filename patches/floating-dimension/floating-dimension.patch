@@ -1,0 +1,65 @@
+commit 3cd71db9c90d0ccea99b20d93778b65fec7e363b
+Author: nate zhou <gnuunixchad@outlook.com>
+Date:   Thu Jan 29 22:02:22 2026 +0800
+
+    Feat: rules for floating dimensions
+    
+    Add a rule to set the initial width and height of floating windows.
+
+diff --git a/config.def.zig b/config.def.zig
+index 47b6e3e..218ce29 100644
+--- a/config.def.zig
++++ b/config.def.zig
+@@ -722,6 +722,7 @@ pub const rules = [_]Rule {
+     //     // apply part
+     //     .tag = 1,
+     //     .floating = true,
++    //     .dimension = .{ .width = 640, .height = 480 },
+     //     .decoration = .csd or .ssd
+     //     .is_terminal = true,
+     //     .disable_swallow = true,
+diff --git a/src/kwm/window.zig b/src/kwm/window.zig
+index acfa811..27dcbd5 100644
+--- a/src/kwm/window.zig
++++ b/src/kwm/window.zig
+@@ -768,9 +768,16 @@ fn unswallow(self: *Self) void {
+     }
+ }
+ 
++
+ fn apply_rule(self: *Self, rule: *const Rule) void {
+     if (rule.tag) |tag| self.set_tag(tag);
+     if (rule.floating) |floating| self.floating = floating;
++    if (rule.dimension) |dimension| {
++        self.width = dimension.width;
++        self.height = dimension.height;
++        log.debug("<{*}> set window size: {}x{} (floating: {})",
++            .{ self, self.width, self.height, self.floating });
++    }
+     if (rule.decoration) |decoration| self.decoration = decoration;
+     if (rule.is_terminal) |is_terminal| self.is_terminal = is_terminal;
+     if (rule.disable_swallow) |disable_swallow| self.disable_swallow = disable_swallow;
+diff --git a/src/rule.zig b/src/rule.zig
+index ac69b1f..1c2a06f 100644
+--- a/src/rule.zig
++++ b/src/rule.zig
+@@ -35,12 +35,19 @@ pub const Pattern = struct {
+ };
+ 
+ 
++pub const Dimension = struct {
++    width: i32,
++    height: i32,
++};
++
++
+ title: ?Pattern = null,
+ app_id: ?Pattern = null,
+ alter_match_fn: ?*const fn(*const Self, ?[]const u8, ?[]const u8) bool = null,
+ 
+ tag: ?u32 = null,
+ floating: ?bool = null,
++dimension: ?Dimension = null,
+ decoration: ?kwm.WindowDecoration = null,
+ is_terminal: ?bool = null,
+ disable_swallow: ?bool = null,
