@@ -1088,6 +1088,7 @@ pub const rules = [_]Rule {
     .{ .app_id = .{ .str = "electron" }, .title = .{ .str = "Open Folder" }, .floating = true }, // code-oss
     .{ .app_id = .{ .str = "org.fcitx.fcitx5-config-qt" }, .floating = true },
     .{ .app_id = .{ .str = "org.qutebrowser.qutebrowser" }, .scroller_mfact = 0.7 },
+    .{ .app_id = .{ .str = "virt-manager" }, .scroller_mfact = 0.85 },
     .{ .app_id = .{ .str = "footclient" }, .is_terminal = true, .scroller_mfact = 0.5 },
 };
 
