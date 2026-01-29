@@ -1083,7 +1083,9 @@ pub const rules = [_]Rule {
     .{ .title = .{ .str = "Floating_Term" },
        .floating = true,
        .dimension = .{ .width = 1200, .height = 800} },
-    .{ .app_id = .{ .str = "Floating_IMG" }, .floating = true },
+    .{ .app_id = .{ .str = "Floating_IMG" },
+       .floating = true,
+       .dimension = .{ .width = 1200, .height = 800} },
     .{ .app_id = .compile("file-*"), .floating = true }, // gimp
     .{ .app_id = .{ .str = "gimp" }, .floating = true },
     .{ .app_id = .{ .str = "org.inkscape.Inkscape" }, .title = .compile("Select file*"), .floating = true },
