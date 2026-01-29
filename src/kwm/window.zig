@@ -768,9 +768,11 @@ fn unswallow(self: *Self) void {
     }
 }
 
+
 fn apply_rule(self: *Self, rule: *const Rule) void {
     if (rule.tag) |tag| self.set_tag(tag);
     if (rule.floating) |floating| self.floating = floating;
+    if (rule.dimension) |dimension| { self.width = dimension.width; self.height = dimension.height; }
     if (rule.decoration) |decoration| self.decoration = decoration;
     if (rule.is_terminal) |is_terminal| self.is_terminal = is_terminal;
     if (rule.disable_swallow) |disable_swallow| self.disable_swallow = disable_swallow;

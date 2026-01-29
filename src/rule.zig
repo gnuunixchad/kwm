@@ -35,12 +35,19 @@ pub const Pattern = struct {
 };
 
 
+pub const Dimension = struct {
+    width: i32,
+    height: i32,
+};
+
+
 title: ?Pattern = null,
 app_id: ?Pattern = null,
 alter_match_fn: ?*const fn(*const Self, ?[]const u8, ?[]const u8) bool = null,
 
 tag: ?u32 = null,
 floating: ?bool = null,
+dimension: ?Dimension = null,
 decoration: ?kwm.WindowDecoration = null,
 is_terminal: ?bool = null,
 disable_swallow: ?bool = null,
