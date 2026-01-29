@@ -1,11 +1,3 @@
-commit 3cd71db9c90d0ccea99b20d93778b65fec7e363b
-Author: nate zhou <gnuunixchad@outlook.com>
-Date:   Thu Jan 29 22:02:22 2026 +0800
-
-    Feat: rules for floating dimensions
-    
-    Add a rule to set the initial width and height of floating windows.
-
 diff --git a/config.def.zig b/config.def.zig
 index 47b6e3e..218ce29 100644
 --- a/config.def.zig
@@ -19,10 +11,10 @@ index 47b6e3e..218ce29 100644
      //     .is_terminal = true,
      //     .disable_swallow = true,
 diff --git a/src/kwm/window.zig b/src/kwm/window.zig
-index acfa811..27dcbd5 100644
+index acfa811..166a5d7 100644
 --- a/src/kwm/window.zig
 +++ b/src/kwm/window.zig
-@@ -768,9 +768,16 @@ fn unswallow(self: *Self) void {
+@@ -768,9 +768,11 @@ fn unswallow(self: *Self) void {
      }
  }
  
@@ -30,12 +22,7 @@ index acfa811..27dcbd5 100644
  fn apply_rule(self: *Self, rule: *const Rule) void {
      if (rule.tag) |tag| self.set_tag(tag);
      if (rule.floating) |floating| self.floating = floating;
-+    if (rule.dimension) |dimension| {
-+        self.width = dimension.width;
-+        self.height = dimension.height;
-+        log.debug("<{*}> set window size: {}x{} (floating: {})",
-+            .{ self, self.width, self.height, self.floating });
-+    }
++    if (rule.dimension) |dimension| { self.width = dimension.width; self.height = dimension.height; }
      if (rule.decoration) |decoration| self.decoration = decoration;
      if (rule.is_terminal) |is_terminal| self.is_terminal = is_terminal;
      if (rule.disable_swallow) |disable_swallow| self.disable_swallow = disable_swallow;
