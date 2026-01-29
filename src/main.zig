@@ -72,57 +72,7 @@ pub fn main() !void {
         );
     }
     defer kwm.deinit();
-
-    const wayland_fd = display.getFd();
-
-    var mask = posix.sigemptyset();
-    posix.sigaddset(&mask, posix.SIG.INT);
-    posix.sigaddset(&mask, posix.SIG.TERM);
-    posix.sigaddset(&mask, posix.SIG.QUIT);
-    posix.sigaddset(&mask, posix.SIG.CHLD);
-    posix.sigprocmask(posix.SIG.BLOCK, &mask, null);
-    const signal_fd = try posix.signalfd(-1, &mask, 1 << @bitOffsetOf(posix.O, "NONBLOCK"));
-
-    var poll_fds = [_]posix.pollfd {
-        .{ .fd = wayland_fd, .events = posix.POLL.IN, .revents = 0 },
-        .{ .fd = signal_fd, .events = posix.POLL.IN, .revents = 0 },
-        .{ .fd = -1, .events = posix.POLL.IN, .revents = 0 },
-    };
-
-    while (kwm.is_running()) {
-        var poll_fd_num: u8 = 2;
-        if (kwm.bar_status_fd()) |fd| {
-            poll_fds[2].fd = fd;
-            poll_fd_num += 1;
-        }
-
-        _ = display.flush();
-        _ = try posix.poll(poll_fds[0..poll_fd_num], -1);
-
-        if (poll_fds[0].revents & posix.POLL.IN != 0) {
-            if (display.dispatch() != .SUCCESS) {
-                return error.DispatchFailed;
-            }
-        }
-
-        if (poll_fds[1].revents & posix.POLL.IN != 0) {
-            var signal_info: posix.siginfo_t = undefined;
-            const buffer: *[@sizeOf(posix.siginfo_t)]u8 = @ptrCast(&signal_info);
-            const nbytes = posix.read(signal_fd, buffer) catch |err| {
-                switch (err) {
-                    error.WouldBlock => continue,
-                    else => return err,
-                }
-            };
-            if (nbytes != @sizeOf(posix.siginfo_t)) continue;
-
-            kwm.handle_signal(signal_info.signo);
-        }
-
-        if (poll_fd_num > 2 and poll_fds[2].revents & posix.POLL.IN != 0) {
-            kwm.update_bar_status();
-        }
-    }
+    try kwm.run(display);
 }
 
 
