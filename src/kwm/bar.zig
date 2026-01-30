@@ -499,13 +499,42 @@ fn render_dynamic_component(self: *Self) void {
     var x: i16 = 0;
     const y: i16 = 0;
 
-    x += self.render_str(
-        buffer,
-        config.layout_tag(self.output.current_layout()),
-        &normal_fg,
-        x+@as(i16, @intCast(@divFloor(pad, 2))),
-        y,
-    ) + @as(i16, @intCast(pad));
+    const current_layout = self.output.current_layout();
+    if (current_layout == .monocle) {
+        var visible_count: usize = 0;
+        {
+            var it = context.windows.safeIterator(.forward);
+            while (it.next()) |window| {
+                if (window.is_visible_in(self.output) and !window.floating) {
+                    visible_count += 1;
+                }
+            }
+        }
+
+        const layout_symbol = if (visible_count == 0)
+            config.layout_tag(.monocle)
+        else blk: {
+            var buf: [16]u8 = undefined;
+            const formatted = std.fmt.bufPrint(&buf, "[{}]", .{visible_count}) catch "[?]";
+            break :blk formatted;
+        };
+
+        x += self.render_str(
+            buffer,
+            layout_symbol,
+            &normal_fg,
+            x+@as(i16, @intCast(@divFloor(pad, 2))),
+            y,
+        ) + @as(i16, @intCast(pad));
+    } else {
+        x += self.render_str(
+            buffer,
+            config.layout_tag(current_layout),
+            &normal_fg,
+            x+@as(i16, @intCast(@divFloor(pad, 2))),
+            y,
+        ) + @as(i16, @intCast(pad));
+    }
 
     const mode_tag =
         if (config.mode_tag.contains(context.mode)) config.mode_tag.getAssertContains(context.mode)
