@@ -6,6 +6,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 
 const types = @import("kwm/types.zig");
+const binding = @import("kwm/binding.zig");
 const Window = @import("kwm/window.zig");
 const Context = @import("kwm/context.zig");
 
@@ -17,7 +18,10 @@ const FDType = enum {
 };
 
 pub const layout = @import("kwm/layout.zig");
-pub const binding = @import("kwm/binding.zig");
+pub const BindingAction = binding.Action;
+pub const BindingArg = binding.Arg;
+pub const XkbBindingEvent = binding.XkbBinding.Event;
+pub const PointerBindingEvent = binding.PointerBinding.Event;
 pub const WindowDecoration = Window.Decoration;
 pub const State = types.State;
 pub const Button = types.Button;
