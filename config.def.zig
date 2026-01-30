@@ -722,6 +722,7 @@ pub const rules = [_]Rule {
     //     // apply part
     //     .tag = 1,
     //     .floating = true,
+    //     .dimension = .{ .width = 640, .height = 480 },
     //     .decoration = .csd or .ssd
     //     .is_terminal = true,
     //     .disable_swallow = true,
