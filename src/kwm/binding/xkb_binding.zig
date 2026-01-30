@@ -12,12 +12,18 @@ const binding = @import("../binding.zig");
 const Seat = @import("../seat.zig");
 const Context = @import("../context.zig");
 
+pub const Event = enum {
+    pressed,
+    released,
+    repeat,
+};
+
 
 rwm_xkb_binding: *river.XkbBindingV1,
 
 seat: *Seat,
 action: binding.Action,
-event: river.XkbBindingV1.Event,
+event: Event,
 
 
 pub fn create(
@@ -25,7 +31,7 @@ pub fn create(
     keysym: u32,
     modifiers: river.SeatV1.Modifiers,
     action: binding.Action,
-    event: river.XkbBindingV1.Event,
+    event: Event,
 ) !*Self {
     const xkb_binding = try utils.allocator.create(Self);
     errdefer utils.allocator.destroy(xkb_binding);
@@ -76,10 +82,22 @@ fn rwm_xkb_binding_listener(rwm_xkb_binding: *river.XkbBindingV1, event: river.X
 
     log.debug("<{*}> {s}", .{ xkb_binding, @tagName(event) });
 
-    if (
-        (event == .pressed and xkb_binding.event == .released)
-        or (event == .released and xkb_binding.event == .pressed)
-    ) return;
+    switch (xkb_binding.event) {
+        .pressed => if (event != .pressed) return,
+        .released => if (event != .released) return,
+        .repeat => {
+            const context = Context.get();
+
+            if (context.key_repeat) |*key_repeat| {
+                switch (event) {
+                    .pressed => {
+                        key_repeat.prepare_repeat(xkb_binding);
+                    },
+                    .stop_repeat, .released => key_repeat.stop(xkb_binding),
+                }
+            }
+        },
+    }
 
     xkb_binding.seat.append_action(xkb_binding.action);
 }

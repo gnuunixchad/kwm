@@ -55,7 +55,7 @@ pub fn main() !void {
         const rwm_libinput_config = globals.rwm_libinput_config orelse return error.MissingRiverLibinputConfig;
         const rwm_xkb_config = globals.rwm_xkb_config orelse return error.MissingRiverXkbConfig;
 
-        kwm.Context.init(
+        kwm.init(
             registry,
             wl_compositor,
             wl_subcompositor,
@@ -71,59 +71,8 @@ pub fn main() !void {
             rwm_xkb_config,
         );
     }
-    defer kwm.Context.deinit();
-
-    const wayland_fd = display.getFd();
-
-    var mask = posix.sigemptyset();
-    posix.sigaddset(&mask, posix.SIG.INT);
-    posix.sigaddset(&mask, posix.SIG.TERM);
-    posix.sigaddset(&mask, posix.SIG.QUIT);
-    posix.sigaddset(&mask, posix.SIG.CHLD);
-    posix.sigprocmask(posix.SIG.BLOCK, &mask, null);
-    const signal_fd = try posix.signalfd(-1, &mask, 1 << @bitOffsetOf(posix.O, "NONBLOCK"));
-
-    var poll_fds = [_]posix.pollfd {
-        .{ .fd = wayland_fd, .events = posix.POLL.IN, .revents = 0 },
-        .{ .fd = signal_fd, .events = posix.POLL.IN, .revents = 0 },
-        .{ .fd = -1, .events = posix.POLL.IN, .revents = 0 },
-    };
-
-    const context = kwm.Context.get();
-    while (context.running) {
-        var poll_fd_num: u8 = 2;
-        if (context.bar_status_fd) |fd| {
-            poll_fds[2].fd = fd;
-            poll_fd_num += 1;
-        }
-
-        _ = display.flush();
-        _ = try posix.poll(poll_fds[0..poll_fd_num], -1);
-
-        if (poll_fds[0].revents & posix.POLL.IN != 0) {
-            if (display.dispatch() != .SUCCESS) {
-                return error.DispatchFailed;
-            }
-        }
-
-        if (poll_fds[1].revents & posix.POLL.IN != 0) {
-            var signal_info: posix.siginfo_t = undefined;
-            const buffer: *[@sizeOf(posix.siginfo_t)]u8 = @ptrCast(&signal_info);
-            const nbytes = posix.read(signal_fd, buffer) catch |err| {
-                switch (err) {
-                    error.WouldBlock => continue,
-                    else => return err,
-                }
-            };
-            if (nbytes != @sizeOf(posix.siginfo_t)) continue;
-
-            context.handle_signal(signal_info.signo);
-        }
-
-        if (poll_fd_num > 2 and poll_fds[2].revents & posix.POLL.IN != 0) {
-            context.update_bar_status();
-        }
-    }
+    defer kwm.deinit();
+    try kwm.run(display);
 }
 
 
@@ -145,7 +94,7 @@ fn registry_listener(registry: *wl.Registry, event: wl.Registry.Event, globals: 
             } else if (mem.orderZ(u8, global.interface, river.WindowManagerV1.interface.name) == .eq) {
                 globals.rwm = registry.bind(global.name, river.WindowManagerV1, 2) catch return;
             } else if (mem.orderZ(u8, global.interface, river.XkbBindingsV1.interface.name) == .eq) {
-                globals.rwm_xkb_bindings = registry.bind(global.name, river.XkbBindingsV1, 1) catch return;
+                globals.rwm_xkb_bindings = registry.bind(global.name, river.XkbBindingsV1, 2) catch return;
             } else if (mem.orderZ(u8, global.interface, river.LayerShellV1.interface.name) == .eq) {
                 globals.rwm_layer_shell = registry.bind(global.name, river.LayerShellV1, 1) catch return;
             } else if (mem.orderZ(u8, global.interface, river.InputManagerV1.interface.name) == .eq) {
