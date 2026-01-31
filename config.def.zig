@@ -1096,7 +1096,8 @@ pub const rules = [_]Rule {
        .dimension = .{ .width = 1200, .height = 800} },
     .{ .app_id = .{ .str = "Floating_IMG" },
        .floating = true,
-       .dimension = .{ .width = 1200, .height = 800} },
+       .dimension = .{ .width = 1200, .height = 800},
+       .is_terminal = true },
     .{ .app_id = .compile("file-*"), .floating = true }, // gimp
     .{ .app_id = .{ .str = "gimp" }, .floating = true },
     .{ .app_id = .{ .str = "org.inkscape.Inkscape" }, .title = .compile("Select file*"), .floating = true },
@@ -1106,6 +1107,7 @@ pub const rules = [_]Rule {
     .{ .app_id = .{ .str = "org.qutebrowser.qutebrowser" }, .scroller_mfact = 0.7 },
     .{ .app_id = .{ .str = "virt-manager" }, .scroller_mfact = 0.85 },
     .{ .app_id = .{ .str = "footclient" }, .is_terminal = true, .scroller_mfact = 0.5 },
+    .{ .app_id = .{ .str = "swayimg" }, .is_terminal = true },
 };
 
 
