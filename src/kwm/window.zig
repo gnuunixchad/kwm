@@ -467,6 +467,7 @@ pub fn handle_events(self: *Self) void {
                 for (config.window_rules) |rule| {
                     if (rule.match(self.app_id, self.title)) {
                         self.apply_rule(&rule);
+                        break;
                     }
                 }
 
