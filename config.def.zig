@@ -10,7 +10,9 @@ const wayland = @import("wayland");
 const river = wayland.client.river;
 
 const kwm = @import("kwm");
-const Rule = @import("rule");
+const rule = @import("src/config/rule.zig");
+
+pub const WindowRule = rule.Window;
 
 const Alt: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod1);
 const Super: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod4);
@@ -720,15 +722,20 @@ pub const pointer_bindings = [_]PointerBinding {
 };
 
 
-fn empty_appid_or_title(_: *const Rule, app_id: ?[]const u8, title: ?[]const u8) bool {
-    return app_id == null or app_id.?.len == 0 or title == null or title.?.len == 0;
-}
-pub const rules = [_]Rule {
+pub const rules = [_]rule.Window {
     //  support regex by: https://github.com/mnemnion/mvzr
     // .{
     //     // match part
-    //     .app_id = .{ .str = "pattern" } or .app_id = .compile("regex pattern"),
-    //     .title = .{ .str = "pattern" } or .title = .compile("regex pattern"),
+    //     .app_id = .{
+    //         .str = "pattern",
+    //         .regex = true, // regex with .str
+    //         .match_null = true, // will match null
+    //     }
+    //     .title = .{
+    //         .str = "pattern",
+    //         .regex = true, // regex with .str
+    //         .match_null = true, // will match null
+    //     }
     //
     //     // apply part
     //     .tag = 1,
@@ -739,7 +746,7 @@ pub const rules = [_]Rule {
     //     .disable_swallow = true,
     //     .scroller_mfact = 0.5
     // },
-    .{ .alter_match_fn = &empty_appid_or_title, .floating = true },
+    .{ .app_id = .{ .str = "", .match_null = true }, .title = .{ .str = "", .match_null = true }, .floating = true },
     .{ .app_id = .{ .str = "zenity" }, .floating = true },
     .{ .app_id = .{ .str = "DesktopEditors" }, .floating = true },
     .{ .app_id = .{ .str = "xdg-desktop-portal-gtk" }, .floating = true },
@@ -761,7 +768,7 @@ fn UnionWrap(comptime T: type) type {
 fn libinput_config(name: ?[]const u8) LibinputConfig {
     if (name == null) return .{};
 
-    const pattern: Rule.Pattern = .compile(".*[tT]ouchpad");
+    const pattern: rule.Pattern = .{ .str = ".*[tT]ouchpad", .regex = true };
 
     return .{
         // enable tap and drag

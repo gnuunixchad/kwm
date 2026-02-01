@@ -55,18 +55,10 @@ pub fn build(b: *std.Build) void {
     const xkbcommon_mod = b.dependency("xkbcommon", .{}).module("xkbcommon");
     const mvzr_mod = b.dependency("mvzr", .{}).module("mvzr");
 
-    const rule_mod = b.createModule(.{
-        .root_source_file = b.path("src/rule.zig"),
-        .imports = &.{
-            .{ .name = "mvzr", .module = mvzr_mod },
-        },
-    });
     const kwm_mod = b.createModule(.{
         .root_source_file = b.path("src/kwm.zig"),
         .imports = &.{
             .{ .name = "wayland", .module = wayland_mod },
-
-            .{ .name = "rule", .module = rule_mod },
         },
     });
 
@@ -95,13 +87,12 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "wayland", .module = wayland_mod },
             .{ .name = "xkbcommon", .module = xkbcommon_mod },
+            .{ .name = "mvzr", .module = mvzr_mod },
 
-            .{ .name = "rule", .module = rule_mod },
             .{ .name = "kwm", .module = kwm_mod },
         },
     });
 
-    rule_mod.addImport("kwm", kwm_mod);
     kwm_mod.addImport("config", config_mod);
 
     const bar_enabled = b.option(bool, "bar", "if enable bar") orelse true;

@@ -10,7 +10,6 @@ const wl = wayland.client.wl;
 const river = wayland.client.river;
 
 const config = @import("config");
-const Rule = @import("rule");
 
 const utils = @import("utils.zig");
 const types = @import("types.zig");
@@ -769,7 +768,7 @@ fn unswallow(self: *Self) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const Rule) void {
+fn apply_rule(self: *Self, rule: *const config.WindowRule) void {
     if (rule.tag) |tag| self.set_tag(tag);
     if (rule.floating) |floating| self.floating = floating;
     if (rule.dimension) |dimension| self.resize(dimension.width, dimension.height);
