@@ -133,14 +133,45 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
     }
 
     x -= self.static_component_width();
-    for (&[_]@TypeOf(config.bar.click).Key { .layout, .mode, .title }, self.dynamic_splits.items) |tag, split| {
-        if (x <= split) {
-            action = (config.bar.click.get(tag) orelse return).get(seat.button) orelse return;
+
+    const context = Context.get();
+
+    const dynamic_width: i32 = @intCast(self.output.width - self.static_component_width());
+
+    const status_text: []const u8 = switch (config.bar.status) {
+        .text => |text| text,
+        else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
+    };
+    if (status_text.len > 0) {
+        const status_width = str_width(self.font, status_text) orelse 0;
+        const pad = self.get_pad();
+        const status_start = dynamic_width - @as(i32, @intCast(status_width)) - @as(i32, @intCast(pad));
+        if (x >= status_start) {
+            action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
             return;
         }
     }
 
-    action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
+    if (self.dynamic_splits.items.len > 0) {
+        if (x < self.dynamic_splits.items[0]) {
+            action = (config.bar.click.get(.layout) orelse return).get(seat.button) orelse return;
+            return;
+        }
+
+        if (self.dynamic_splits.items.len > 1) {
+            const mode_tag = if (config.mode_tag.contains(context.mode))
+                config.mode_tag.getAssertContains(context.mode)
+            else @tagName(context.mode);
+            if (mode_tag.len > 0) {
+                if (x < self.dynamic_splits.items[1]) {
+                    action = (config.bar.click.get(.mode) orelse return).get(seat.button) orelse return;
+                    return;
+                }
+            }
+        }
+    }
+
+    action = (config.bar.click.get(.title) orelse return).get(seat.button) orelse return;
 }
 
 
