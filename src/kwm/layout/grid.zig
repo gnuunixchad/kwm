@@ -8,13 +8,15 @@ const Context = @import("../context.zig");
 const Output = @import("../output.zig");
 const Window = @import("../window.zig");
 
+pub const Direction = enum {
+    horizontal,
+    vertical,
+};
+
 
 outer_gap: i32,
 inner_gap: i32,
-direction: enum {
-    horizontal,
-    vertical,
-} = .horizontal,
+direction: Direction,
 
 
 pub fn arrange(self: *Self, output: *Output) void {
