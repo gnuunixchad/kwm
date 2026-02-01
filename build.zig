@@ -55,12 +55,6 @@ pub fn build(b: *std.Build) void {
     const xkbcommon_mod = b.dependency("xkbcommon", .{}).module("xkbcommon");
     const mvzr_mod = b.dependency("mvzr", .{}).module("mvzr");
 
-    const utils_mod = b.createModule(.{
-        .root_source_file = b.path("src/utils.zig"),
-        .imports = &.{
-            .{ .name = "wayland", .module = wayland_mod },
-        }
-    });
     const rule_mod = b.createModule(.{
         .root_source_file = b.path("src/rule.zig"),
         .imports = &.{
@@ -72,7 +66,6 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "wayland", .module = wayland_mod },
 
-            .{ .name = "utils", .module = utils_mod },
             .{ .name = "rule", .module = rule_mod },
         },
     });
@@ -103,7 +96,6 @@ pub fn build(b: *std.Build) void {
             .{ .name = "wayland", .module = wayland_mod },
             .{ .name = "xkbcommon", .module = xkbcommon_mod },
 
-            .{ .name = "utils", .module = utils_mod },
             .{ .name = "rule", .module = rule_mod },
             .{ .name = "kwm", .module = kwm_mod },
         },
@@ -159,7 +151,6 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "wayland", .module = wayland_mod },
 
-                .{ .name = "utils", .module = utils_mod },
                 .{ .name = "kwm", .module = kwm_mod },
             },
 

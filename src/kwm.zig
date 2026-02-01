@@ -5,6 +5,7 @@ const log = std.log.scoped(.kwm);
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 
+const utils = @import("kwm/utils.zig");
 const types = @import("kwm/types.zig");
 const binding = @import("kwm/binding.zig");
 const Window = @import("kwm/window.zig");
@@ -34,6 +35,7 @@ pub const Keymap = types.Keymap;
 
 pub const init = Context.init;
 pub const deinit = Context.deinit;
+pub const init_allocator = utils.init_allocator;
 
 
 pub fn run(wl_display: *wl.Display) !void {

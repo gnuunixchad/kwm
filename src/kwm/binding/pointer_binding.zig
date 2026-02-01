@@ -7,8 +7,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const utils = @import("utils");
-
+const utils = @import("../utils.zig");
 const binding = @import("../binding.zig");
 const Seat = @import("../seat.zig");
 

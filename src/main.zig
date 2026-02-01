@@ -7,7 +7,6 @@ const wl = wayland.client.wl;
 const wp = wayland.client.wp;
 const river = wayland.client.river;
 
-const utils = @import("utils");
 const kwm = @import("kwm");
 
 const Globals = struct {
@@ -29,7 +28,7 @@ const Globals = struct {
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
     defer if (gpa.deinit() != .ok) @panic("memory leak");
-    utils.init_allocator(&gpa.allocator());
+    kwm.init_allocator(&gpa.allocator());
 
     const display = try wl.Display.connect(null);
     defer display.disconnect();

@@ -3,9 +3,9 @@ const Self = @This();
 const std = @import("std");
 const log = std.log.scoped(.tiled);
 
-const utils = @import("utils");
 const config = @import("config");
 
+const utils = @import("../utils.zig");
 const Context = @import("../context.zig");
 const Output = @import("../output.zig");
 const Window = @import("../window.zig");

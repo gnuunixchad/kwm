@@ -9,10 +9,10 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const utils = @import("utils");
 const config = @import("config");
 const Rule = @import("rule");
 
+const utils = @import("utils.zig");
 const types = @import("types.zig");
 const Seat = @import("seat.zig");
 const Output = @import("output.zig");

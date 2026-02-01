@@ -10,9 +10,9 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const utils = @import("utils");
 const config = @import("config");
 
+const utils = @import("utils.zig");
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
 const Window = @import("window.zig");

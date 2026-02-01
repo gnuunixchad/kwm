@@ -13,9 +13,9 @@ const river = wayland.client.river;
 const pixman = @import("pixman");
 const fcft = @import("fcft");
 
-const utils = @import("utils");
 const config = @import("config");
 
+const utils = @import("utils.zig");
 const binding = @import("binding.zig");
 const Context = @import("context.zig");
 const Seat = @import("seat.zig");

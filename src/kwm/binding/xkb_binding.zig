@@ -6,8 +6,7 @@ const log = std.log.scoped(.xkb_binding);
 const wayland = @import("wayland");
 const river = wayland.client.river;
 
-const utils = @import("utils");
-
+const utils = @import("../utils.zig");
 const binding = @import("../binding.zig");
 const Seat = @import("../seat.zig");
 const Context = @import("../context.zig");
