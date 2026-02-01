@@ -59,30 +59,28 @@ pub fn manage(self: *Self) void {
 
     if (self.new) {
         self.new = false;
-        self.apply_config();
+
+        for (config.input_device_rules) |rule| {
+            if (rule.match(self.name)) {
+                self.apply_rule(&rule);
+                break;
+            }
+        }
     }
 }
 
 
-fn apply_config(self: *Self) void {
-    log.debug("<{*}> apply config", .{ self });
-
+fn apply_rule(self: *Self, rule: *const config.InputDeviceRule) void {
     switch (self.type) {
         .keyboard => {
-            if (switch (config.repeat_info) {
-                .value => |value| value,
-                .func => |func| func(self.name),
-            }) |repeat_info| {
+            if (rule.repeat_info) |repeat_info| {
                 log.debug("<{*}> set repeat info: (rate: {}, delay: {})", .{ self, repeat_info.rate, repeat_info.delay});
 
                 self.rwm_input_device.setRepeatInfo(repeat_info.rate, repeat_info.delay);
             }
         },
         .pointer => {
-            if (switch (config.scroll_factor) {
-                .value => |value| value,
-                .func => |func| func(self.name),
-            }) |scroll_factor| {
+            if (rule.scroll_factor) |scroll_factor| {
                 log.debug("<{*}> set scroll factor: {}", .{ self, scroll_factor });
 
                 self.rwm_input_device.setScrollFactor(.fromDouble(scroll_factor));

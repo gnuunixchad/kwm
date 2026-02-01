@@ -68,35 +68,34 @@ pub fn manage(self: *Self) void {
 
     if (self.new) {
         self.new = false;
-        self.apply_config();
+
+        for (config.xkb_keyboard_rules) |rule| {
+            if (rule.match((self.input_device orelse return).name)) {
+                self.apply_rule(&rule);
+                break;
+            }
+        }
     }
 }
 
 
-fn apply_config(self: *Self) void {
-    log.debug("<{*}> apply config", .{ self });
-
-    const cfg = switch (config.keyboard) {
-        .value => |value| value,
-        .func => |func| func((self.input_device orelse return).name),
-    };
-
-    if (cfg.numlock) |state| {
+fn apply_rule(self: *Self, rule: *const config.XkbKeyboardRule) void {
+    if (rule.numlock) |state| {
         if (self.numlock != state) self.set_numlock(state);
     }
 
-    if (cfg.capslock) |state| {
+    if (rule.capslock) |state| {
         if (self.capslock != state) self.set_capslock(state);
     }
 
-    if (cfg.layout) |layout| {
+    if (rule.layout) |layout| {
         if (switch (layout) {
             .index => |index| index != self.layout_index,
             .name => |name| self.layout_name == null or mem.order(u8, mem.span(name), self.layout_name.?) != .eq,
         }) self.set_layout(layout);
     }
 
-    if (cfg.keymap) |keymap| blk: {
+    if (rule.keymap) |keymap| blk: {
         self.set_keymap(keymap) catch |err| {
             log.err("<{*}> set keymap failed: {}", .{ self, err });
             break :blk;

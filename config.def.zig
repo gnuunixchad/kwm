@@ -13,6 +13,9 @@ const kwm = @import("kwm");
 const rule = @import("src/config/rule.zig");
 
 pub const WindowRule = rule.Window;
+pub const InputDeviceRule = rule.InputDevice;
+pub const LibinputDeviceRule = rule.LibinputDevice;
+pub const XkbKeyboardRule = rule.XkbKeyboard;
 
 const Alt: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod1);
 const Super: u32 = @intFromEnum(river.SeatV1.Modifiers.Enum.mod4);
@@ -63,38 +66,6 @@ const BorderColor = struct {
     focus: u32,
     unfocus: u32,
     urgent: u32,
-};
-const KeyboardRepeatInfo = struct {
-    rate: i32,
-    delay: i32,
-};
-const LibinputConfig = struct {
-    send_events_modes: ?river.LibinputDeviceV1.SendEventsModes.Enum       = null,
-    tap: ?river.LibinputDeviceV1.TapState                                 = null,
-    drag: ?river.LibinputDeviceV1.DragState                               = null,
-    drag_lock: ?river.LibinputDeviceV1.DragLockState                      = null,
-    tap_button_map: ?river.LibinputDeviceV1.TapButtonMap                  = null,
-    three_finger_drag: ?river.LibinputDeviceV1.ThreeFingerDragState       = null,
-    calibration_matrix: ?[6]f32                                           = null,
-    accel_profile: ?river.LibinputDeviceV1.AccelProfile                   = null,
-    accel_speed: ?f64                                                     = null,
-    natural_scroll: ?river.LibinputDeviceV1.NaturalScrollState            = null,
-    left_handed: ?river.LibinputDeviceV1.LeftHandedState                  = null,
-    click_method: ?river.LibinputDeviceV1.ClickMethod                     = null,
-    clickfinger_button_map: ?river.LibinputDeviceV1.ClickfingerButtonMap  = null,
-    middle_button_emulation: ?river.LibinputDeviceV1.MiddleEmulationState = null,
-    scroll_method: ?river.LibinputDeviceV1.ScrollMethod                   = null,
-    scroll_button: ?Button                                                = null,
-    scroll_button_lock: ?river.LibinputDeviceV1.ScrollButtonLockState     = null,
-    disable_while_typing: ?river.LibinputDeviceV1.DwtState                = null,
-    disable_while_trackpointing: ?river.LibinputDeviceV1.DwtpState        = null,
-    rotation_angle: ?u32                                                  = null,
-};
-const KeyboardConfig = struct {
-    numlock: ?kwm.KeyboardNumlockState                                    = null,
-    capslock: ?kwm.KeyboardCapslockState                                  = null,
-    layout: ?kwm.KeyboardLayout                                           = null,
-    keymap: ?kwm.Keymap                                                   = null,
 };
 
 
@@ -722,21 +693,17 @@ pub const pointer_bindings = [_]PointerBinding {
 };
 
 
+//  rules
+//  support regex by: https://github.com/mnemnion/mvzr
+// .{
+//     // match part
+//     .{
+//         .str = "pattern",
+//         .regex = true, // regex with .str
+//         .match_null = true, // will match null
+//     }
+
 pub const window_rules = [_]rule.Window {
-    //  support regex by: https://github.com/mnemnion/mvzr
-    // .{
-    //     // match part
-    //     .app_id = .{
-    //         .str = "pattern",
-    //         .regex = true, // regex with .str
-    //         .match_null = true, // will match null
-    //     }
-    //     .title = .{
-    //         .str = "pattern",
-    //         .regex = true, // regex with .str
-    //         .match_null = true, // will match null
-    //     }
-    //
     //     // apply part
     //     .tag = 1,
     //     .floating = true,
@@ -754,33 +721,15 @@ pub const window_rules = [_]rule.Window {
     .{ .app_id = .{ .str = "foot" }, .is_terminal = true, .scroller_mfact = 0.8 },
 };
 
+pub const input_device_rules = [_]rule.InputDevice {
+    .{ .name = .{ .str = ".*", .regex = true }, .repeat_info = .{ .rate = repeat_rate, .delay = repeat_delay } },
+};
 
-///////////////////////
-// input config
-//////////////////////
-fn UnionWrap(comptime T: type) type {
-    return union(enum(u2)) {
-        value: T,                       // directly set config
-        func: *const fn(?[]const u8) T, // dynamicly return a config
-    };
-}
+pub const libinput_device_rules = [_]rule.LibinputDevice {
+    .{ .name = .{ .str = ".*[tT]ouchpad", .regex = true }, .natural_scroll = .enabled },
+    .{ .name = .{ .str = ".*", .regex = true }, .tap = .enabled, .drag = .enabled }
+};
 
-fn libinput_config(name: ?[]const u8) LibinputConfig {
-    if (name == null) return .{};
-
-    const pattern: rule.Pattern = .{ .str = ".*[tT]ouchpad", .regex = true };
-
-    return .{
-        // enable tap and drag
-        .tap = .enabled,
-        .drag = .enabled,
-        // only enable natural_scroll for the device that who's name matches ".*[tT]ouchpad"
-        // else keep default by setting to null
-        .natural_scroll = if (pattern.is_match(name.?)) .enabled else null,
-    };
-}
-
-pub const repeat_info: UnionWrap(?KeyboardRepeatInfo)    = .{ .value = .{ .rate = repeat_rate, .delay = repeat_delay } };
-pub const scroll_factor: UnionWrap(?f64)                 = .{ .value = null };
-pub const libinput: UnionWrap(LibinputConfig)            = .{ .func = libinput_config };
-pub const keyboard: UnionWrap(KeyboardConfig)            = .{ .value = .{} };
+pub const xkb_keyboard_rules = [_]rule.XkbKeyboard {
+    //
+};
