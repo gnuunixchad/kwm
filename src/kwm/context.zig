@@ -326,7 +326,7 @@ pub fn update_bar_status(self: *Self) void {
                 while (it.next()) |output| {
                     output.bar.damage(.status);
 
-                    if (!output.bar.hided) {
+                    if (!output.bar.hidden) {
                         show_bar_num += 1;
                     }
                 }

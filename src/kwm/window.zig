@@ -59,7 +59,7 @@ fullscreen: union(enum) {
 maximize: bool = false,
 floating: bool = false,
 sticky: bool = false,
-hided: bool = false,
+hidden: bool = false,
 clip_state: enum {
     unknow,
     normal,
@@ -598,16 +598,16 @@ pub fn manage(self: *Self) void {
 
 
 pub fn render(self: *Self) void {
-    defer self.hided = false;
+    defer self.hidden = false;
 
     if (
-        self.hided
+        self.hidden
         or self.x - config.border_width >= self.output.?.width
         or self.x + self.width + config.border_width <= 0
         or self.y - config.border_width >= self.output.?.height
         or self.y + self.height + config.border_width <= 0
     ) {
-        if (!self.hided) log.debug("<{*}> out of range, hided", .{ self });
+        if (!self.hidden) log.debug("<{*}> out of range, hide", .{ self });
         self.rwm_window.hide();
         return;
     }
@@ -654,7 +654,7 @@ pub fn render(self: *Self) void {
 pub fn hide(self: *Self) void {
     log.debug("<{*}> hide", .{ self });
 
-    self.hided = true;
+    self.hidden = true;
 }
 
 

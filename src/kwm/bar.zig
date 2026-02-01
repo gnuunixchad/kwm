@@ -39,8 +39,8 @@ dynamic_component: Component = undefined,
 output: *Output,
 
 scale: u32,
-backgournd_damaged: bool = true,
-hided: bool = !config.bar.show_default,
+background_damaged: bool = true,
+hidden: bool = !config.bar.show_default,
 
 split_points_buffer: [config.tags.len+3]i32 = undefined,
 static_splits: std.ArrayList(i32) = undefined,
@@ -63,7 +63,7 @@ pub fn init(self: *Self, output: *Output) !void {
     self.static_splits = .initBuffer(self.split_points_buffer[0..config.tags.len]);
     self.dynamic_splits = .initBuffer(self.split_points_buffer[config.tags.len..]);
 
-    if (!self.hided) {
+    if (!self.hidden) {
         try self.show();
     }
 }
@@ -72,8 +72,8 @@ pub fn init(self: *Self, output: *Output) !void {
 pub fn deinit(self: *Self) void {
     log.debug("<{*}> deinit", .{ self });
 
-    if (!self.hided) {
-        self.hided = true;
+    if (!self.hidden) {
+        self.hidden = true;
         self.hide();
     }
     self.font.destroy();
@@ -176,14 +176,14 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
 
 
 pub fn toggle(self: *Self) void {
-    log.debug("<{*}> toggle: {}", .{ self, !self.hided });
+    log.debug("<{*}> toggle: {}", .{ self, !self.hidden });
 
-    self.hided = !self.hided;
-    if (self.hided) {
+    self.hidden = !self.hidden;
+    if (self.hidden) {
         self.hide();
     } else {
         self.show() catch |err| {
-            self.hided = true;
+            self.hidden = true;
             log.err("<{*}> failed to show: {}", .{ self, err });
             return;
         };
@@ -196,7 +196,7 @@ pub fn damage(self: *Self, @"type": enum { all, tags, dynamic, layout, mode, tit
 
     switch (@"type") {
         .all => {
-            self.backgournd_damaged = true;
+            self.background_damaged = true;
         },
         .tags => {
             self.static_component.damaged = true;
@@ -208,24 +208,24 @@ pub fn damage(self: *Self, @"type": enum { all, tags, dynamic, layout, mode, tit
 
 
 pub fn render(self: *Self) void {
-    if (self.hided) return;
+    if (self.hidden) return;
 
     log.debug("<{*}> rendering", .{ self });
 
-    if (self.static_component.damaged or self.backgournd_damaged) {
+    if (self.static_component.damaged or self.background_damaged) {
         defer self.static_component.damaged = false;
 
         self.render_static_component();
     }
 
-    if (self.dynamic_component.damaged or self.backgournd_damaged) {
+    if (self.dynamic_component.damaged or self.background_damaged) {
         defer self.dynamic_component.damaged = false;
 
         self.render_dynamic_component();
     }
 
-    if (self.backgournd_damaged) {
-        defer self.backgournd_damaged = false;
+    if (self.background_damaged) {
+        defer self.background_damaged = false;
 
         self.render_background();
     }
@@ -639,7 +639,7 @@ fn render_dynamic_component(self: *Self) void {
 
 
 fn show(self: *Self) !void {
-    std.debug.assert(!self.hided);
+    std.debug.assert(!self.hidden);
 
     log.debug("<{*}> show", .{ self });
 
@@ -676,7 +676,7 @@ fn show(self: *Self) !void {
 
 
 fn hide(self: *Self) void {
-    std.debug.assert(self.hided);
+    std.debug.assert(self.hidden);
 
     log.debug("<{*}> hide", .{ self });
 
