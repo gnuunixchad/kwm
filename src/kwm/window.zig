@@ -84,6 +84,10 @@ x: i32 = 0,
 y: i32 = 0,
 width: i32 = 0,
 height: i32 = 0,
+floating_x: i32 = 0,
+floating_y: i32 = 0,
+floating_width: i32 = 0,
+floating_height: i32 = 0,
 min_width: i32 = 1,
 min_height: i32 = 1,
 scroller_mfact: f32 = undefined,
@@ -391,6 +395,21 @@ pub fn ensure_floating(self: *Self) void {
 
 pub fn toggle_floating(self: *Self) void {
     log.debug("<{*}> toggle floating: {}", .{ self, !self.floating });
+
+    if (!self.floating) {
+        const has_saved_floating_dims = self.floating_width > 0 and self.floating_height > 0;
+
+        if (has_saved_floating_dims) {
+            self.resize(self.floating_width, self.floating_height);
+            self.move(self.floating_x, self.floating_y);
+        }
+
+    } else {
+        self.floating_width = self.width;
+        self.floating_height = self.height;
+        self.floating_x = self.x;
+        self.floating_y = self.y;
+    }
 
     self.floating = !self.floating;
 }
