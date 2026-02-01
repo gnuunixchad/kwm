@@ -14,7 +14,6 @@ wl_surface: *wl.Surface,
 wl_subsurface: *wl.Subsurface,
 buffers: [2]Buffer = undefined,
 
-width: ?i32 = null,
 damaged: bool = true,
 
 
@@ -58,8 +57,6 @@ pub fn manage(self: *Self, x: i32, y: i32) void {
 
 pub fn render(self: *Self, buffer: *Buffer) void {
     log.debug("<{*}> rendering", .{ self });
-
-    self.width = buffer.width;
 
     self.wl_surface.attach(buffer.wl_buffer, 0, 0);
     self.wl_surface.damageBuffer(0, 0, buffer.width, buffer.height);

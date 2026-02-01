@@ -42,6 +42,10 @@ scale: u32,
 backgournd_damaged: bool = true,
 hided: bool = !config.bar.show_default,
 
+split_points_buffer: [config.tags.len+3]i32 = undefined,
+static_splits: std.ArrayList(i32) = undefined,
+dynamic_splits: std.ArrayList(i32) = undefined,
+
 
 pub fn init(self: *Self, output: *Output) !void {
     log.debug("<{*}> init", .{ self });
@@ -55,6 +59,9 @@ pub fn init(self: *Self, output: *Output) !void {
         .output = output,
         .scale = scale,
     };
+
+    self.static_splits = .initBuffer(self.split_points_buffer[0..config.tags.len]);
+    self.dynamic_splits = .initBuffer(self.split_points_buffer[config.tags.len..]);
 
     if (!self.hided) {
         try self.show();
@@ -81,8 +88,6 @@ pub inline fn height(self: *Self) i32 {
 pub fn handle_click(self: *Self, seat: *Seat) void {
     log.debug("<{*}> handle click by {*}", .{ self, seat });
 
-    const context = Context.get();
-
     const pointer_x = seat.pointer_position.x;
     const pointer_y = seat.pointer_position.y;
 
@@ -108,66 +113,34 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
         seat.append_action(a);
     };
 
-    const pad: i16 = @intCast(self.get_pad());
-    var x: i32 = self.output.x;
+    var x: i32 = pointer_x - self.output.x;
+    if (x <= self.static_component_width()) {
+        for (0.., self.static_splits.items) |i, split| {
+            if (x <= split) {
+                const tag = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
+                const callback_action = (config.bar.click.get(.tag) orelse return).get(seat.button) orelse return;
+                action = switch (callback_action) {
+                    .set_window_tag => .{ .set_window_tag = .{ .tag = tag } },
+                    .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
+                    .set_output_tag => .{ .set_output_tag = .{ .tag = tag } },
+                    .toggle_output_tag => .{ .toggle_output_tag = .{ .mask = tag } },
+                    else => callback_action,
+                };
+                break;
+            }
+        }
+        return;
+    }
 
-    if (pointer_x > self.output.x + self.static_component.width.?) x += self.static_component.width.?
-    else for (0.., config.tags) |i, label| {
-        const tw: i32 = @intCast(str_width(self.font, label) orelse return);
-        defer x += tw + pad;
-
-        if (pointer_x >= x and pointer_x < x + tw + pad) {
-            const tag = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
-            const callback_action = (config.bar.click.get(.tag) orelse return).get(seat.button) orelse return;
-            action = switch (callback_action) {
-                .set_window_tag => .{ .set_window_tag = .{ .tag = tag } },
-                .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
-                .set_output_tag => .{ .set_output_tag = .{ .tag = tag } },
-                .toggle_output_tag => .{ .toggle_output_tag = .{ .mask = tag } },
-                else => callback_action,
-            };
+    x -= self.static_component_width();
+    for (&[_]@TypeOf(config.bar.click).Key { .layout, .mode, .title }, self.dynamic_splits.items) |tag, split| {
+        if (x <= split) {
+            action = (config.bar.click.get(tag) orelse return).get(seat.button) orelse return;
             return;
         }
     }
 
-    const layout = self.output.current_layout();
-    {
-        const tw: i32 = @intCast(str_width(self.font, config.layout_tag(layout)) orelse return);
-        defer x += tw + pad;
-
-        if (pointer_x >= x and pointer_x < x + tw + pad) {
-            action = (config.bar.click.get(.layout) orelse return).get(seat.button) orelse return;
-            return;
-        }
-    }
-
-    const mode_tag =
-        if (config.mode_tag.contains(context.mode)) config.mode_tag.getAssertContains(context.mode)
-        else @tagName(context.mode);
-    if (mode_tag.len > 0) {
-        const tw: i32 = @intCast(str_width(self.font, mode_tag) orelse return);
-        defer x += tw + pad;
-
-        if (pointer_x >= x and pointer_x < x + tw + pad) {
-            action = (config.bar.click.get(.mode) orelse return).get(seat.button) orelse return;
-            return;
-        }
-    }
-
-    const status_text: []const u8 = switch (config.bar.status) {
-        .text => |text| text,
-        else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
-    };
-    if (status_text.len > 0) {
-        const tw: i32 = @intCast(str_width(self.font, status_text) orelse return);
-
-        if (pointer_x >= self.output.x+self.output.width-tw-pad) {
-            action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
-            return;
-        }
-    }
-
-    action = (config.bar.click.get(.title) orelse return).get(seat.button) orelse return;
+    action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
 }
 
 
@@ -228,6 +201,13 @@ pub fn render(self: *Self) void {
 }
 
 
+inline fn static_component_width(self: *Self) i32 {
+    std.debug.assert(self.static_splits.items.len == config.tags.len);
+
+    return self.static_splits.getLast();
+}
+
+
 inline fn get_pad(self: *Self) u16 {
     return @intCast(self.height());
 }
@@ -263,7 +243,7 @@ fn render_background(self: *Self) void {
     defer buffer.destroy();
 
     self.static_component.manage(0, 0);
-    self.dynamic_component.manage(self.static_component.width.?, 0);
+    self.dynamic_component.manage(self.static_component_width(), 0);
 
     self.wl_surface.attach(buffer, 0, 0);
     self.wl_surface.damageBuffer(0, 0, self.output.width, h);
@@ -337,6 +317,7 @@ fn render_static_component(self: *Self) void {
     log.debug("<{*}> rendering static component", .{ self });
 
     const context = Context.get();
+    self.static_splits.clearRetainingCapacity();
 
     var texts: [config.tags.len]*const fcft.TextRun = undefined;
     for (0.., config.tags) |i, label| {
@@ -356,9 +337,9 @@ fn render_static_component(self: *Self) void {
     const w: u16 = blk: {
         var width: u16 = 0;
         for (texts) |text| {
-            width += @intCast(text_width(text));
+            width += @intCast(text_width(text)+pad);
+            self.static_splits.appendBounded(@intCast(width)) catch unreachable;
         }
-        width += @intCast(texts.len * pad);
         break :blk width;
     };
     const h: u16 = @intCast(self.height());
@@ -473,6 +454,7 @@ fn render_dynamic_component(self: *Self) void {
     log.debug("<{*}> rendering dynamic component", .{ self });
 
     const context = Context.get();
+    self.dynamic_splits.clearRetainingCapacity();
 
     const normal_fg = color(config.bar.color.normal.fg);
     const select_bg = color(config.bar.color.select.bg);
@@ -480,7 +462,7 @@ fn render_dynamic_component(self: *Self) void {
     const transparent = mem.zeroes(pixman.Color);
 
     const pad = self.get_pad();
-    const w: u16 = @intCast(self.output.width-self.static_component.width.?);
+    const w: u16 = @intCast(self.output.width-self.static_component_width());
     const h: u16 = @intCast(self.height());
 
     const buffer = self.next_buffer(.dynamic, w, h) orelse return;
@@ -506,6 +488,7 @@ fn render_dynamic_component(self: *Self) void {
         x+@as(i16, @intCast(@divFloor(pad, 2))),
         y,
     ) + @as(i16, @intCast(pad));
+    self.dynamic_splits.appendBounded(x) catch unreachable;
 
     const mode_tag =
         if (config.mode_tag.contains(context.mode)) config.mode_tag.getAssertContains(context.mode)
@@ -519,6 +502,7 @@ fn render_dynamic_component(self: *Self) void {
             y,
         ) + @as(i16, @intCast(pad));
     }
+    self.dynamic_splits.appendBounded(x) catch unreachable;
 
     if (context.focus_top_in(self.output, false)) |window| {
         if (self.output == context.current_output) {
@@ -557,6 +541,7 @@ fn render_dynamic_component(self: *Self) void {
         }
     }
 
+    self.dynamic_splits.appendBounded(@intCast(w)) catch unreachable;
     const status_text: []const u8 = switch (config.bar.status) {
         .text => |text| text,
         else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
@@ -577,6 +562,8 @@ fn render_dynamic_component(self: *Self) void {
             bg_rect[0].x = x;
             bg_rect[0].width = w - @as(u16, @intCast(x));
             _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
+
+            self.dynamic_splits.items[self.dynamic_splits.items.len-1] = x;
 
             x += self.render_text(
                 buffer,
