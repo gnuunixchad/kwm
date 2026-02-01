@@ -41,21 +41,21 @@ const BarConfig = struct {
         stdin,
         fifo: []const u8,
     },
-    click: std.EnumMap(enum { tag, layout, mode, title, status }, std.EnumMap(Button, kwm.binding.Action)),
+    click: std.EnumMap(enum { tag, layout, mode, title, status }, std.EnumMap(Button, kwm.BindingAction)),
 };
 const XkbBinding = struct {
     mode: Mode = .default,
     keysym: u32,
     modifiers: u32,
-    event: river.XkbBindingV1.Event = .pressed,
-    action: kwm.binding.Action,
+    event: kwm.XkbBindingEvent = .pressed,
+    action: kwm.BindingAction,
 };
 const PointerBinding = struct {
     mode: Mode = .default,
     button: Button,
     modifiers: u32,
-    action: kwm.binding.Action,
-    event: river.PointerBindingV1.Event = .pressed,
+    action: kwm.BindingAction,
+    event: kwm.PointerBindingEvent = .pressed,
 };
 const BorderColor = struct {
     focus: u32,
@@ -117,6 +117,9 @@ pub const startup_cmds = [_][]const []const u8 {
 };
 
 pub const xcursor_theme: ?XcursorTheme = null;
+
+pub const repeat_rate = 50;
+pub const repeat_delay = 300;
 
 pub const sloppy_focus = false;
 
@@ -220,7 +223,7 @@ pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
 // You could define other functions as you wish
 //////////////////////////////////////////////////////////
 
-fn modify_nmaster(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
+fn modify_nmaster(state: *const kwm.State, arg: *const kwm.BindingArg) ?kwm.BindingAction {
     std.debug.assert(arg.* == .i);
 
     if (state.layout == .tile) {
@@ -231,7 +234,7 @@ fn modify_nmaster(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.bin
 }
 
 
-fn modify_mfact(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
+fn modify_mfact(state: *const kwm.State, arg: *const kwm.BindingArg) ?kwm.BindingAction {
     std.debug.assert(arg.* == .f);
 
     if (state.layout) |layout_t| {
@@ -246,7 +249,7 @@ fn modify_mfact(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.bindi
 }
 
 
-fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
+fn modify_gap(state: *const kwm.State, arg: *const kwm.BindingArg) ?kwm.BindingAction {
     std.debug.assert(arg.* == .i);
 
     if (state.layout) |layout_t| {
@@ -263,7 +266,7 @@ fn modify_gap(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding
 }
 
 
-fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
+fn modify_master_location(state: *const kwm.State, arg: *const kwm.BindingArg) ?kwm.BindingAction {
     std.debug.assert(arg.* == .ui);
 
     if (state.layout == .tile) {
@@ -280,7 +283,7 @@ fn modify_master_location(state: *const kwm.State, arg: *const kwm.binding.Arg) 
 }
 
 
-fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
+fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.BindingArg) ?kwm.BindingAction {
     if (state.layout == .grid) {
         grid.direction = switch (grid.direction) {
             .horizontal => .vertical,
@@ -292,7 +295,7 @@ fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.binding.Arg) ?kw
 }
 
 
-fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.binding.Arg) ?kwm.binding.Action {
+fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.BindingArg) ?kwm.BindingAction {
     std.debug.assert(arg.* == .none);
 
     if (state.layout == .scroller) {
@@ -303,7 +306,7 @@ fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.binding
 }
 
 
-fn toggle_auto_swallow(_: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
+fn toggle_auto_swallow(_: *const kwm.State, _: *const kwm.BindingArg) ?kwm.BindingAction {
     auto_swallow = !auto_swallow;
 
     return null;
@@ -361,48 +364,56 @@ pub const xkb_bindings = blk: {
             .mode = .floating,
             .keysym = Keysym.l,
             .modifiers = Super,
+            .event = .repeat,
             .action = .{ .move = .{ .step = .{ .horizontal = 10 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.h,
             .modifiers = Super,
+            .event = .repeat,
             .action = .{ .move = .{ .step = .{ .horizontal = -10 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.j,
             .modifiers = Super,
+            .event = .repeat,
             .action = .{ .move = .{ .step = .{ .vertical = 10 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.k,
             .modifiers = Super,
+            .event = .repeat,
             .action = .{ .move = .{ .step = .{ .vertical = -10 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.l,
             .modifiers = Super|Ctrl,
+            .event = .repeat,
             .action = .{ .resize = .{ .step = .{ .horizontal = 10 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.h,
             .modifiers = Super|Ctrl,
+            .event = .repeat,
             .action = .{ .resize = .{ .step = .{ .horizontal = -10 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.j,
             .modifiers = Super|Ctrl,
+            .event = .repeat,
             .action = .{ .resize = .{ .step = .{ .vertical = 10 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.k,
             .modifiers = Super|Ctrl,
+            .event = .repeat,
             .action = .{ .resize = .{ .step = .{ .vertical = -10 } } }
         },
         .{
@@ -677,7 +688,7 @@ pub const xkb_bindings = blk: {
     break :blk bindings ++ tag_binddings;
 };
 
-fn show_appid(state: *const kwm.State, _: *const kwm.binding.Arg) ?kwm.binding.Action {
+fn show_appid(state: *const kwm.State, _: *const kwm.BindingArg) ?kwm.BindingAction {
     const static = struct {
         pub var buffer: [32]u8 = undefined;
         pub var argv = [_][]const u8 { "notify-send", &buffer };
@@ -762,7 +773,7 @@ fn libinput_config(name: ?[]const u8) LibinputConfig {
     };
 }
 
-pub const repeat_info: UnionWrap(?KeyboardRepeatInfo)    = .{ .value = .{ .rate = 50, .delay = 300 } };
+pub const repeat_info: UnionWrap(?KeyboardRepeatInfo)    = .{ .value = .{ .rate = repeat_rate, .delay = repeat_delay } };
 pub const scroll_factor: UnionWrap(?f64)                 = .{ .value = null };
 pub const libinput: UnionWrap(LibinputConfig)            = .{ .func = libinput_config };
 pub const keyboard: UnionWrap(KeyboardConfig)            = .{ .value = .{} };

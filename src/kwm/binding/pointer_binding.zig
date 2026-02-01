@@ -12,12 +12,17 @@ const utils = @import("utils");
 const binding = @import("../binding.zig");
 const Seat = @import("../seat.zig");
 
+pub const Event = enum {
+    pressed,
+    released,
+};
+
 
 rwm_pointer_binding: *river.PointerBindingV1,
 
 seat: *Seat,
 action: binding.Action,
-event: river.PointerBindingV1.Event,
+event: Event,
 
 
 pub fn create(
@@ -25,7 +30,7 @@ pub fn create(
     button: u32,
     modifiers: river.SeatV1.Modifiers,
     action: binding.Action,
-    event: river.PointerBindingV1.Event,
+    event: Event,
 ) !*Self {
     const pointer_binding = try utils.allocator.create(Self);
     errdefer utils.allocator.destroy(pointer_binding);
@@ -75,10 +80,10 @@ fn rwm_pointer_binding_listener(rwm_pointer_binding: *river.PointerBindingV1, ev
 
     log.debug("<{*}> {s}", .{ pointer_binding, @tagName(event) });
 
-    if (
-        (event == .pressed and pointer_binding.event == .released)
-        or (event == .released and pointer_binding.event == .pressed)
-    ) return;
+    switch (pointer_binding.event) {
+        .pressed => if (event != .pressed) return,
+        .released => if (event != .released) return,
+    }
 
     pointer_binding.seat.append_action(pointer_binding.action);
 }

@@ -22,6 +22,7 @@ const types = @import("types.zig");
 const Seat = @import("seat.zig");
 const Output = @import("output.zig");
 const Window = @import("window.zig");
+const KeyRepeat = @import("key_repeat.zig");
 const InputDevice = @import("input_device.zig");
 const LibinputDevice = @import("libinput_device.zig");
 const XkbKeyboard = @import("xkb_keyboard.zig");
@@ -55,6 +56,8 @@ xkb_keyboards: wl.list.Head(XkbKeyboard, .link) = undefined,
 
 windows: wl.list.Head(Window, .link) = undefined,
 focus_stack: wl.list.Head(Window, .flink) = undefined,
+
+key_repeat: ?KeyRepeat,
 
 bar_status_fd: ?posix.fd_t = null,
 
@@ -104,6 +107,7 @@ pub fn init(
         .rwm_input_manager = rwm_input_manager,
         .rwm_libinput_config = rwm_libinput_config,
         .rwm_xkb_config = rwm_xkb_config,
+        .key_repeat = undefined,
         .terminal_windows = .init(utils.allocator),
         .env = process.getEnvMap(utils.allocator) catch |err| blk: {
             log.warn("get EnvMap failed: {}", .{ err });
@@ -117,6 +121,9 @@ pub fn init(
     ctx.?.libinput_devices.init();
     ctx.?.xkb_keyboards.init();
     ctx.?.focus_stack.init();
+    ctx.?.key_repeat.?.init() catch {
+        ctx.?.key_repeat = null;
+    };
 
     for (config.env) |pair| {
         const key, const value = pair;
@@ -221,6 +228,8 @@ pub fn deinit() void {
         }
         ctx.?.xkb_keyboards.init();
     }
+
+    if (ctx.?.key_repeat) |*key_repeat| key_repeat.deinit();
 
     if (ctx.?.is_listening_status()) {
         ctx.?.stop_listening_status();

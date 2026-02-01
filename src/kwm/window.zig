@@ -681,8 +681,8 @@ fn set_title(self: *Self, title: ?[]const u8) void {
 
 
 fn center(self: *Self) void {
-    self.x = @divFloor(self.output.?.width-self.width, 2);
-    self.y = @divFloor(self.output.?.height-self.height, 2);
+    self.x = @divFloor(self.output.?.exclusive_width()-self.width, 2);
+    self.y = @divFloor(self.output.?.exclusive_height()-self.height, 2);
 }
 
 
