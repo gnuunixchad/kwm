@@ -3,16 +3,13 @@ const Self = @This();
 const std = @import("std");
 const log = std.log.scoped(.input_device_rule);
 
-const Pattern = @import("pattern.zig");
+const kwm = @import("kwm");
 
-const KeyboardRepeatInfo = struct {
-    rate: i32,
-    delay: i32,
-};
+const Pattern = @import("pattern.zig");
 
 name: ?Pattern = null,
 
-repeat_info: ?KeyboardRepeatInfo = null,
+repeat_info: ?kwm.KeyboardRepeatInfo = null,
 scroll_factor: ?f32 = null,
 
 

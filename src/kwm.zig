@@ -10,6 +10,8 @@ const types = @import("kwm/types.zig");
 const binding = @import("kwm/binding.zig");
 const Window = @import("kwm/window.zig");
 const Context = @import("kwm/context.zig");
+const InputDevice = @import("kwm/input_device.zig");
+const XkbKeyboard = @import("kwm/xkb_keyboard.zig");
 
 const FDType = enum {
     wayland,
@@ -26,11 +28,11 @@ pub const PointerBindingEvent = binding.PointerBinding.Event;
 pub const WindowDecoration = Window.Decoration;
 pub const State = types.State;
 pub const Button = types.Button;
-pub const KeyboardRepeatInfo = types.KeyboardRepeatInfo;
-pub const KeyboardNumlockState = types.KeyboardNumlockState;
-pub const KeyboardCapslockState = types.KeyboardCapslockState;
-pub const KeyboardLayout = types.KeyboardLayout;
-pub const Keymap = types.Keymap;
+pub const KeyboardRepeatInfo = InputDevice.RepeatInfo;
+pub const KeyboardNumlockState = XkbKeyboard.NumlockState;
+pub const KeyboardCapslockState = XkbKeyboard.CapslockState;
+pub const KeyboardLayout = XkbKeyboard.Layout;
+pub const Keymap = XkbKeyboard.Keymap;
 
 
 pub const init = Context.init;

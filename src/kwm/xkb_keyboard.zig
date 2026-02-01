@@ -12,10 +12,26 @@ const river = wayland.client.river;
 const config = @import("config");
 
 const utils = @import("utils.zig");
-const types = @import("types.zig");
 const Context = @import("context.zig");
 
 const InputDevice = @import("input_device.zig");
+
+pub const NumlockState = enum {
+    enabled,
+    disabled,
+};
+pub const CapslockState = enum {
+    enabled,
+    disabled,
+};
+pub const Layout = union(enum) {
+    index: u32,
+    name: [*:0]const u8,
+};
+pub const Keymap = struct {
+    file: []const u8,
+    format: river.XkbConfigV1.KeymapFormat,
+};
 
 
 link: wl.list.Link = undefined,
@@ -25,8 +41,8 @@ rwm_xkb_keyboard: *river.XkbKeyboardV1,
 input_device: ?*InputDevice = null,
 
 new: bool = true,
-numlock: types.KeyboardNumlockState = undefined,
-capslock: types.KeyboardCapslockState = undefined,
+numlock: NumlockState = undefined,
+capslock: CapslockState = undefined,
 layout_index: u32 = undefined,
 layout_name: ?[]const u8 = null,
 
@@ -104,7 +120,7 @@ fn apply_rule(self: *Self, rule: *const config.XkbKeyboardRule) void {
 }
 
 
-fn set_numlock(self: *Self, state: types.KeyboardNumlockState) void {
+fn set_numlock(self: *Self, state: NumlockState) void {
     log.debug("<{*}> set numlock: {s}", .{ self, @tagName(state) });
 
     switch (state) {
@@ -114,7 +130,7 @@ fn set_numlock(self: *Self, state: types.KeyboardNumlockState) void {
 }
 
 
-fn set_capslock(self: *Self, state: types.KeyboardCapslockState) void {
+fn set_capslock(self: *Self, state: CapslockState) void {
     log.debug("<{*}> set capslock: {s}", .{ self, @tagName(state) });
 
     switch (state) {
@@ -124,7 +140,7 @@ fn set_capslock(self: *Self, state: types.KeyboardCapslockState) void {
 }
 
 
-fn set_layout(self: *Self, layout: types.KeyboardLayout) void {
+fn set_layout(self: *Self, layout: Layout) void {
     switch (layout) {
         .index => |index| {
             log.debug("<{*}> set keyboard layout to {}", .{ self, index });
@@ -140,7 +156,7 @@ fn set_layout(self: *Self, layout: types.KeyboardLayout) void {
 }
 
 
-fn set_keymap(self: *Self, keymap: types.Keymap) !void {
+fn set_keymap(self: *Self, keymap: Keymap) !void {
     log.debug("<{*}> set keymap to `{s}` with format {s}", .{ self, keymap.file, @tagName(keymap.format) });
 
     const context = Context.get();

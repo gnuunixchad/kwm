@@ -11,7 +11,11 @@ const river = wayland.client.river;
 const config = @import("config");
 
 const utils = @import("utils.zig");
-const types = @import("types.zig");
+
+pub const RepeatInfo = struct {
+    rate: i32,
+    delay: i32,
+};
 
 
 link: wl.list.Link = undefined,
