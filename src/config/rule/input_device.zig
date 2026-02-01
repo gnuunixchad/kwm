@@ -10,7 +10,7 @@ const Pattern = @import("pattern.zig");
 name: ?Pattern = null,
 
 repeat_info: ?kwm.KeyboardRepeatInfo = null,
-scroll_factor: ?f32 = null,
+scroll_factor: ?f64 = null,
 
 
 pub fn match(self: *const Self, name: ?[]const u8) bool {
