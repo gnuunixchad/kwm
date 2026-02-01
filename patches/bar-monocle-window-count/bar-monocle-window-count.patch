@@ -1,26 +1,62 @@
-commit dae42a02db429d6fe809250d35b1218b9f775bcf
 Author: nate zhou <gnuunixchad@outlook.com>
-Date:   Fri Jan 30 13:05:12 2026 +0800
+Date:   Sun Feb 1 16:36:18 2026 +0800
 
-    Feat(bar): visible windows count in monocle layout
-    
-    This mimics the default dwm's monocle layout indicator, user can see how
-    many windows are stacked in the monocle layout without having to cycle
-    through all of them.
-    
-    - Behaviors
-        + When there's no non-floating visible windows on the output,
-          display the indicator defined in `config.zig`(`[=]` by default).
-        + Else replace the indicator with `[n]`, where `n` is the
-          non-floating visible windows count.
-    
-    (Sticky windows are counted if they are non-floating.)
 
 diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
-index 1c01fb8..9428115 100644
+index edd69d3..4b4862c 100644
 --- a/src/kwm/bar.zig
 +++ b/src/kwm/bar.zig
-@@ -499,13 +499,42 @@ fn render_dynamic_component(self: *Self) void {
+@@ -133,14 +133,45 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
+     }
+ 
+     x -= self.static_component_width();
+-    for (&[_]@TypeOf(config.bar.click).Key { .layout, .mode, .title }, self.dynamic_splits.items) |tag, split| {
+-        if (x <= split) {
+-            action = (config.bar.click.get(tag) orelse return).get(seat.button) orelse return;
++
++    const context = Context.get();
++
++    const dynamic_width: i32 = @intCast(self.output.width - self.static_component_width());
++
++    const status_text: []const u8 = switch (config.bar.status) {
++        .text => |text| text,
++        else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
++    };
++    if (status_text.len > 0) {
++        const status_width = str_width(self.font, status_text) orelse 0;
++        const pad = self.get_pad();
++        const status_start = dynamic_width - @as(i32, @intCast(status_width)) - @as(i32, @intCast(pad));
++        if (x >= status_start) {
++            action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
+             return;
+         }
+     }
+ 
+-    action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
++    if (self.dynamic_splits.items.len > 0) {
++        if (x < self.dynamic_splits.items[0]) {
++            action = (config.bar.click.get(.layout) orelse return).get(seat.button) orelse return;
++            return;
++        }
++
++        if (self.dynamic_splits.items.len > 1) {
++            const mode_tag = if (config.mode_tag.contains(context.mode))
++                config.mode_tag.getAssertContains(context.mode)
++            else @tagName(context.mode);
++            if (mode_tag.len > 0) {
++                if (x < self.dynamic_splits.items[1]) {
++                    action = (config.bar.click.get(.mode) orelse return).get(seat.button) orelse return;
++                    return;
++                }
++            }
++        }
++    }
++
++    action = (config.bar.click.get(.title) orelse return).get(seat.button) orelse return;
+ }
+ 
+ 
+@@ -481,14 +512,42 @@ fn render_dynamic_component(self: *Self) void {
      var x: i16 = 0;
      const y: i16 = 0;
  
@@ -31,6 +67,7 @@ index 1c01fb8..9428115 100644
 -        x+@as(i16, @intCast(@divFloor(pad, 2))),
 -        y,
 -    ) + @as(i16, @intCast(pad));
+-    self.dynamic_splits.appendBounded(x) catch unreachable;
 +    const current_layout = self.output.current_layout();
 +    if (current_layout == .monocle) {
 +        var visible_count: usize = 0;
