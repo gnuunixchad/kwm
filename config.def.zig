@@ -167,7 +167,7 @@ pub var scroller: kwm.layout.scroller = .{
     .mfact = 0.5,
     .inner_gap = 16,
     .outer_gap = 9,
-    .snap_to_left = false,
+    .master_location = .center,
 };
 pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
     return switch (layout) {
@@ -182,7 +182,10 @@ pub fn layout_tag(layout: kwm.layout.Type) []const u8 {
             .vertical => "|||",
         },
         .monocle => "[=]",
-        .scroller => if (scroller.snap_to_left) "[<-]" else "[==]",
+        .scroller => switch (scroller.master_location) {
+            .left =>  "[<-]",
+            .center => "[==]",
+        },
         .float => "><>",
     };
 }
@@ -268,11 +271,14 @@ fn toggle_grid_direction(state: *const kwm.State, _: *const kwm.BindingArg) ?kwm
 }
 
 
-fn toggle_scroller_snap_to_left(state: *const kwm.State, arg: *const kwm.BindingArg) ?kwm.BindingAction {
+fn toggle_scroller_master_location(state: *const kwm.State, arg: *const kwm.BindingArg) ?kwm.BindingAction {
     std.debug.assert(arg.* == .none);
 
     if (state.layout == .scroller) {
-        scroller.snap_to_left = !scroller.snap_to_left;
+        scroller.master_location = switch (scroller.master_location) {
+            .left => .center,
+            .center => .left,
+        };
     }
 
     return null;
@@ -574,7 +580,7 @@ pub const xkb_bindings = blk: {
         .{
             .keysym = Keysym.h,
             .modifiers = Super|Shift,
-            .action = .{ .custom_fn = .{ .func = &toggle_scroller_snap_to_left, .arg = .none } },
+            .action = .{ .custom_fn = .{ .func = &toggle_scroller_master_location, .arg = .none } },
         },
         .{
             .keysym = Keysym.f,
