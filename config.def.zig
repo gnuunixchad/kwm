@@ -722,7 +722,7 @@ pub const pointer_bindings = [_]PointerBinding {
 };
 
 
-pub const rules = [_]rule.Window {
+pub const window_rules = [_]rule.Window {
     //  support regex by: https://github.com/mnemnion/mvzr
     // .{
     //     // match part
