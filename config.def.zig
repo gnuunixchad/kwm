@@ -1109,6 +1109,7 @@ pub const rules = [_]Rule {
     .{ .app_id = .{ .str = "virt-manager" }, .scroller_mfact = 0.85 },
     .{ .app_id = .{ .str = "footclient" }, .is_terminal = true, .scroller_mfact = 0.5 },
     .{ .app_id = .{ .str = "swayimg" }, .is_terminal = true },
+    .{ .app_id = .{ .str = "mpv" }, .floating = false },
 };
 
 
