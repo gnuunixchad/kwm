@@ -475,59 +475,59 @@ pub const xkb_bindings = blk: {
         },
         .{
             .mode = .floating,
-            .keysym = Keysym.l,
-            .modifiers = Super,
-            .event = .repeat,
-            .action = .{ .move = .{ .step = .{ .horizontal = 50 } } }
-        },
-        .{
-            .mode = .floating,
             .keysym = Keysym.h,
-            .modifiers = Super,
+            .modifiers = 0,
             .event = .repeat,
             .action = .{ .move = .{ .step = .{ .horizontal = -50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.j,
-            .modifiers = Super,
+            .modifiers = 0,
             .event = .repeat,
             .action = .{ .move = .{ .step = .{ .vertical = 50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.k,
-            .modifiers = Super,
+            .modifiers = 0,
             .event = .repeat,
             .action = .{ .move = .{ .step = .{ .vertical = -50 } } }
         },
         .{
             .mode = .floating,
             .keysym = Keysym.l,
-            .modifiers = Ctrl,
+            .modifiers = 0,
             .event = .repeat,
-            .action = .{ .resize = .{ .step = .{ .horizontal = 50 } } }
+            .action = .{ .move = .{ .step = .{ .horizontal = 50 } } }
         },
         .{
             .mode = .floating,
-            .keysym = Keysym.h,
-            .modifiers = Ctrl,
+            .keysym = Keysym.y,
+            .modifiers = 0,
             .event = .repeat,
             .action = .{ .resize = .{ .step = .{ .horizontal = -50 } } }
         },
         .{
             .mode = .floating,
-            .keysym = Keysym.j,
-            .modifiers = Ctrl,
+            .keysym = Keysym.u,
+            .modifiers = 0,
             .event = .repeat,
             .action = .{ .resize = .{ .step = .{ .vertical = 50 } } }
         },
         .{
             .mode = .floating,
-            .keysym = Keysym.k,
-            .modifiers = Ctrl,
+            .keysym = Keysym.i,
+            .modifiers = 0,
             .event = .repeat,
             .action = .{ .resize = .{ .step = .{ .vertical = -50 } } }
+        },
+        .{
+            .mode = .floating,
+            .keysym = Keysym.o,
+            .modifiers = 0,
+            .event = .repeat,
+            .action = .{ .resize = .{ .step = .{ .horizontal = 50 } } }
         },
         .{
             .mode = .floating,
