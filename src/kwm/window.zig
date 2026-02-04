@@ -9,7 +9,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const config = @import("config");
+const Config = @import("config");
 
 const utils = @import("utils.zig");
 const types = @import("types.zig");
@@ -107,6 +107,8 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
 
     defer log.debug("<{*}> created", .{ window });
 
+    const config = Config.get();
+
     const rwm_window_node = try rwm_window.getNode();
     errdefer rwm_window_node.destroy();
 
@@ -114,7 +116,7 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
         .rwm_window = rwm_window,
         .rwm_window_node = rwm_window_node,
         .unhandled_events = try .initCapacity(utils.allocator, 2),
-        .scroller_mfact = config.scroller.mfact,
+        .scroller_mfact = config.layout.scroller.mfact,
     };
     window.link.init();
     window.flink.init();
@@ -232,18 +234,20 @@ pub fn place(self: *Self, pos: types.PlacePosition) void {
 pub fn move(self: *Self, x: ?i32, y: ?i32) void {
     defer log.debug("<{*}> move to (x: {}, y: {})", .{ self, self.x, self.y });
 
+    const config = Config.get();
+
     self.x = @max(
-        config.border_width,
+        config.border.width,
         @min(
             x orelse self.x,
-            self.output.?.exclusive_width()-self.width-config.border_width
+            self.output.?.exclusive_width()-self.width-config.border.width
         )
     );
     self.y = @max(
-        config.border_width,
+        config.border.width,
         @min(
             y orelse self.y,
-            self.output.?.exclusive_height()-self.height-config.border_width
+            self.output.?.exclusive_height()-self.height-config.border.width
         )
     );
 }
@@ -281,15 +285,17 @@ pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
         .{ self, self.width, self.height },
     );
 
+    const config = Config.get();
+
     self.width = @min(
-        self.output.?.exclusive_width()-self.x-config.border_width,
+        self.output.?.exclusive_width()-self.x-config.border.width,
         @max(
             width orelse self.width,
             self.min_width,
         )
     );
     self.height = @min(
-        self.output.?.exclusive_height()-self.y-config.border_width,
+        self.output.?.exclusive_height()-self.y-config.border.width,
         @max(
             height orelse self.height,
             self.min_height,
@@ -442,6 +448,8 @@ pub fn toggle_swallow(self: *Self) void {
 
 pub fn handle_events(self: *Self) void {
     defer self.unhandled_events.clearRetainingCapacity();
+
+    const config = Config.get();
 
     for (self.unhandled_events.items) |event| {
         log.debug("<{*}> handle event: {s}", .{ self, @tagName(event) });
@@ -600,12 +608,14 @@ pub fn manage(self: *Self) void {
 pub fn render(self: *Self) void {
     defer self.hidden = false;
 
+    const config = Config.get();
+
     if (
         self.hidden
-        or self.x - config.border_width >= self.output.?.width
-        or self.x + self.width + config.border_width <= 0
-        or self.y - config.border_width >= self.output.?.height
-        or self.y + self.height + config.border_width <= 0
+        or self.x - config.border.width >= self.output.?.width
+        or self.x + self.width + config.border.width <= 0
+        or self.y - config.border.width >= self.output.?.height
+        or self.y + self.height + config.border.width <= 0
     ) {
         if (!self.hidden) log.debug("<{*}> out of range, hide", .{ self });
         self.rwm_window.hide();
@@ -626,10 +636,10 @@ pub fn render(self: *Self) void {
     const x, const y = .{ self.output.?.exclusive_x(), self.output.?.exclusive_y() };
     self.rwm_window_node.setPosition(x + self.x, y + self.y);
 
-    var left = self.x - config.border_width;
-    var right = self.x + self.width + config.border_width;
-    var top = self.y - config.border_width;
-    var bottom = self.y + self.height + config.border_width;
+    var left = self.x - config.border.width;
+    var right = self.x + self.width + config.border.width;
+    var top = self.y - config.border.width;
+    var bottom = self.y + self.height + config.border.width;
     if (
         left < 0
         or top < 0
@@ -769,7 +779,7 @@ fn unswallow(self: *Self) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const config.WindowRule) void {
+fn apply_rule(self: *Self, rule: *const Config.WindowRule) void {
     if (rule.tag) |tag| self.set_tag(tag);
     if (rule.floating) |floating| self.floating = floating;
     if (rule.dimension) |dimension| self.resize(dimension.width, dimension.height);

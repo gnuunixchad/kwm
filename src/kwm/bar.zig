@@ -13,7 +13,7 @@ const river = wayland.client.river;
 const pixman = @import("pixman");
 const fcft = @import("fcft");
 
-const config = @import("config");
+const Config = @import("config");
 
 const utils = @import("utils.zig");
 const binding = @import("binding.zig");
@@ -25,6 +25,13 @@ const Buffer = @import("bar/buffer.zig");
 const Component = @import("bar/component.zig");
 
 pub var status_buffer = [1]u8 { 0 } ** 256;
+pub const Area = enum {
+    tags,
+    layout,
+    mode,
+    title,
+    status,
+};
 
 
 font: *fcft.Font,
@@ -40,15 +47,17 @@ output: *Output,
 
 scale: u32,
 background_damaged: bool = true,
-hidden: bool = !config.bar.show_default,
+hidden: bool,
 
-split_points_buffer: [config.tags.len+3]i32 = undefined,
+dynamic_splits_buffer: [@typeInfo(Area).@"enum".fields.len-2]i32 = undefined,
 static_splits: std.ArrayList(i32) = undefined,
 dynamic_splits: std.ArrayList(i32) = undefined,
 
 
 pub fn init(self: *Self, output: *Output) !void {
     log.debug("<{*}> init", .{ self });
+
+    const config = Config.get();
 
     const scale = 120;
     const font = load_font(scale) catch unreachable;
@@ -58,10 +67,13 @@ pub fn init(self: *Self, output: *Output) !void {
         .font = font,
         .output = output,
         .scale = scale,
+        .hidden = !config.bar.show_default,
     };
 
-    self.static_splits = .initBuffer(self.split_points_buffer[0..config.tags.len]);
-    self.dynamic_splits = .initBuffer(self.split_points_buffer[config.tags.len..]);
+    self.static_splits = try .initCapacity(utils.allocator, config.tags.len);
+    errdefer self.static_splits.deinit(utils.allocator);
+
+    self.dynamic_splits = .initBuffer(&self.dynamic_splits_buffer);
 
     if (!self.hidden) {
         try self.show();
@@ -77,6 +89,8 @@ pub fn deinit(self: *Self) void {
         self.hide();
     }
     self.font.destroy();
+
+    self.static_splits.deinit(utils.allocator);
 }
 
 
@@ -87,6 +101,8 @@ pub inline fn height(self: *Self) i32 {
 
 pub fn handle_click(self: *Self, seat: *Seat) void {
     log.debug("<{*}> handle click by {*}", .{ self, seat });
+
+    const config = Config.get();
 
     const pointer_x = seat.pointer_position.x;
     const pointer_y = seat.pointer_position.y;
@@ -118,7 +134,7 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
         for (0.., self.static_splits.items) |i, split| {
             if (x <= split) {
                 const tag = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
-                const callback_action = (config.bar.click.get(.tag) orelse return).get(seat.button) orelse return;
+                const callback_action = config.bar.click.getter.get(.tags).getter.get(seat.button) orelse return;
                 action = switch (callback_action) {
                     .set_window_tag => .{ .set_window_tag = .{ .tag = tag } },
                     .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
@@ -133,14 +149,14 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
     }
 
     x -= self.static_component_width();
-    for (&[_]@TypeOf(config.bar.click).Key { .layout, .mode, .title }, self.dynamic_splits.items) |tag, split| {
+    for (&[_]Area { .layout, .mode, .title }, self.dynamic_splits.items) |area, split| {
         if (x <= split) {
-            action = (config.bar.click.get(tag) orelse return).get(seat.button) orelse return;
+            action = config.bar.click.getter.get(area).getter.get(seat.button) orelse return;
             return;
         }
     }
 
-    action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
+    action = config.bar.click.getter.get(.status).getter.get(seat.button) orelse return;
 }
 
 
@@ -202,6 +218,8 @@ pub fn render(self: *Self) void {
 
 
 inline fn static_component_width(self: *Self) i32 {
+    const config = Config.get();
+
     std.debug.assert(self.static_splits.items.len == config.tags.len);
 
     return self.static_splits.getLast();
@@ -225,6 +243,7 @@ fn get_box(self: *Self) struct { u16, i16 } {
 fn render_background(self: *Self) void {
     log.debug("<{*}> rendering background", .{ self });
 
+    const config = Config.get();
     const context = Context.get();
     const h = self.height();
 
@@ -316,16 +335,25 @@ fn render_str(
 fn render_static_component(self: *Self) void {
     log.debug("<{*}> rendering static component", .{ self });
 
+    const config = Config.get();
     const context = Context.get();
     self.static_splits.clearRetainingCapacity();
 
-    var texts: [config.tags.len]*const fcft.TextRun = undefined;
-    for (0.., config.tags) |i, label| {
+    var texts: std.ArrayList(*const fcft.TextRun) = .empty;
+    texts.ensureTotalCapacity(utils.allocator, config.tags.len) catch |err| {
+        log.err("<{*}> initCapacity for texts while render_static_component failed: {}", .{ self, err });
+        return;
+    };
+    defer texts.deinit(utils.allocator);
+
+    for (config.tags) |label| {
         if (to_utf8(label)) |utf8| {
-            texts[i] = self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
-                log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
-                return;
-            };
+            texts.appendBounded(
+                self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
+                    log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
+                    return;
+                }
+            ) catch unreachable;
             utils.allocator.free(utf8);
         } else {
             log.warn("to_utf8 failed", .{});
@@ -333,22 +361,22 @@ fn render_static_component(self: *Self) void {
         }
     }
 
+    defer {
+        for (texts.items) |text| {
+            text.destroy();
+        }
+    }
+
     const pad = self.get_pad();
     const w: u16 = blk: {
         var width: u16 = 0;
-        for (texts) |text| {
+        for (texts.items) |text| {
             width += @intCast(text_width(text)+pad);
             self.static_splits.appendBounded(@intCast(width)) catch unreachable;
         }
         break :blk width;
     };
     const h: u16 = @intCast(self.height());
-
-    defer {
-        for (texts) |text| {
-            text.destroy();
-        }
-    }
 
     const buffer = self.next_buffer(.static, w, h) orelse return;
 
@@ -380,7 +408,7 @@ fn render_static_component(self: *Self) void {
     var x: i16 = 0;
     const y: i16 = 0;
     const box_size, const box_offset = self.get_box();
-    for (0.., texts) |i, text| {
+    for (0.., texts.items) |i, text| {
         const tag: u32 = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
 
         const is_focused = self.output.tag & tag != 0;
@@ -453,6 +481,7 @@ fn render_static_component(self: *Self) void {
 fn render_dynamic_component(self: *Self) void {
     log.debug("<{*}> rendering dynamic component", .{ self });
 
+    const config = Config.get();
     const context = Context.get();
     self.dynamic_splits.clearRetainingCapacity();
 
@@ -483,16 +512,20 @@ fn render_dynamic_component(self: *Self) void {
 
     x += self.render_str(
         buffer,
-        config.layout_tag(self.output.current_layout()),
+        switch (self.output.current_layout()) {
+            .tile => config.layout_tag.tile.getter.get(config.layout.tile.master_location),
+            .grid => config.layout_tag.grid.getter.get(config.layout.grid.direction),
+            .monocle => config.layout_tag.monocle,
+            .scroller => config.layout_tag.scroller.getter.get(config.layout.scroller.master_location),
+            .float => config.layout_tag.float,
+        },
         &normal_fg,
         x+@as(i16, @intCast(@divFloor(pad, 2))),
         y,
     ) + @as(i16, @intCast(pad));
     self.dynamic_splits.appendBounded(x) catch unreachable;
 
-    const mode_tag =
-        if (config.mode_tag.contains(context.mode)) config.mode_tag.getAssertContains(context.mode)
-        else @tagName(context.mode);
+    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
     if (mode_tag.len > 0) {
         x += self.render_str(
             buffer,
@@ -584,6 +617,7 @@ fn show(self: *Self) !void {
 
     log.debug("<{*}> show", .{ self });
 
+    const config = Config.get();
     const context = Context.get();
 
     const wl_surface = try context.wl_compositor.createSurface();
@@ -687,6 +721,8 @@ fn next_buffer(self: *Self, @"type": enum { static, dynamic }, width: i32, heigh
 
 
 fn load_font(scale: u32) !*fcft.Font {
+    const config = Config.get();
+
     var buffer: [12]u8 = undefined;
     const backup_font = "monospace:size=10";
     var fonts = [_][*:0]const u8 { @ptrCast(config.bar.font.ptr), backup_font };

@@ -15,7 +15,7 @@ const wl = wayland.client.wl;
 const wp = wayland.client.wp;
 const river = wayland.client.river;
 
-const config = @import("config");
+const Config = @import("config");
 
 const utils = @import("utils.zig");
 const types = @import("types.zig");
@@ -63,10 +63,10 @@ bar_status_fd: ?posix.fd_t = null,
 
 terminal_windows: std.AutoHashMap(i32, *Window) = undefined,
 
-mode: config.Mode = .default,
+mode: []const u8 = Config.default_mode,
 running: bool = true,
 env: process.EnvMap,
-startup_processes: [config.startup_cmds.len]?process.Child = undefined,
+startup_processes: std.ArrayList(?process.Child) = .empty,
 
 
 pub fn init(
@@ -125,6 +125,8 @@ pub fn init(
         ctx.?.key_repeat = null;
     };
 
+    const config = Config.get();
+
     for (config.env) |pair| {
         const key, const value = pair;
         ctx.?.env.put(key, value) catch |err| {
@@ -132,17 +134,29 @@ pub fn init(
         };
     }
 
-    if (config.xcursor_theme) |xcursor_theme| {
+    if (config.xcursor_theme) |xcursor_theme| blk: {
         ctx.?.env.put("XCURSOR_THEME", xcursor_theme.name) catch |err| {
             log.warn("put XCURSOR_THEME to `{s}` failed: {}", .{ xcursor_theme.name, err });
         };
-        ctx.?.env.put("XCURSOR_SIZE", fmt.comptimePrint("{}", .{ xcursor_theme.size })) catch |err| {
+
+        var buffer: [8]u8 = undefined;
+        const xcursor_size = fmt.bufPrint(&buffer, "{}", .{ xcursor_theme.size }) catch |err| {
+            log.warn("bufPrint failed: {}", .{ err });
+            break :blk;
+        };
+        ctx.?.env.put("XCURSOR_SIZE", xcursor_size) catch |err| {
             log.warn("put XCURSOR_SIZE to `{}` failed: {}", .{ xcursor_theme.size, err });
         };
     }
 
-    for (0.., config.startup_cmds) |i, cmd| {
-        ctx.?.startup_processes[i] = ctx.?.spawn(cmd);
+    blk: {
+        ctx.?.startup_processes.ensureTotalCapacity(utils.allocator, config.startup_cmds.len) catch |err| {
+            log.err("initCapacity for startup_processes failed: {}", .{ err });
+            break :blk;
+        };
+        for (config.startup_cmds) |cmd| {
+            ctx.?.startup_processes.appendBounded(ctx.?.spawn(cmd)) catch unreachable;
+        }
     }
 
     rwm.setListener(*Self, rwm_listener, &ctx.?);
@@ -239,7 +253,7 @@ pub fn deinit() void {
 
     ctx.?.env.deinit();
 
-    for (&ctx.?.startup_processes) |*proc| {
+    for (ctx.?.startup_processes.items) |*proc| {
         if (proc.*) |*child| {
             posix.kill(child.id, posix.SIG.TERM) catch |err| {
                 log.err("kill startup process {} failed: {}", .{ child.id, err });
@@ -248,6 +262,7 @@ pub fn deinit() void {
             log.debug("kill startup process {}", .{ child.id });
         }
     }
+    ctx.?.startup_processes.deinit(utils.allocator);
 }
 
 
@@ -260,6 +275,8 @@ pub inline fn get() *Self {
 
 pub fn start_listening_status(self: *Self) void {
     self.stop_listening_status();
+
+    const config = Config.get();
 
     self.bar_status_fd = switch (config.bar.status) {
         .text => null,
@@ -283,6 +300,8 @@ pub fn start_listening_status(self: *Self) void {
 
 
 pub fn stop_listening_status(self: *Self) void {
+    const config = Config.get();
+
     switch (config.bar.status) {
         .text => {},
         .stdin => self.bar_status_fd = null,
@@ -518,8 +537,8 @@ pub fn prepare_remove_seat(self: *Self, seat: *Seat) void {
 }
 
 
-pub inline fn switch_mode(self: *Self, mode: config.Mode) void {
-    log.debug("switch mode from {s} to {s}", .{ @tagName(self.mode), @tagName(mode) });
+pub inline fn switch_mode(self: *Self, mode: []const u8) void {
+    log.debug("switch mode from {s} to {s}", .{ self.mode, mode });
 
     self.mode = mode;
 
@@ -617,10 +636,12 @@ pub fn spawn(self: *Self, argv: []const []const u8) ?process.Child {
         log.debug("spawn: `{s}`", .{ cmd });
     }
 
+    const config = Config.get();
+
     var child = process.Child.init(argv, utils.allocator);
     child.pgid = 0;
     child.env_map = &self.env;
-    child.cwd = switch (comptime config.working_directory) {
+    child.cwd = switch (config.working_directory) {
         .none => null,
         .home => self.env.get("HOME"),
         .custom => |dir| dir,
@@ -718,8 +739,10 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
     std.debug.assert(rwm == context.rwm);
 
     const cache = struct {
-        pub var mode: config.Mode = undefined;
+        pub var mode: []const u8 = undefined;
     };
+
+    const config = Config.get();
 
     switch (event) {
         .finished => {
@@ -777,10 +800,10 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
                         window.hide();
                     } else {
                         window.set_border(
-                            if (window.fullscreen == .output) 0 else config.border_width,
+                            if (window.fullscreen == .output) 0 else config.border.width,
                             if (!context.focus_exclusive() and window == focused)
-                                config.border_color.focus
-                            else config.border_color.unfocus
+                                config.border.color.focus
+                            else config.border.color.unfocus
                         );
                         if (window.floating) {
                             top_windows.append(utils.allocator, window) catch |err| {
@@ -875,7 +898,7 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
             log.debug("session locked", .{});
 
             cache.mode = context.mode;
-            context.switch_mode(.lock);
+            context.switch_mode(Config.lock_mode);
         },
         .session_unlocked => {
             log.debug("session unlocked", .{});

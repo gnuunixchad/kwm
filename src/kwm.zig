@@ -1,3 +1,4 @@
+const build_options = @import("build_options");
 const std = @import("std");
 const posix = std.posix;
 const log = std.log.scoped(.kwm);
@@ -8,6 +9,7 @@ const wl = wayland.client.wl;
 const utils = @import("kwm/utils.zig");
 const types = @import("kwm/types.zig");
 const binding = @import("kwm/binding.zig");
+const Bar = @import("kwm/bar.zig");
 const Window = @import("kwm/window.zig");
 const Context = @import("kwm/context.zig");
 const InputDevice = @import("kwm/input_device.zig");
@@ -21,12 +23,11 @@ const FDType = enum {
 };
 
 pub const layout = @import("kwm/layout.zig");
+pub const BarArea = Bar.Area;
 pub const BindingAction = binding.Action;
-pub const BindingArg = binding.Arg;
 pub const XkbBindingEvent = binding.XkbBinding.Event;
 pub const PointerBindingEvent = binding.PointerBinding.Event;
 pub const WindowDecoration = Window.Decoration;
-pub const State = types.State;
 pub const Button = types.Button;
 pub const KeyboardRepeatInfo = InputDevice.RepeatInfo;
 pub const KeyboardNumlockState = XkbKeyboard.NumlockState;

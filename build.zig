@@ -55,44 +55,49 @@ pub fn build(b: *std.Build) void {
     const xkbcommon_mod = b.dependency("xkbcommon", .{}).module("xkbcommon");
     const mvzr_mod = b.dependency("mvzr", .{}).module("mvzr");
 
-    const kwm_mod = b.createModule(.{
-        .root_source_file = b.path("src/kwm.zig"),
-        .imports = &.{
-            .{ .name = "wayland", .module = wayland_mod },
-        },
-    });
-
-    const config_path = b.option([]const u8, "config", "path to config file") orelse "config.zig";
-    const backup_config_path = "config.def.zig";
-    const config_mod = b.createModule(.{
+    const default_config_path = b.option([]const u8, "config", "path to config file") orelse "config.zon";
+    const backup_default_config_path = "config.def.zon";
+    const default_config_mod = b.createModule(.{
         .root_source_file = blk: {
-            fs.cwd().access(config_path, .{}) catch |err| switch (err) {
+            fs.cwd().access(default_config_path, .{}) catch |err| switch (err) {
                 error.FileNotFound => {
-                    std.log.warn("Config file `{s}` not found, creating from `{s}`", .{ config_path, backup_config_path });
+                    std.log.warn("Config file `{s}` not found, creating from `{s}`", .{ default_config_path, backup_default_config_path });
 
-                    fs.cwd().copyFile(backup_config_path, fs.cwd(), config_path, .{}) catch |copy_err| {
-                        std.log.err("Failed to copy `{s}` to `{s}`: {}", .{ backup_config_path, config_path, copy_err });
-                        break :blk b.path(backup_config_path);
+                    fs.cwd().copyFile(backup_default_config_path, fs.cwd(), default_config_path, .{}) catch |copy_err| {
+                        std.log.err("Failed to copy `{s}` to `{s}`: {}", .{ backup_default_config_path, default_config_path, copy_err });
+                        break :blk b.path(backup_default_config_path);
                     };
 
-                    std.log.info("Config file `{s}` created successfully. Please review and customize it.", .{config_path});
+                    std.log.info("Config file `{s}` created successfully. Please review and customize it.", .{default_config_path});
                 },
                 else => {
-                    std.log.err("access config file `{s}` failed: {}, use `{s}`", .{ config_path, err, backup_config_path });
-                    break :blk b.path(backup_config_path);
+                    std.log.err("access config file `{s}` failed: {}, use `{s}`", .{ default_config_path, err, backup_default_config_path });
+                    break :blk b.path(backup_default_config_path);
                 }
             };
-            break :blk b.path(config_path);
+            break :blk b.path(default_config_path);
         },
+    });
+    const config_mod = b.createModule(.{
+        .root_source_file = b.path("src/config.zig"),
         .imports = &.{
             .{ .name = "wayland", .module = wayland_mod },
             .{ .name = "xkbcommon", .module = xkbcommon_mod },
             .{ .name = "mvzr", .module = mvzr_mod },
 
-            .{ .name = "kwm", .module = kwm_mod },
+            .{ .name = "default_config", .module = default_config_mod },
+        }
+    });
+
+    const kwm_mod = b.createModule(.{
+        .root_source_file = b.path("src/kwm.zig"),
+        .imports = &.{
+            .{ .name = "wayland", .module = wayland_mod },
+            .{ .name = "xkbcommon", .module = xkbcommon_mod },
         },
     });
 
+    config_mod.addImport("kwm", kwm_mod);
     kwm_mod.addImport("config", config_mod);
 
     const bar_enabled = b.option(bool, "bar", "if enable bar") orelse true;

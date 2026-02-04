@@ -8,7 +8,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const config = @import("config");
+const Config = @import("config");
 
 const utils = @import("utils.zig");
 
@@ -64,6 +64,8 @@ pub fn manage(self: *Self) void {
     if (self.new) {
         self.new = false;
 
+        const config = Config.get();
+
         for (config.input_device_rules) |rule| {
             if (rule.match(self.name)) {
                 self.apply_rule(&rule);
@@ -74,7 +76,7 @@ pub fn manage(self: *Self) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const config.InputDeviceRule) void {
+fn apply_rule(self: *Self, rule: *const Config.InputDeviceRule) void {
     switch (self.type) {
         .keyboard => {
             if (rule.repeat_info) |repeat_info| {
@@ -101,14 +103,6 @@ fn set_name(self: *Self, name: []const u8) void {
         self.name = null;
     }
     self.name = utils.allocator.dupe(u8, name) catch null;
-}
-
-
-inline fn get_from_config(self: *const Self, comptime T: type, cfg: *const config.InputConfig(T)) ?T {
-    return switch (cfg.*) {
-        .value => |value| value,
-        .func => |func| func(self.name),
-    };
 }
 
 

@@ -8,7 +8,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const config = @import("config");
+const Config = @import("config");
 
 const utils = @import("utils.zig");
 const types = @import("types.zig");
@@ -104,6 +104,8 @@ pub fn manage(self: *Self) void {
     if (self.new) {
         self.new = false;
 
+        const config = Config.get();
+
         for (config.libinput_device_rules) |rule| {
             if (rule.match((self.input_device orelse return).name)) {
                 self.apply_rule(&rule);
@@ -114,7 +116,7 @@ pub fn manage(self: *Self) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const config.LibinputDeviceRule) void {
+fn apply_rule(self: *Self, rule: *const Config.LibinputDeviceRule) void {
     var bits: u32 = undefined;
 
     bits = @bitCast(self.send_events_support);
@@ -496,17 +498,6 @@ fn set_rotation(self: *Self, angle: u32) void {
     };
 
     result.setListener(*Self, rwm_libinput_result_listener, self);
-}
-
-
-inline fn get_from_config(self: *const Self, comptime T: type, cfg: *const config.InputConfig(T)) ?T {
-    if (self.input_device) |input_device| {
-        return switch (cfg.*) {
-            .value => |value| value,
-            .func => |func| func(input_device.name),
-        };
-    }
-    return null;
 }
 
 
