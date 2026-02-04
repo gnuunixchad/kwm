@@ -147,6 +147,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "wayland", .module = wayland_mod },
 
+                .{ .name = "config", .module = config_mod },
                 .{ .name = "kwm", .module = kwm_mod },
             },
 

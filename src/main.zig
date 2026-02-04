@@ -1,5 +1,6 @@
 const std = @import("std");
 const mem = std.mem;
+const fmt = std.fmt;
 const posix = std.posix;
 
 const wayland = @import("wayland");
@@ -7,6 +8,7 @@ const wl = wayland.client.wl;
 const wp = wayland.client.wp;
 const river = wayland.client.river;
 
+const Config = @import("config");
 const kwm = @import("kwm");
 
 const Globals = struct {
@@ -28,7 +30,19 @@ const Globals = struct {
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
     defer if (gpa.deinit() != .ok) @panic("memory leak");
-    kwm.init_allocator(&gpa.allocator());
+    const allocator = gpa.allocator();
+
+    blk: {
+        var buffer: [256]u8 = undefined;
+        const config_path = try
+            if (posix.getenv("XDG_CONFIG_HOME")) |config_home| fmt.bufPrint(&buffer, "{s}/kwm/config.zon", .{ config_home })
+            else if (posix.getenv("HOME")) |home| fmt.bufPrint(&buffer, "{s}/.config/kwm/config.zon", .{ home })
+            else break :blk;
+        Config.init(allocator, config_path);
+    }
+    defer Config.deinit(allocator);
+
+    kwm.init_allocator(&allocator);
 
     const display = try wl.Display.connect(null);
     defer display.disconnect();
