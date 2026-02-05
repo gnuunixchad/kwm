@@ -2,8 +2,10 @@ const Self = @This();
 
 const std = @import("std");
 const fs = std.fs;
+const fmt = std.fmt;
 const mem = std.mem;
 const zon = std.zon;
+const posix = std.posix;
 const log = std.log.scoped(.config);
 
 const wayland = @import("wayland");
@@ -246,16 +248,49 @@ fn free_user_config(allocator: mem.Allocator) void {
 }
 
 
-pub fn init(allocator: std.mem.Allocator, path: []const u8) void {
-    log.info("try load user config from `{s}`", .{ path });
+pub fn init(allocator: std.mem.Allocator) void {
+    log.debug("config init", .{});
 
-    const file = fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
+    try_load_user_config(allocator);
+    merge_user_config();
+}
+
+
+pub inline fn deinit(allocator: mem.Allocator) void {
+    log.debug("config deinit", .{});
+
+    free_user_config(allocator);
+}
+
+
+pub fn reload(allocator: mem.Allocator) void {
+    log.debug("reload user config", .{});
+
+    try_load_user_config(allocator);
+    merge_user_config();
+}
+
+
+fn try_load_user_config(allocator: mem.Allocator) void {
+    var path_buffer: [256]u8 = undefined;
+    const config_path = (
+        if (posix.getenv("XDG_CONFIG_HOME")) |config_home| fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
+        else if (posix.getenv("HOME")) |home| fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
+        else return
+    ) catch |err| {
+        log.err("format config path failed: {}", .{ err });
+        return;
+    };
+
+    log.info("try load user config from `{s}`", .{ config_path });
+
+    const file = fs.cwd().openFile(config_path, .{ .mode = .read_only }) catch |err| {
         switch (err) {
             error.FileNotFound => {
-                log.warn("`{s}` not exists", .{ path });
+                log.warn("`{s}` not exists", .{ config_path });
             },
             else => {
-                log.err("access file `{s}` failed: {}", .{ path, err });
+                log.err("access file `{s}` failed: {}", .{ config_path, err });
             }
         }
         return;
@@ -263,7 +298,7 @@ pub fn init(allocator: std.mem.Allocator, path: []const u8) void {
     defer file.close();
 
     const stat = file.stat() catch |err| {
-        log.err("stat file `{s}` failed: {}", .{ path, err });
+        log.err("stat file `{s}` failed: {}", .{ config_path, err });
         return;
     };
     const buffer = allocator.alloc(u8, stat.size+1) catch |err| {
@@ -291,29 +326,30 @@ pub fn init(allocator: std.mem.Allocator, path: []const u8) void {
         free_user_config(allocator);
     }
     user_config = cfg;
-
-    log.debug("load user_config: {any}", .{ user_config });
+    log.debug("load user_config: {any}", .{ user_config.? });
 }
 
 
-pub inline fn deinit(allocator: mem.Allocator) void {
-    free_user_config(allocator);
+fn merge_user_config() void {
+    log.debug("merge user config", .{});
+
+    if (user_config) |cfg| {
+        config = undefined;
+        inline for (@typeInfo(Self).@"struct".fields) |field| {
+            @field(config.?, field.name) = merge(
+                field.type,
+                &@field(default_config, field.name),
+                &@field(cfg, field.name),
+            );
+        }
+        log.debug("config: {any}", .{ config.? });
+    }
 }
 
 
 pub inline fn get() *Self {
     if (config == null) {
-        if (user_config) |cfg| {
-            config = undefined;
-            inline for (@typeInfo(Self).@"struct".fields) |field| {
-                @field(config.?, field.name) = merge(
-                field.type,
-                &@field(default_config, field.name),
-                &@field(cfg, field.name),
-            );
-            }
-        } else config = default_config;
-        log.debug("config: {any}", .{ config.? });
+        config = default_config;
     }
     return &config.?;
 }
