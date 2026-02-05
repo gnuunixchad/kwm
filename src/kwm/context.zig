@@ -65,7 +65,7 @@ terminal_windows: std.AutoHashMap(i32, *Window) = undefined,
 
 mode: []const u8 = Config.default_mode,
 running: bool = true,
-env: process.EnvMap,
+env: process.EnvMap = undefined,
 startup_processes: std.ArrayList(?process.Child) = .empty,
 
 
@@ -109,10 +109,6 @@ pub fn init(
         .rwm_xkb_config = rwm_xkb_config,
         .key_repeat = undefined,
         .terminal_windows = .init(utils.allocator),
-        .env = process.getEnvMap(utils.allocator) catch |err| blk: {
-            log.warn("get EnvMap failed: {}", .{ err });
-            break :blk .init(utils.allocator);
-        },
     };
     ctx.?.seats.init();
     ctx.?.outputs.init();
@@ -125,39 +121,8 @@ pub fn init(
         ctx.?.key_repeat = null;
     };
 
-    const config = Config.get();
-
-    for (config.env) |pair| {
-        const key, const value = pair;
-        ctx.?.env.put(key, value) catch |err| {
-            log.warn("put (key: {s}, value: {s}) to env map failed: {}", .{ key, value, err });
-        };
-    }
-
-    if (config.xcursor_theme) |xcursor_theme| blk: {
-        ctx.?.env.put("XCURSOR_THEME", xcursor_theme.name) catch |err| {
-            log.warn("put XCURSOR_THEME to `{s}` failed: {}", .{ xcursor_theme.name, err });
-        };
-
-        var buffer: [8]u8 = undefined;
-        const xcursor_size = fmt.bufPrint(&buffer, "{}", .{ xcursor_theme.size }) catch |err| {
-            log.warn("bufPrint failed: {}", .{ err });
-            break :blk;
-        };
-        ctx.?.env.put("XCURSOR_SIZE", xcursor_size) catch |err| {
-            log.warn("put XCURSOR_SIZE to `{}` failed: {}", .{ xcursor_theme.size, err });
-        };
-    }
-
-    blk: {
-        ctx.?.startup_processes.ensureTotalCapacity(utils.allocator, config.startup_cmds.len) catch |err| {
-            log.err("initCapacity for startup_processes failed: {}", .{ err });
-            break :blk;
-        };
-        for (config.startup_cmds) |cmd| {
-            ctx.?.startup_processes.appendBounded(ctx.?.spawn(cmd)) catch unreachable;
-        }
-    }
+    ctx.?.init_env_map();
+    ctx.?.run_startup_cmds();
 
     rwm.setListener(*Self, rwm_listener, &ctx.?);
     rwm_input_manager.setListener(*Self, rwm_input_manager_listener, &ctx.?);
@@ -253,15 +218,7 @@ pub fn deinit() void {
 
     ctx.?.env.deinit();
 
-    for (ctx.?.startup_processes.items) |*proc| {
-        if (proc.*) |*child| {
-            posix.kill(child.id, posix.SIG.TERM) catch |err| {
-                log.err("kill startup process {} failed: {}", .{ child.id, err });
-                continue;
-            };
-            log.debug("kill startup process {}", .{ child.id });
-        }
-    }
+    ctx.?.kill_startup_process();
     ctx.?.startup_processes.deinit(utils.allocator);
 }
 
@@ -270,6 +227,17 @@ pub inline fn get() *Self {
     std.debug.assert(ctx != null);
 
     return &ctx.?;
+}
+
+
+pub fn reload_config(self: *Self) void {
+    log.debug("reload config", .{});
+
+    self.env.deinit();
+    self.init_env_map();
+
+    self.kill_startup_process();
+    self.run_startup_cmds();
 }
 
 
@@ -656,6 +624,65 @@ pub fn spawn(self: *Self, argv: []const []const u8) ?process.Child {
 
 pub inline fn spawn_shell(self: *Self, cmd: []const u8) ?process.Child {
     return self.spawn(&[_][]const u8 { "sh", "-c", cmd });
+}
+
+
+fn init_env_map(self: *Self) void {
+    self.env = process.getEnvMap(utils.allocator) catch |err| blk: {
+        log.warn("get EnvMap failed: {}", .{ err });
+        break :blk .init(utils.allocator);
+    };
+
+    const config = Config.get();
+
+    for (config.env) |pair| {
+        const key, const value = pair;
+        ctx.?.env.put(key, value) catch |err| {
+            log.warn("put (key: {s}, value: {s}) to env map failed: {}", .{ key, value, err });
+        };
+    }
+
+    if (config.xcursor_theme) |xcursor_theme| blk: {
+        ctx.?.env.put("XCURSOR_THEME", xcursor_theme.name) catch |err| {
+            log.warn("put XCURSOR_THEME to `{s}` failed: {}", .{ xcursor_theme.name, err });
+        };
+
+        var buffer: [8]u8 = undefined;
+        const xcursor_size = fmt.bufPrint(&buffer, "{}", .{ xcursor_theme.size }) catch |err| {
+            log.warn("bufPrint failed: {}", .{ err });
+            break :blk;
+        };
+        ctx.?.env.put("XCURSOR_SIZE", xcursor_size) catch |err| {
+            log.warn("put XCURSOR_SIZE to `{}` failed: {}", .{ xcursor_theme.size, err });
+        };
+    }
+}
+
+
+fn run_startup_cmds(self: *Self) void {
+    const config = Config.get();
+
+    self.startup_processes.ensureTotalCapacity(utils.allocator, config.startup_cmds.len) catch |err| {
+        log.err("initCapacity for startup_processes failed: {}", .{ err });
+        return;
+    };
+    for (config.startup_cmds) |cmd| {
+        ctx.?.startup_processes.appendBounded(ctx.?.spawn(cmd)) catch unreachable;
+    }
+}
+
+
+fn kill_startup_process(self: *Self) void {
+    for (self.startup_processes.items) |*proc| {
+        if (proc.*) |*child| {
+            posix.kill(child.id, posix.SIG.TERM) catch |err| {
+                log.err("kill startup process {} failed: {}", .{ child.id, err });
+                continue;
+            };
+            log.debug("kill startup process {}", .{ child.id });
+        }
+    }
+    self.startup_processes.clearRetainingCapacity();
 }
 
 

@@ -78,27 +78,9 @@ pub fn destroy(self: *Self) void {
     self.rwm_seat.destroy();
     self.rwm_layer_shell_seat.destroy();
 
-    {
-        var it = self.xkb_bindings.iterator();
-        while (it.next()) |pair| {
-            for (pair.value_ptr.items) |xkb_binding| {
-                xkb_binding.destroy();
-            }
-            pair.value_ptr.deinit(utils.allocator);
-        }
-        self.xkb_bindings.deinit();
-    }
-
-    {
-        var it = self.pointer_bindings.iterator();
-        while (it.next()) |pair| {
-            for (pair.value_ptr.items) |pointer_binding| {
-                pointer_binding.destroy();
-            }
-            pair.value_ptr.deinit(utils.allocator);
-        }
-        self.pointer_bindings.deinit();
-    }
+    self.clear_bindings();
+    self.xkb_bindings.deinit();
+    self.pointer_bindings.deinit();
 
     self.unhandled_actions.deinit(utils.allocator);
 
@@ -187,6 +169,14 @@ pub fn append_action(self: *Self, action: binding.Action) void {
 }
 
 
+pub fn reapply_config(self: *Self) void {
+    log.debug("<{*}> reapply config", .{ self });
+
+    self.clear_bindings();
+    self.apply_config();
+}
+
+
 fn apply_config(self: *Self) void {
     log.debug("<{*}> apply config", .{ self });
 
@@ -254,6 +244,33 @@ fn apply_config(self: *Self) void {
             log.err("<{*}> append pointer binding failed: {}", .{ self, err });
             continue;
         };
+    }
+}
+
+
+fn clear_bindings(self: *Self) void {
+    log.debug("<{*}> clear bindings", .{ self });
+
+    {
+        var it = self.xkb_bindings.iterator();
+        while (it.next()) |pair| {
+            for (pair.value_ptr.items) |xkb_binding| {
+                xkb_binding.destroy();
+            }
+            pair.value_ptr.deinit(utils.allocator);
+        }
+        self.xkb_bindings.clearRetainingCapacity();
+    }
+
+    {
+        var it = self.pointer_bindings.iterator();
+        while (it.next()) |pair| {
+            for (pair.value_ptr.items) |pointer_binding| {
+                pointer_binding.destroy();
+            }
+            pair.value_ptr.deinit(utils.allocator);
+        }
+        self.pointer_bindings.clearRetainingCapacity();
     }
 }
 
