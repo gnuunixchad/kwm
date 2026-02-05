@@ -233,11 +233,55 @@ pub inline fn get() *Self {
 pub fn reload_config(self: *Self) void {
     log.debug("reload config", .{});
 
-    self.env.deinit();
-    self.init_env_map();
+    // self.env.deinit();
+    // self.init_env_map();
+    //
+    // self.kill_startup_process();
+    // self.run_startup_cmds();
 
-    self.kill_startup_process();
-    self.run_startup_cmds();
+    {
+        var it = self.seats.safeIterator(.forward);
+        while (it.next()) |seat| {
+            seat.reapply_config();
+        }
+    }
+
+    {
+        var it = self.input_devices.safeIterator(.forward);
+        while (it.next()) |input_device| {
+            input_device.apply_rules();
+        }
+    }
+
+    {
+        var it = self.libinput_devices.safeIterator(.forward);
+        while (it.next()) |libinput_device| {
+            libinput_device.apply_rules();
+        }
+    }
+
+    {
+        var it = self.xkb_keyboards.safeIterator(.forward);
+        while (it.next()) |xkb_keyboard| {
+            xkb_keyboard.apply_rules();
+        }
+    }
+
+    {
+        var it = self.windows.safeIterator(.forward);
+        while (it.next()) |window| {
+            window.apply_rules();
+        }
+    }
+
+    if (comptime build_options.bar_enabled) {
+    {
+            var it = self.outputs.safeIterator(.forward);
+            while (it.next()) |output| {
+                output.bar.damage(.all);
+            }
+        }
+    }
 }
 
 

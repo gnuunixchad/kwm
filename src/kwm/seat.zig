@@ -130,6 +130,8 @@ pub inline fn op_end(self: *Self) void {
 pub fn manage(self: *Self) void {
     defer log.debug("<{*}> managed", .{ self });
 
+    self.handle_actions();
+
     const context = Context.get();
 
     if (self.mode == null or mem.order(u8, self.mode.?, context.mode) != .eq) {
@@ -140,8 +142,6 @@ pub fn manage(self: *Self) void {
         }
         self.toggle_bindings(context.mode, true);
     }
-
-    self.handle_actions();
 
     self.rwm_seat.clearFocus();
 }
@@ -174,6 +174,7 @@ pub fn reapply_config(self: *Self) void {
 
     self.clear_bindings();
     self.apply_config();
+    self.mode = null;
 }
 
 
@@ -494,7 +495,13 @@ fn handle_actions(self: *Self) void {
             },
             .toggle_auto_swallow => {
                 config.auto_swallow = !config.auto_swallow;
-            }
+            },
+
+            .reload_config => {
+                Config.reload(utils.allocator);
+
+                context.reload_config();
+            },
         }
     }
 }

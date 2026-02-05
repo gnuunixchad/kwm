@@ -72,4 +72,6 @@ pub const Action = union(enum) {
     toggle_grid_direction,
     toggle_scroller_master_location,
     toggle_auto_swallow,
+
+    reload_config,
 };
