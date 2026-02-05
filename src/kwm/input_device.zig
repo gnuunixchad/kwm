@@ -64,13 +64,20 @@ pub fn manage(self: *Self) void {
     if (self.new) {
         self.new = false;
 
-        const config = Config.get();
+        self.apply_rules();
+    }
+}
 
-        for (config.input_device_rules) |rule| {
-            if (rule.match(self.name)) {
-                self.apply_rule(&rule);
-                break;
-            }
+
+pub fn apply_rules(self: *Self) void {
+    log.debug("<{*}> apply rules", .{ self });
+
+    const config = Config.get();
+
+    for (config.input_device_rules) |rule| {
+        if (rule.match(self.name)) {
+            self.apply_rule(&rule);
+            break;
         }
     }
 }

@@ -472,12 +472,7 @@ pub fn handle_events(self: *Self) void {
                     .minimize = false,
                 });
 
-                for (config.window_rules) |rule| {
-                    if (rule.match(self.app_id, self.title)) {
-                        self.apply_rule(&rule);
-                        break;
-                    }
-                }
+                self.apply_rules();
 
                 switch (self.decoration_hint) {
                     .only_supports_csd => self.decoration = .csd,
@@ -593,6 +588,20 @@ pub fn handle_events(self: *Self) void {
                     self.operator = .none;
                 }
             },
+        }
+    }
+}
+
+
+pub fn apply_rules(self: *Self) void {
+    log.debug("<{*}> apply rules", .{ self });
+
+    const config = Config.get();
+
+    for (config.window_rules) |rule| {
+        if (rule.match(self.app_id, self.title)) {
+            self.apply_rule(&rule);
+            break;
         }
     }
 }

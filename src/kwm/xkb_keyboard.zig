@@ -85,13 +85,20 @@ pub fn manage(self: *Self) void {
     if (self.new) {
         self.new = false;
 
-        const config = Config.get();
+        self.apply_rules();
+    }
+}
 
-        for (config.xkb_keyboard_rules) |rule| {
-            if (rule.match((self.input_device orelse return).name)) {
-                self.apply_rule(&rule);
-                break;
-            }
+
+pub fn apply_rules(self: *Self) void {
+    log.debug("<{*}> apply rules", .{ self });
+
+    const config = Config.get();
+
+    for (config.xkb_keyboard_rules) |rule| {
+        if (rule.match((self.input_device orelse return).name)) {
+            self.apply_rule(&rule);
+            break;
         }
     }
 }
