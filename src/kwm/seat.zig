@@ -188,7 +188,7 @@ pub fn append_action(self: *Self, action: binding.Action) void {
 
 
 fn apply_config(self: *Self) void {
-    log.debug("<{*}> creating bindings", .{ self });
+    log.debug("<{*}> apply config", .{ self });
 
     const config = Config.get();
 
