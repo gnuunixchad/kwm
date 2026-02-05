@@ -117,6 +117,16 @@
             .{ "floating", "F" },
         },
         .key = .{
+            .{
+                .keysym = "r",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .reload_config,
+                    },
+                },
+            },
+
             // passthrough
             .{
                 .keysym = "Escape",
