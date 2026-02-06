@@ -119,10 +119,10 @@ pub const startup_cmds = [_][]const []const u8 {
     &[_][]const u8 { "wl-paste", "--watch", "cliphist", "store" },
     &[_][]const u8 { "kanshi" },
     &[_][]const u8 { "sh", "-c", "swaybg -i ${HOME}/.local/share/wallpaper -m fill" },
-    &[_][]const u8 { "dunst", "-conf", "${HOME}/.config/dunst/dunstrc-kwm" },
+    &[_][]const u8 { "dunst", "-conf", "${HOME}/.config/dunst/dunstrc-offset" },
     &[_][]const u8 { "foot", "--server" },
     &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/lucia -d" },
-    &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/wobd -c ${HOME}/.config/wob/wob-kwm.ini" },
+    &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/wobd -c ${HOME}/.config/wob/wob-offset.ini" },
     &[_][]const u8 { "sh", "-c", "${HOME}/.local/bin/mbs-cron" },
 };
 
