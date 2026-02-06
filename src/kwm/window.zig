@@ -498,9 +498,9 @@ pub fn handle_events(self: *Self) void {
                 }
             },
             .fullscreen => |data| {
-                log.debug("<{*}> managing fullscreen: {*}", .{ self, data });
+                if (self.fullscreen != .none) return;
 
-                std.debug.assert(self.fullscreen == .none);
+                log.debug("<{*}> managing fullscreen: {*}", .{ self, data });
 
                 self.rwm_window.informFullscreen();
                 if (data) |output| {
