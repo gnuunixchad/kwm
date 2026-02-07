@@ -479,9 +479,13 @@ fn set_accel_speed(self: *Self, speed: f32) void {
 fn set_calibration_matrix(self: *Self, matrix: *const [6]f32) void {
     log.debug("<{*}> set calibration matrix to {any}", .{ self, matrix.* });
 
-    var buf: [6]f32 = undefined;
-    mem.copyForwards(f32, &buf, matrix);
-    var arr = wl.Array.fromArrayList(f32, .initBuffer(&buf));
+    var buffer: [6]f32 = undefined;
+    var list: std.ArrayList(f32) = .initBuffer(&buffer);
+    for (0..buffer.len) |i| {
+        list.appendBounded(matrix[i]) catch unreachable;
+    }
+
+    var arr = wl.Array.fromArrayList(f32, list);
     const result = self.rwm_libinput_device.setCalibrationMatrix(&arr) catch |err| {
         log.err("{*} set calibration matrix to {any} failed: {}", .{ self, matrix.*, err });
         return;
