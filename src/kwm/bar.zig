@@ -50,7 +50,7 @@ background_damaged: bool = true,
 hidden: bool,
 
 dynamic_splits_buffer: [@typeInfo(Area).@"enum".fields.len-2]i32 = undefined,
-static_splits: std.ArrayList(i32) = undefined,
+static_splits: std.ArrayList(i32) = .empty,
 dynamic_splits: std.ArrayList(i32) = undefined,
 
 
@@ -69,9 +69,6 @@ pub fn init(self: *Self, output: *Output) !void {
         .scale = scale,
         .hidden = !config.bar.show_default,
     };
-
-    self.static_splits = try .initCapacity(utils.allocator, config.tags.len);
-    errdefer self.static_splits.deinit(utils.allocator);
 
     self.dynamic_splits = .initBuffer(&self.dynamic_splits_buffer);
 
@@ -338,6 +335,10 @@ fn render_static_component(self: *Self) void {
     const config = Config.get();
     const context = Context.get();
     self.static_splits.clearRetainingCapacity();
+    self.static_splits.ensureTotalCapacity(utils.allocator, config.tags.len) catch |err| {
+        log.err("<{*}> ensure static_splits total capacity to {} failed: {}", .{ self, config.tags.len, err });
+        return;
+    };
 
     var texts: std.ArrayList(*const fcft.TextRun) = .empty;
     texts.ensureTotalCapacity(utils.allocator, config.tags.len) catch |err| {
