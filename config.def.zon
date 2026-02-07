@@ -824,7 +824,7 @@
         .{ .name = .{ .str = ".*", .regex = true }, .repeat_info = .{ .rate = 50, .delay = 300 } },
     },
     .libinput_device_rules = .{
-        .{ .name = .{ .str = ".*[tT]ouchpad", .regex = true }, .natural_scroll = .enabled },
+        .{ .name = .{ .str = ".*[tT]ouchpad", .regex = true }, .tap = .enabled, .drag = .enabled, .natural_scroll = .enabled },
         .{ .name = .{ .str = ".*", .regex = true }, .tap = .enabled, .drag = .enabled }
     },
     .xkb_keyboard_rules = .{
