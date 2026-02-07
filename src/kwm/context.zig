@@ -740,7 +740,7 @@ fn run_startup_cmds(self: *Self) void {
 fn kill_startup_process(self: *Self) void {
     for (self.startup_processes.items) |*proc| {
         if (proc.*) |*child| {
-            posix.kill(child.id, posix.SIG.TERM) catch |err| {
+            _ = child.kill() catch |err| {
                 log.err("kill startup process {} failed: {}", .{ child.id, err });
                 continue;
             };
