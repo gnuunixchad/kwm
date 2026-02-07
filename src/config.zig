@@ -5,6 +5,7 @@ const fs = std.fs;
 const fmt = std.fmt;
 const mem = std.mem;
 const zon = std.zon;
+const meta = std.meta;
 const posix = std.posix;
 const log = std.log.scoped(.config);
 
@@ -127,6 +128,35 @@ fn make_fields_optional(comptime T: type) type {
 }
 
 
+fn field_mask(comptime T: type) type {
+    const info = @typeInfo(T);
+    if (info != .@"struct") @panic("T is needed to be a struct");
+
+    var fields: [info.@"struct".fields.len]std.builtin.Type.StructField = undefined;
+    for (0.., info.@"struct".fields) |i, field| {
+        const default_value = false;
+        fields[i] = std.builtin.Type.StructField {
+            .name = field.name,
+            .type = bool,
+            .default_value_ptr = &default_value,
+            .is_comptime = false,
+            .alignment = @alignOf(bool),
+        };
+    }
+
+    return @Type(
+        .{
+            .@"struct" = .{
+                .layout = .auto,
+                .is_tuple = false,
+                .fields = &fields,
+                .decls = &.{},
+            },
+        }
+    );
+}
+
+
 fn merge(comptime T: type, base: *const T, new: *const make_optional(T)) T {
     if (new.* == null) return base.*;
 
@@ -139,6 +169,75 @@ fn merge(comptime T: type, base: *const T, new: *const make_optional(T)) T {
         else => result = new.*.?,
     }
     return result;
+}
+
+
+fn deep_equal(comptime T: type, a: *const T, b: *const T) bool {
+    return switch (@typeInfo(T)) {
+        .@"struct" => |info| blk: {
+            inline for (info.fields) |field| {
+                if (!deep_equal(
+                    field.type,
+                    @ptrCast(&@field(a, field.name)),
+                    @ptrCast(&@field(b, field.name)),
+                )) {
+                    break :blk false;
+                }
+            }
+            break :blk true;
+        },
+        .array => |info| blk: {
+            if (a.len != b.len) break :blk false;
+
+            for (a.*, b.*) |elem_a, elem_b| {
+                if (!deep_equal(info.child, &elem_a, &elem_b)) {
+                    break :blk false;
+                }
+            }
+
+            break :blk true;
+        },
+        .pointer => |info| switch (info.size) {
+            .slice => blk: {
+                if (a.len != b.len) break :blk false;
+
+                for (a.*, b.*) |elem_a, elem_b| {
+                    if (!deep_equal(info.child, &elem_a, &elem_b)) {
+                        break :blk false;
+                    }
+                }
+
+                break :blk true;
+            },
+            else => unreachable,
+        },
+        .@"union" => |info| blk: {
+            if (info.tag_type != null) {
+                const tag_a = meta.activeTag(a.*);
+                const tag_b = meta.activeTag(b.*);
+
+                if (tag_a != tag_b) break :blk false;
+
+                inline for (info.fields) |field| {
+                    if (@field(T, field.name) == tag_a) {
+                        break :blk deep_equal(
+                            field.type,
+                            &@field(a.*, field.name),
+                            &@field(b.*, field.name),
+                        );
+                    }
+                }
+                unreachable;
+            } else unreachable;
+        },
+        .optional => |info|
+            if (a.* == null and b.* == null) true
+            else if (a.* == null or b.* == null) false
+            else deep_equal(info.child, &a.*.?, &b.*.?),
+        .float => @abs(a.*-b.*) < 1e-9,
+        .int, .bool, .@"enum" => a.* == b.*,
+        else => unreachable,
+    };
 }
 
 
@@ -251,8 +350,8 @@ fn free_user_config(allocator: mem.Allocator) void {
 pub fn init(allocator: std.mem.Allocator) void {
     log.debug("config init", .{});
 
-    try_load_user_config(allocator);
-    merge_user_config();
+    user_config = try_load_user_config(allocator);
+    refresh_config();
 }
 
 
@@ -263,23 +362,48 @@ pub inline fn deinit(allocator: mem.Allocator) void {
 }
 
 
-pub fn reload(allocator: mem.Allocator) void {
+pub fn reload(allocator: mem.Allocator) field_mask(Self) {
     log.debug("reload user config", .{});
 
-    try_load_user_config(allocator);
-    merge_user_config();
+    if (try_load_user_config(allocator)) |cfg| {
+        var mask: field_mask(Self) = .{};
+
+        const info = @typeInfo(Self).@"struct";
+        if (user_config) |old_cfg| {
+            inline for (info.fields) |field| {
+                if (!deep_equal(
+                    @FieldType(@TypeOf(cfg), field.name),
+                    &@field(old_cfg, field.name),
+                    &@field(cfg, field.name),
+                )) {
+                    @field(mask, field.name) = true;
+                }
+            }
+        } else {
+            inline for (info.fields) |field| {
+                @field(mask, field.name) = true;
+            }
+        }
+
+        free_user_config(allocator);
+        user_config = cfg;
+
+        refresh_config();
+
+        return mask;
+    } else return .{};
 }
 
 
-fn try_load_user_config(allocator: mem.Allocator) void {
+fn try_load_user_config(allocator: mem.Allocator) ?make_fields_optional(Self) {
     var path_buffer: [256]u8 = undefined;
     const config_path = (
         if (posix.getenv("XDG_CONFIG_HOME")) |config_home| fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
         else if (posix.getenv("HOME")) |home| fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
-        else return
+        else return null
     ) catch |err| {
         log.err("format config path failed: {}", .{ err });
-        return;
+        return null;
     };
 
     log.info("try load user config from `{s}`", .{ config_path });
@@ -293,25 +417,25 @@ fn try_load_user_config(allocator: mem.Allocator) void {
                 log.err("access file `{s}` failed: {}", .{ config_path, err });
             }
         }
-        return;
+        return null;
     };
     defer file.close();
 
     const stat = file.stat() catch |err| {
         log.err("stat file `{s}` failed: {}", .{ config_path, err });
-        return;
+        return null;
     };
     const buffer = allocator.alloc(u8, stat.size+1) catch |err| {
         log.err("alloc {} byte failed: {}", .{ stat.size+1, err });
-        return;
+        return null;
     };
     defer allocator.free(buffer);
 
-    _ = file.readAll(buffer) catch return;
+    _ = file.readAll(buffer) catch return null;
     buffer[stat.size] = 0;
 
     @setEvalBranchQuota(6000);
-    const cfg = zon.parse.fromSlice(
+    return zon.parse.fromSlice(
         make_fields_optional(Self),
         allocator,
         buffer[0..stat.size:0],
@@ -319,19 +443,13 @@ fn try_load_user_config(allocator: mem.Allocator) void {
         .{.ignore_unknown_fields = true},
     ) catch |err| {
         log.err("load user config failed: {}", .{ err });
-        return;
+        return null;
     };
-
-    if (user_config != null) {
-        free_user_config(allocator);
-    }
-    user_config = cfg;
-    log.debug("load user_config: {any}", .{ user_config.? });
 }
 
 
-fn merge_user_config() void {
-    log.debug("merge user config", .{});
+fn refresh_config() void {
+    log.debug("refresh config", .{});
 
     if (user_config) |cfg| {
         config = undefined;

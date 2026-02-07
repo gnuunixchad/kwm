@@ -60,7 +60,8 @@ pub fn create(rwm_seat: *river.SeatV1) !*Self {
     };
     seat.link.init();
 
-    seat.apply_config();
+    seat.refresh_xursor_theme();
+    seat.create_bindings();
 
     rwm_seat.setListener(*Self, rwm_seat_listener, seat);
     rwm_layer_shell_seat.setListener(*Self, rwm_layer_shell_seat_listener, seat);
@@ -169,28 +170,29 @@ pub fn append_action(self: *Self, action: binding.Action) void {
 }
 
 
-pub fn reapply_config(self: *Self) void {
-    log.debug("<{*}> reapply config", .{ self });
-
-    self.clear_bindings();
-    self.apply_config();
-    self.mode = null;
-}
-
-
-fn apply_config(self: *Self) void {
-    log.debug("<{*}> apply config", .{ self });
+pub fn refresh_xursor_theme(self: *Self) void {
+    log.debug("<{*}> refresh xcursor theme", .{ self });
 
     const config = Config.get();
 
-    if (config.xcursor_theme) |xcursor_theme| blk: {
+    if (config.xcursor_theme) |xcursor_theme| {
+        log.debug("<{*}> set xcursor theme: (name: {s}, size: {})", .{ self, xcursor_theme.name, xcursor_theme.size });
+
         const name = utils.allocator.dupeZ(u8, xcursor_theme.name) catch |err| {
             log.err("<{*}> dupeZ failed while set xcursor theme: {}", .{ self, err });
-            break :blk;
+            return;
         };
         defer utils.allocator.free(name);
+
         self.rwm_seat.setXcursorTheme(name, xcursor_theme.size);
     }
+}
+
+
+pub fn create_bindings(self: *Self) void {
+    log.debug("<{*}> create bindings", .{ self });
+
+    const config = Config.get();
 
     for (config.bindings.key) |key_binding| {
         if (!self.xkb_bindings.contains(key_binding.mode)) {
@@ -249,7 +251,7 @@ fn apply_config(self: *Self) void {
 }
 
 
-fn clear_bindings(self: *Self) void {
+pub fn clear_bindings(self: *Self) void {
     log.debug("<{*}> clear bindings", .{ self });
 
     {
@@ -498,8 +500,6 @@ fn handle_actions(self: *Self) void {
             },
 
             .reload_config => {
-                Config.reload(utils.allocator);
-
                 context.reload_config();
             },
         }

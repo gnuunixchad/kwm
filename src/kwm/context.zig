@@ -233,41 +233,55 @@ pub inline fn get() *Self {
 pub fn reload_config(self: *Self) void {
     log.debug("reload config", .{});
 
-    // self.env.deinit();
-    // self.init_env_map();
-    //
-    // self.kill_startup_process();
-    // self.run_startup_cmds();
+    const mask = Config.reload(utils.allocator);
 
-    {
+    log.debug("mask: {any}", .{ mask });
+
+    if (mask.env) {
+        self.env.deinit();
+        self.init_env_map();
+    }
+
+    // if (mask.startup_cmds) {
+    //     self.kill_startup_process();
+    //     self.run_startup_cmds();
+    // }
+
+    if (mask.xcursor_theme or mask.bindings) {
         var it = self.seats.safeIterator(.forward);
         while (it.next()) |seat| {
-            seat.reapply_config();
+            if (mask.xcursor_theme) {
+                seat.refresh_xursor_theme();
+            }
+            if (mask.bindings) {
+                seat.clear_bindings();
+                seat.create_bindings();
+            }
         }
     }
 
-    {
+    if (mask.input_device_rules) {
         var it = self.input_devices.safeIterator(.forward);
         while (it.next()) |input_device| {
             input_device.apply_rules();
         }
     }
 
-    {
+    if (mask.libinput_device_rules) {
         var it = self.libinput_devices.safeIterator(.forward);
         while (it.next()) |libinput_device| {
             libinput_device.apply_rules();
         }
     }
 
-    {
+    if (mask.xkb_keyboard_rules) {
         var it = self.xkb_keyboards.safeIterator(.forward);
         while (it.next()) |xkb_keyboard| {
             xkb_keyboard.apply_rules();
         }
     }
 
-    {
+    if (mask.window_rules) {
         var it = self.windows.safeIterator(.forward);
         while (it.next()) |window| {
             window.apply_rules();
@@ -275,10 +289,17 @@ pub fn reload_config(self: *Self) void {
     }
 
     if (comptime build_options.bar_enabled) {
-    {
+        if (mask.bar) {
+            self.stop_listening_status();
+        }
+
+        if (mask.bar or mask.tags or mask.layout_tag) {
             var it = self.outputs.safeIterator(.forward);
             while (it.next()) |output| {
-                output.bar.damage(.all);
+                if (mask.bar) {
+                    output.bar.reload_font();
+                }
+                output.bar.damage(if (mask.bar or mask.tags) .all else .layout);
             }
         }
     }
