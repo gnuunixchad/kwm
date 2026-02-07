@@ -91,6 +91,15 @@ pub fn deinit(self: *Self) void {
 }
 
 
+pub fn reload_font(self: *Self) void {
+    log.debug("<{*}> reload font", .{ self });
+
+    const font = load_font(self.scale) catch return;
+    self.font.destroy();
+    self.font = font;
+}
+
+
 pub inline fn height(self: *Self) i32 {
     return self.font.height;
 }
@@ -673,15 +682,6 @@ fn hide(self: *Self) void {
 
     self.wl_surface.destroy();
     self.wl_surface = undefined;
-}
-
-
-fn reload_font(self: *Self) void {
-    log.debug("<{*}> reload font", .{ self });
-
-    const font = load_font(self.scale) catch return;
-    self.font.destroy();
-    self.font = font;
 }
 
 
