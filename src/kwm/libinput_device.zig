@@ -459,11 +459,14 @@ fn set_accel_profile(self: *Self, profile: river.LibinputDeviceV1.AccelProfile) 
 }
 
 
-fn set_accel_speed(self: *Self, speed: f64) void {
+fn set_accel_speed(self: *Self, speed: f32) void {
     log.debug("<{*}> set accel speed to {}", .{ self, speed });
 
-    var buf = [1]f64 { speed };
-    var arr = wl.Array.fromArrayList(f64, .initBuffer(&buf));
+    var buffer: [1]f32 = undefined;
+    var list: std.ArrayList(f32) = .initBuffer(&buffer);
+    list.appendBounded(speed) catch unreachable;
+
+    var arr = wl.Array.fromArrayList(f32, list);
     const result = self.rwm_libinput_device.setAccelSpeed(&arr) catch |err| {
         log.err("{*} set accel speed to {} failed: {}", .{ self, speed, err });
         return;
