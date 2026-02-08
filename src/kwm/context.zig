@@ -258,6 +258,7 @@ pub fn reload_config(self: *Self) void {
             if (mask.bindings) {
                 seat.clear_bindings();
                 seat.create_bindings();
+                seat.mode = null;
             }
         }
     }
