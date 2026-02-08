@@ -236,6 +236,7 @@ fn deep_equal(comptime T: type, a: *const T, b: *const T) bool {
             else deep_equal(info.child, &a.*.?, &b.*.?),
         .float => @abs(a.*-b.*) < 1e-9,
         .int, .bool, .@"enum" => a.* == b.*,
+        .void => true,
         else => unreachable,
     };
 }
