@@ -1,5 +1,3 @@
-const config = @import("config");
-
 const types = @import("types.zig");
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
@@ -11,14 +9,6 @@ pub const PointerBinding = @import("binding/pointer_binding.zig");
 const MoveResizeStep = union(enum) {
     horizontal: i32,
     vertical: i32,
-};
-
-pub const Arg = union(enum) {
-    none,
-    i: i32,
-    f: f32,
-    ui: u32,
-    v: []const []const u8,
 };
 
 
@@ -56,7 +46,7 @@ pub const Action = union(enum) {
         edge: Window.Edge,
     },
     switch_mode: struct {
-        mode: config.Mode,
+        mode: []const u8,
     },
     toggle_fullscreen: struct {
         in_window: bool = false,
@@ -73,10 +63,15 @@ pub const Action = union(enum) {
     zoom,
     switch_layout: struct { layout: layout.Type },
     switch_to_previous_layout,
-    modify_scroller_mfact: struct { step: f32 },
     toggle_bar,
-    custom_fn: struct {
-        arg: Arg,
-        func: *const fn(*const types.State, *const Arg) ?Action,
-    },
+
+    modify_nmaster: struct { change: enum { increase, decrease } },
+    modify_mfact: struct { step: f32 },
+    modify_gap: struct { step: i32 },
+    modify_tile_master_location: struct { location: layout.tile.MasterLocation },
+    toggle_grid_direction,
+    toggle_scroller_master_location,
+    toggle_auto_swallow,
+
+    reload_config,
 };

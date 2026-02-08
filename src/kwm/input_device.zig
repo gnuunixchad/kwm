@@ -8,10 +8,14 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const utils = @import("utils");
-const config = @import("config");
+const Config = @import("config");
 
-const types = @import("types.zig");
+const utils = @import("utils.zig");
+
+pub const RepeatInfo = struct {
+    rate: i32,
+    delay: i32,
+};
 
 
 link: wl.list.Link = undefined,
@@ -59,30 +63,37 @@ pub fn manage(self: *Self) void {
 
     if (self.new) {
         self.new = false;
-        self.apply_config();
+
+        self.apply_rules();
     }
 }
 
 
-fn apply_config(self: *Self) void {
-    log.debug("<{*}> apply config", .{ self });
+pub fn apply_rules(self: *Self) void {
+    log.debug("<{*}> apply rules", .{ self });
 
+    const config = Config.get();
+
+    for (config.input_device_rules) |rule| {
+        if (rule.match(self.name)) {
+            self.apply_rule(&rule);
+            break;
+        }
+    }
+}
+
+
+fn apply_rule(self: *Self, rule: *const Config.InputDeviceRule) void {
     switch (self.type) {
         .keyboard => {
-            if (switch (config.repeat_info) {
-                .value => |value| value,
-                .func => |func| func(self.name),
-            }) |repeat_info| {
+            if (rule.repeat_info) |repeat_info| {
                 log.debug("<{*}> set repeat info: (rate: {}, delay: {})", .{ self, repeat_info.rate, repeat_info.delay});
 
                 self.rwm_input_device.setRepeatInfo(repeat_info.rate, repeat_info.delay);
             }
         },
         .pointer => {
-            if (switch (config.scroll_factor) {
-                .value => |value| value,
-                .func => |func| func(self.name),
-            }) |scroll_factor| {
+            if (rule.scroll_factor) |scroll_factor| {
                 log.debug("<{*}> set scroll factor: {}", .{ self, scroll_factor });
 
                 self.rwm_input_device.setScrollFactor(.fromDouble(scroll_factor));
@@ -99,14 +110,6 @@ fn set_name(self: *Self, name: []const u8) void {
         self.name = null;
     }
     self.name = utils.allocator.dupe(u8, name) catch null;
-}
-
-
-inline fn get_from_config(self: *const Self, comptime T: type, cfg: *const config.InputConfig(T)) ?T {
-    return switch (cfg.*) {
-        .value => |value| value,
-        .func => |func| func(self.name),
-    };
 }
 
 

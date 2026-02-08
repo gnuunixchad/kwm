@@ -1,3 +1,4 @@
+const build_options = @import("build_options");
 const std = @import("std");
 const posix = std.posix;
 const log = std.log.scoped(.kwm);
@@ -5,10 +6,14 @@ const log = std.log.scoped(.kwm);
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 
+const utils = @import("kwm/utils.zig");
 const types = @import("kwm/types.zig");
 const binding = @import("kwm/binding.zig");
+const Bar = @import("kwm/bar.zig");
 const Window = @import("kwm/window.zig");
 const Context = @import("kwm/context.zig");
+const InputDevice = @import("kwm/input_device.zig");
+const XkbKeyboard = @import("kwm/xkb_keyboard.zig");
 
 const FDType = enum {
     wayland,
@@ -18,22 +23,22 @@ const FDType = enum {
 };
 
 pub const layout = @import("kwm/layout.zig");
+pub const BarArea = Bar.Area;
 pub const BindingAction = binding.Action;
-pub const BindingArg = binding.Arg;
 pub const XkbBindingEvent = binding.XkbBinding.Event;
 pub const PointerBindingEvent = binding.PointerBinding.Event;
 pub const WindowDecoration = Window.Decoration;
-pub const State = types.State;
 pub const Button = types.Button;
-pub const KeyboardRepeatInfo = types.KeyboardRepeatInfo;
-pub const KeyboardNumlockState = types.KeyboardNumlockState;
-pub const KeyboardCapslockState = types.KeyboardCapslockState;
-pub const KeyboardLayout = types.KeyboardLayout;
-pub const Keymap = types.Keymap;
+pub const KeyboardRepeatInfo = InputDevice.RepeatInfo;
+pub const KeyboardNumlockState = XkbKeyboard.NumlockState;
+pub const KeyboardCapslockState = XkbKeyboard.CapslockState;
+pub const KeyboardLayout = XkbKeyboard.Layout;
+pub const Keymap = XkbKeyboard.Keymap;
 
 
 pub const init = Context.init;
 pub const deinit = Context.deinit;
+pub const init_allocator = utils.init_allocator;
 
 
 pub fn run(wl_display: *wl.Display) !void {

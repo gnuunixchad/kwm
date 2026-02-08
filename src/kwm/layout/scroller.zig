@@ -7,11 +7,16 @@ const Context = @import("../context.zig");
 const Output = @import("../output.zig");
 const Window = @import("../window.zig");
 
+pub const MasterLocation = enum {
+    left,
+    center,
+};
+
 
 outer_gap: i32,
 inner_gap: i32,
 mfact: f32,
-snap_to_left: bool,
+master_location: MasterLocation,
 
 
 pub fn arrange(self: *const Self, output: *Output) void {
@@ -28,7 +33,10 @@ pub fn arrange(self: *const Self, output: *Output) void {
         @as(f32, @floatFromInt(available_width)) * focus_top.scroller_mfact
     );
     const height = available_height - 2*self.outer_gap;
-    const master_x = if (self.snap_to_left) self.outer_gap else @divFloor(available_width-master_width, 2);
+    const master_x = switch (self.master_location) {
+        .left => self.outer_gap,
+        .center => @divFloor(available_width-master_width, 2),
+    };
     const y = self.outer_gap;
 
     focus_top.unbound_move(master_x, y);

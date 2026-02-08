@@ -35,20 +35,29 @@ A window manager based on River Wayland Compositor, written in Zig
 zig build -Doptimize=ReleaseSafe
 ```
 
-It will try to find `config.zig` as config file. If not found, will create it from `config.def.zig` as backup.
-
-You can use `-Dconfig` to specify custom config file path, `-Dbar` to enable/disable status bar, default is true, `-Doptimize` to specify build mode.
+- `-Dconfig`: specify custom default config file path, `config.zon`(if not exists, will copy from `config.def.zon`) will used by default.
+- `-Dbar`: to enable/disable status bar, default is true.
 
 ## configuration
 
-Make your custom modifications in `config.zig`.
-(Initial implementation of support for loading user configurations at runtime, see branch `config-file`. It will be merged into `master` branch soon.)
+### compile time
+
+If you want to configure at compile time, make your custom modifications in `config.zon`(if not specify custom config path by `-Dconfig`).
+
+### runtime
+
+`kwm` will search user config file follow:
+- `$XDG_CONFIG_HOME/kwm/config.zon`
+- `$HOME/.config/kwm/config.zon`
+
+The user configuration will override the compile time configuration.
+You can declare only the configuration items that need to override compile time in the user configuration file, instead of declaring all configuration items.
 
 ## usage
 
 Run `kwm` in your river init file or run with `river -c kwm`.
 
-You could see all bindings in `config.zig`. It should be noted that the `quit` action only quit the kwm but not quit river session. It allow you restart kwm directly. If you want to quit river session, try to use `Ctrl+Alt+Delete`.
+It should be noted that the `quit` action only quit the kwm but not quit river session. It allow you restart kwm directly. If you want to quit river session, try to use `Ctrl+Alt+Delete`.
 
 You could remap keyboard keys(e.g. swap CapsLock with Escape) by setting the XKB layout rules before starting river:
 ```sh

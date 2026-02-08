@@ -3,22 +3,23 @@ const Self = @This();
 const std = @import("std");
 const log = std.log.scoped(.grid);
 
-const utils = @import("utils");
-
+const utils = @import("../utils.zig");
 const Context = @import("../context.zig");
 const Output = @import("../output.zig");
 const Window = @import("../window.zig");
 
+pub const Direction = enum {
+    horizontal,
+    vertical,
+};
+
 
 outer_gap: i32,
 inner_gap: i32,
-direction: enum {
-    horizontal,
-    vertical,
-} = .horizontal,
+direction: Direction,
 
 
-pub fn arrange(self: *Self, output: *Output) void {
+pub fn arrange(self: *const Self, output: *Output) void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
     const context = Context.get();

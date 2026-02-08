@@ -10,9 +10,9 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const utils = @import("utils");
-const config = @import("config");
+const Config = @import("config");
 
+const utils = @import("utils.zig");
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
 const Window = @import("window.zig");
@@ -29,8 +29,8 @@ tag: u32 = 1,
 main_tag: u32 = 1,
 prev_tag: u32 = 1,
 prev_main_tag: u32 = 1,
-layout_tag: [32]layout.Type = .{ config.default_layout } ** 32,
-prev_layout_tag: [32]layout.Type = .{ config.default_layout } ** 32,
+layout_tag: [32]layout.Type,
+prev_layout_tag: [32]layout.Type,
 
 name: ?[]const u8 = null,
 x: i32 = undefined,
@@ -50,9 +50,13 @@ pub fn create(
 
     defer log.debug("<{*}> created", .{ output });
 
+    const config = Config.get();
+
     output.* = .{
         .rwm_output = rwm_output,
         .rwm_layer_shell_output = rwm_layer_shell_output,
+        .layout_tag = .{ config.layout.default } ** 32,
+        .prev_layout_tag = .{ config.layout.default } ** 32,
     };
     output.link.init();
 
@@ -95,6 +99,8 @@ pub inline fn exclusive_x(self: *Self) i32 {
 
 
 pub inline fn exclusive_y(self: *Self) i32 {
+    const config = Config.get();
+
     return
         if (comptime build_options.bar_enabled)
             if (config.bar.position == .bottom or self.bar.hidden) self.y
@@ -171,6 +177,7 @@ pub fn switch_to_previous_tag(self: *Self) void {
 
 
 pub fn shift_tag(self: *Self, direction: types.Direction) void {
+    const config = Config.get();
     const context = Context.get();
     const total_tags = config.tags.len;
 
@@ -195,7 +202,7 @@ pub fn shift_tag(self: *Self, direction: types.Direction) void {
         } else {
             new_tags = (new_tags >> 1) | (new_tags << @as(u5, @intCast(total_tags - 1)));
         }
-        new_tags &= (1 << total_tags) - 1;
+        new_tags &= (@as(u32, 1) << @as(u5, @intCast(total_tags))) - 1;
         if (new_tags != 0) self.set_tag(new_tags);
         return;
     }

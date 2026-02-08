@@ -8,9 +8,9 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const utils = @import("utils");
-const config = @import("config");
+const Config = @import("config");
 
+const utils = @import("utils.zig");
 const types = @import("types.zig");
 
 const InputDevice = @import("input_device.zig");
@@ -103,24 +103,32 @@ pub fn manage(self: *Self) void {
 
     if (self.new) {
         self.new = false;
-        self.apply_config();
+
+        self.apply_rules();
     }
 }
 
 
-fn apply_config(self: *Self) void {
-    log.debug("<{*}> apply config", .{ self });
+pub fn apply_rules(self: *Self) void {
+    log.debug("<{*}> apply rules", .{ self });
 
-    const cfg = switch (config.libinput) {
-        .value => |value| value,
-        .func => |func| func((self.input_device orelse return).name),
-    };
+    const config = Config.get();
 
+    for (config.libinput_device_rules) |rule| {
+        if (rule.match((self.input_device orelse return).name)) {
+            self.apply_rule(&rule);
+            break;
+        }
+    }
+}
+
+
+fn apply_rule(self: *Self, rule: *const Config.LibinputDeviceRule) void {
     var bits: u32 = undefined;
 
     bits = @bitCast(self.send_events_support);
     if (bits != 0) {
-        if (cfg.send_events_modes) |mode| {
+        if (rule.send_events_modes) |mode| {
             const modes: river.LibinputDeviceV1.SendEventsModes = @bitCast(@as(u32, @intCast(@intFromEnum(mode))));
 
             if (mode == .enabled or @as(u32, @bitCast(modes)) & bits != 0) {
@@ -130,32 +138,32 @@ fn apply_config(self: *Self) void {
     }
 
     if (self.tap_support != 0) {
-        if (cfg.tap) |state| {
+        if (rule.tap) |state| {
             if (self.tap_current != state) self.set_tap(state);
         }
 
-        if (cfg.drag) |state| {
+        if (rule.drag) |state| {
             if (self.drag_current != state) self.set_drag(state);
         }
 
-        if (cfg.drag_lock) |state| {
+        if (rule.drag_lock) |state| {
             if (self.drag_lock_current != state) self.set_drag_lock(state);
         }
 
-        if (cfg.tap_button_map) |button_map| {
+        if (rule.tap_button_map) |button_map| {
             if (self.tap_button_map_current != button_map) self.set_tap_button_map(button_map);
         }
     }
 
     if (self.three_finger_drag_support >= 3) {
-        if (cfg.three_finger_drag) |state| blk: {
+        if (rule.three_finger_drag) |state| blk: {
             if (state == .enabled_4fg and self.three_finger_drag_support < 4) break :blk;
             if (self.three_finger_drag_current != state) self.set_three_finger_drag(state);
         }
     }
 
     if (self.calibration_matrix_support) {
-        if (cfg.calibration_matrix) |matrix| blk: {
+        if (rule.calibration_matrix) |matrix| blk: {
             for (0..6) |i| {
                 if (@abs(self.calibration_matrix_current[i]-matrix[i]) > 1e-6) {
                     self.set_calibration_matrix(&matrix);
@@ -167,13 +175,13 @@ fn apply_config(self: *Self) void {
 
     bits = @bitCast(self.accel_profiles_support);
     if (bits != 0) {
-        if (cfg.accel_profile) |profile| {
+        if (rule.accel_profile) |profile| {
             if (profile == .none or @as(u32, @intCast(@intFromEnum(profile))) & bits != 0) {
                 if (self.accel_profile_current != profile) self.set_accel_profile(profile);
             }
         }
 
-        if (cfg.accel_speed) |speed| {
+        if (rule.accel_speed) |speed| {
             if (@abs(speed) > 1) {
                 log.err("accel_speed must between [-1, 1], but found: {}", .{ speed });
             } else {
@@ -184,71 +192,71 @@ fn apply_config(self: *Self) void {
 
 
     if (self.natural_scroll_support) {
-        if (cfg.natural_scroll) |state| {
+        if (rule.natural_scroll) |state| {
             if (self.natural_scroll_current != state) self.set_natural_scroll(state);
         }
     }
 
     if (self.left_handed_support) {
-        if (cfg.left_handed) |state| {
+        if (rule.left_handed) |state| {
             if (self.left_handed_current != state) self.set_left_handed(state);
         }
     }
 
     bits = @bitCast(self.click_method_support);
     if (bits != 0) {
-        if (cfg.click_method) |method| {
+        if (rule.click_method) |method| {
             if (method == .none or @as(u32, @intCast(@intFromEnum(method))) & bits != 0) {
                 if (self.click_method_current != method) self.set_click_method(method);
             }
         }
 
         if (self.click_method_support.clickfinger) {
-            if (cfg.clickfinger_button_map) |button_map| {
+            if (rule.clickfinger_button_map) |button_map| {
                 if (self.clickfinger_button_map_current != button_map) self.set_clickfinger_button_map(button_map);
             }
         }
     }
 
     if (self.middle_emulation_support) {
-        if (cfg.middle_button_emulation) |state| {
+        if (rule.middle_button_emulation) |state| {
             if (self.middle_emulation_current != state) self.set_middle_emulation(state);
         }
     }
 
     bits = @bitCast(self.scroll_method_support);
     if (bits != 0) {
-        if (cfg.scroll_method) |method| {
+        if (rule.scroll_method) |method| {
             if (method == .no_scroll or @as(u32, @intCast(@intFromEnum(method))) & bits != 0) {
                 if (self.scroll_method_current != method) self.set_scroll_method(method);
             }
         }
 
         if (self.scroll_method_support.on_button_down) {
-            if (cfg.scroll_button) |button| {
+            if (rule.scroll_button) |button| {
                 if (self.scroll_button_current != button) self.set_scroll_button(@intFromEnum(button));
             }
 
-            if (cfg.scroll_button_lock) |state| {
+            if (rule.scroll_button_lock) |state| {
                 if (self.scroll_button_lock_current != state) self.set_scroll_button_lock(state);
             }
         }
     }
 
     if (self.dwt_support) {
-        if (cfg.disable_while_typing) |state| {
+        if (rule.disable_while_typing) |state| {
             if (self.dwt_current != state) self.set_dwt(state);
         }
     }
 
     if (self.dwtp_support) {
-        if (cfg.disable_while_trackpointing) |state| {
+        if (rule.disable_while_trackpointing) |state| {
             if (self.dwtp_current != state) self.set_dwtp(state);
         }
     }
 
     if (self.rotation_support) {
-        if (cfg.rotation_angle) |angle| {
+        if (rule.rotation_angle) |angle| {
             if (self.rotation_current != angle) self.set_rotation(angle);
         }
     }
@@ -504,17 +512,6 @@ fn set_rotation(self: *Self, angle: u32) void {
     };
 
     result.setListener(*Self, rwm_libinput_result_listener, self);
-}
-
-
-inline fn get_from_config(self: *const Self, comptime T: type, cfg: *const config.InputConfig(T)) ?T {
-    if (self.input_device) |input_device| {
-        return switch (cfg.*) {
-            .value => |value| value,
-            .func => |func| func(input_device.name),
-        };
-    }
-    return null;
 }
 
 

@@ -9,13 +9,29 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const utils = @import("utils");
-const config = @import("config");
+const Config = @import("config");
 
-const types = @import("types.zig");
+const utils = @import("utils.zig");
 const Context = @import("context.zig");
 
 const InputDevice = @import("input_device.zig");
+
+pub const NumlockState = enum {
+    enabled,
+    disabled,
+};
+pub const CapslockState = enum {
+    enabled,
+    disabled,
+};
+pub const Layout = union(enum) {
+    index: u32,
+    name: []const u8,
+};
+pub const Keymap = struct {
+    file: []const u8,
+    format: river.XkbConfigV1.KeymapFormat,
+};
 
 
 link: wl.list.Link = undefined,
@@ -25,8 +41,8 @@ rwm_xkb_keyboard: *river.XkbKeyboardV1,
 input_device: ?*InputDevice = null,
 
 new: bool = true,
-numlock: types.KeyboardNumlockState = undefined,
-capslock: types.KeyboardCapslockState = undefined,
+numlock: NumlockState = undefined,
+capslock: CapslockState = undefined,
 layout_index: u32 = undefined,
 layout_name: ?[]const u8 = null,
 
@@ -68,35 +84,43 @@ pub fn manage(self: *Self) void {
 
     if (self.new) {
         self.new = false;
-        self.apply_config();
+
+        self.apply_rules();
     }
 }
 
 
-fn apply_config(self: *Self) void {
-    log.debug("<{*}> apply config", .{ self });
+pub fn apply_rules(self: *Self) void {
+    log.debug("<{*}> apply rules", .{ self });
 
-    const cfg = switch (config.keyboard) {
-        .value => |value| value,
-        .func => |func| func((self.input_device orelse return).name),
-    };
+    const config = Config.get();
 
-    if (cfg.numlock) |state| {
+    for (config.xkb_keyboard_rules) |rule| {
+        if (rule.match((self.input_device orelse return).name)) {
+            self.apply_rule(&rule);
+            break;
+        }
+    }
+}
+
+
+fn apply_rule(self: *Self, rule: *const Config.XkbKeyboardRule) void {
+    if (rule.numlock) |state| {
         if (self.numlock != state) self.set_numlock(state);
     }
 
-    if (cfg.capslock) |state| {
+    if (rule.capslock) |state| {
         if (self.capslock != state) self.set_capslock(state);
     }
 
-    if (cfg.layout) |layout| {
+    if (rule.layout) |layout| {
         if (switch (layout) {
             .index => |index| index != self.layout_index,
-            .name => |name| self.layout_name == null or mem.order(u8, mem.span(name), self.layout_name.?) != .eq,
+            .name => |name| self.layout_name == null or mem.order(u8, name, self.layout_name.?) != .eq,
         }) self.set_layout(layout);
     }
 
-    if (cfg.keymap) |keymap| blk: {
+    if (rule.keymap) |keymap| blk: {
         self.set_keymap(keymap) catch |err| {
             log.err("<{*}> set keymap failed: {}", .{ self, err });
             break :blk;
@@ -105,7 +129,7 @@ fn apply_config(self: *Self) void {
 }
 
 
-fn set_numlock(self: *Self, state: types.KeyboardNumlockState) void {
+fn set_numlock(self: *Self, state: NumlockState) void {
     log.debug("<{*}> set numlock: {s}", .{ self, @tagName(state) });
 
     switch (state) {
@@ -115,7 +139,7 @@ fn set_numlock(self: *Self, state: types.KeyboardNumlockState) void {
 }
 
 
-fn set_capslock(self: *Self, state: types.KeyboardCapslockState) void {
+fn set_capslock(self: *Self, state: CapslockState) void {
     log.debug("<{*}> set capslock: {s}", .{ self, @tagName(state) });
 
     switch (state) {
@@ -125,7 +149,7 @@ fn set_capslock(self: *Self, state: types.KeyboardCapslockState) void {
 }
 
 
-fn set_layout(self: *Self, layout: types.KeyboardLayout) void {
+fn set_layout(self: *Self, layout: Layout) void {
     switch (layout) {
         .index => |index| {
             log.debug("<{*}> set keyboard layout to {}", .{ self, index });
@@ -135,13 +159,18 @@ fn set_layout(self: *Self, layout: types.KeyboardLayout) void {
         .name => |name| {
             log.debug("<{*}> set keyboard layout to {s}", .{ self, name });
 
-            self.rwm_xkb_keyboard.setLayoutByName(name);
+            const n = utils.allocator.dupeZ(u8, name) catch |err| {
+                log.err("<{*}> dupeZ failed while set layout by name: {}", .{ self, err });
+                return;
+            };
+            defer utils.allocator.free(n);
+            self.rwm_xkb_keyboard.setLayoutByName(n);
         }
     }
 }
 
 
-fn set_keymap(self: *Self, keymap: types.Keymap) !void {
+fn set_keymap(self: *Self, keymap: Keymap) !void {
     log.debug("<{*}> set keymap to `{s}` with format {s}", .{ self, keymap.file, @tagName(keymap.format) });
 
     const context = Context.get();
@@ -154,17 +183,6 @@ fn set_keymap(self: *Self, keymap: types.Keymap) !void {
 
         self.rwm_xkb_keyboard.setKeymap(xkb_keymap);
     } else return error.MissingRiverXkbConfig;
-}
-
-
-inline fn get_from_config(self: *const Self, comptime T: type, cfg: *const config.InputConfig(T)) ?T {
-    if (self.input_device) |input_device| {
-        return switch (cfg.*) {
-            .value => |value| value,
-            .func => |func| func(input_device.name),
-        };
-    }
-    return null;
 }
 
 

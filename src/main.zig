@@ -1,13 +1,12 @@
 const std = @import("std");
 const mem = std.mem;
-const posix = std.posix;
 
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const wp = wayland.client.wp;
 const river = wayland.client.river;
 
-const utils = @import("utils");
+const Config = @import("config");
 const kwm = @import("kwm");
 
 const Globals = struct {
@@ -29,7 +28,12 @@ const Globals = struct {
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
     defer if (gpa.deinit() != .ok) @panic("memory leak");
-    utils.init_allocator(&gpa.allocator());
+    const allocator = gpa.allocator();
+
+    Config.init(allocator);
+    defer Config.deinit(allocator);
+
+    kwm.init_allocator(&allocator);
 
     const display = try wl.Display.connect(null);
     defer display.disconnect();
