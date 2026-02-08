@@ -2,6 +2,7 @@ const Self = @This();
 
 const build_options = @import("build_options");
 const std = @import("std");
+const fmt = std.fmt;
 const mem = std.mem;
 const log = std.log.scoped(.seat);
 
@@ -28,6 +29,7 @@ wl_pointer: ?*wl.Pointer = null,
 rwm_seat: *river.SeatV1,
 rwm_layer_shell_seat: *river.LayerShellSeatV1,
 
+mode_buffer: [16]u8 = undefined,
 mode: ?[]const u8 = null,
 button: types.Button = undefined,
 focus_exclusive: bool = false,
@@ -136,7 +138,7 @@ pub fn manage(self: *Self) void {
     const context = Context.get();
 
     if (self.mode == null or mem.order(u8, self.mode.?, context.mode) != .eq) {
-        defer self.mode = context.mode;
+        defer self.mode = fmt.bufPrint(&self.mode_buffer, "{s}", .{ context.mode }) catch unreachable;
 
         if (self.mode) |mode| {
             self.toggle_bindings(mode, false);

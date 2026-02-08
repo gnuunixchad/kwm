@@ -28,6 +28,7 @@ const LibinputDevice = @import("libinput_device.zig");
 const XkbKeyboard = @import("xkb_keyboard.zig");
 
 var ctx: ?Self = null;
+var mode_buffer: [16]u8 = undefined;
 
 
 wl_registry: *wl.Registry,
@@ -63,7 +64,7 @@ bar_status_fd: ?posix.fd_t = null,
 
 terminal_windows: std.AutoHashMap(i32, *Window) = undefined,
 
-mode: []const u8 = Config.default_mode,
+mode: []const u8,
 running: bool = true,
 env: process.EnvMap = undefined,
 startup_processes: std.ArrayList(?process.Child) = .empty,
@@ -109,6 +110,7 @@ pub fn init(
         .rwm_xkb_config = rwm_xkb_config,
         .key_repeat = undefined,
         .terminal_windows = .init(utils.allocator),
+        .mode = fmt.bufPrint(&mode_buffer, "{s}", .{ Config.default_mode }) catch @panic("mode name too long"),
     };
     ctx.?.seats.init();
     ctx.?.outputs.init();
@@ -573,7 +575,7 @@ pub fn prepare_remove_seat(self: *Self, seat: *Seat) void {
 pub inline fn switch_mode(self: *Self, mode: []const u8) void {
     log.debug("switch mode from {s} to {s}", .{ self.mode, mode });
 
-    self.mode = mode;
+    self.mode = fmt.bufPrint(&mode_buffer, "{s}", .{ mode }) catch @panic("mode name too lone");
 
     if (comptime build_options.bar_enabled) {
         var it = self.outputs.safeIterator(.forward);
