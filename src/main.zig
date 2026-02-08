@@ -30,8 +30,8 @@ pub fn main() !void {
     defer if (gpa.deinit() != .ok) @panic("memory leak");
     const allocator = gpa.allocator();
 
-    Config.init(allocator);
-    defer Config.deinit(allocator);
+    Config.init(&allocator);
+    defer Config.deinit();
 
     kwm.init_allocator(&allocator);
 

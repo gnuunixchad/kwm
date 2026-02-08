@@ -233,7 +233,7 @@ pub inline fn get() *Self {
 pub fn reload_config(self: *Self) void {
     log.debug("reload config", .{});
 
-    const mask = Config.reload(utils.allocator);
+    const mask = Config.reload();
 
     log.debug("mask: {any}", .{ mask });
 

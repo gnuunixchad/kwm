@@ -16,6 +16,8 @@ const kwm = @import("kwm");
 
 const rule = @import("config/rule.zig");
 
+var allocator: mem.Allocator = undefined;
+
 var config: ?Self = null;
 var user_config: ?make_fields_optional(Self) = null;
 const default_config: Self = @import("default_config");
@@ -339,7 +341,7 @@ libinput_device_rules: []const rule.LibinputDevice,
 xkb_keyboard_rules: []const rule.XkbKeyboard,
 
 
-fn free_user_config(allocator: mem.Allocator) void {
+fn free_user_config() void {
     if (user_config) |cfg| {
         log.debug("free user config", .{});
 
@@ -348,25 +350,27 @@ fn free_user_config(allocator: mem.Allocator) void {
 }
 
 
-pub fn init(allocator: std.mem.Allocator) void {
+pub fn init(al: *const mem.Allocator) void {
     log.debug("config init", .{});
 
-    user_config = try_load_user_config(allocator);
+    allocator = al.*;
+
+    user_config = try_load_user_config();
     refresh_config();
 }
 
 
-pub inline fn deinit(allocator: mem.Allocator) void {
+pub inline fn deinit() void {
     log.debug("config deinit", .{});
 
-    free_user_config(allocator);
+    free_user_config();
 }
 
 
-pub fn reload(allocator: mem.Allocator) field_mask(Self) {
+pub fn reload() field_mask(Self) {
     log.debug("reload user config", .{});
 
-    if (try_load_user_config(allocator)) |cfg| {
+    if (try_load_user_config()) |cfg| {
         var mask: field_mask(Self) = .{};
 
         const info = @typeInfo(Self).@"struct";
@@ -386,7 +390,7 @@ pub fn reload(allocator: mem.Allocator) field_mask(Self) {
             }
         }
 
-        free_user_config(allocator);
+        free_user_config();
         user_config = cfg;
 
         refresh_config();
@@ -396,7 +400,7 @@ pub fn reload(allocator: mem.Allocator) field_mask(Self) {
 }
 
 
-fn try_load_user_config(allocator: mem.Allocator) ?make_fields_optional(Self) {
+fn try_load_user_config() ?make_fields_optional(Self) {
     var path_buffer: [256]u8 = undefined;
     const config_path = (
         if (posix.getenv("XDG_CONFIG_HOME")) |config_home| fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
