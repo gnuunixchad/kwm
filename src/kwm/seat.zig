@@ -223,6 +223,22 @@ pub fn create_bindings(self: *Self) void {
             log.err("<{*}> append xkb binding failed: {}", .{ self, err });
             continue;
         };
+
+        log.debug(
+            "<{*}> append key binding: (mode: {s}, keysym: {s}, modifiers: (shift: {}, ctrl: {}, mod1: {}, mod3: {}, mod4: {}, mod5: {}), event: {any})",
+            .{
+                self,
+                key_binding.mode,
+                key_binding.keysym,
+                key_binding.modifiers.shift,
+                key_binding.modifiers.ctrl,
+                key_binding.modifiers.mod1,
+                key_binding.modifiers.mod3,
+                key_binding.modifiers.mod4,
+                key_binding.modifiers.mod5,
+                key_binding.event,
+            },
+        );
     }
 
     for (config.bindings.pointer) |pointer_binding| {
@@ -249,6 +265,22 @@ pub fn create_bindings(self: *Self) void {
             log.err("<{*}> append pointer binding failed: {}", .{ self, err });
             continue;
         };
+
+        log.debug(
+            "<{*}> append pointer binding: (mode: {s}, button: {s}, modifiers: (shift: {}, ctrl: {}, mod1: {}, mod3: {}, mod4: {}, mod5: {}), event: {any})",
+            .{
+                self,
+                pointer_binding.mode,
+                @tagName(pointer_binding.button),
+                pointer_binding.modifiers.shift,
+                pointer_binding.modifiers.ctrl,
+                pointer_binding.modifiers.mod1,
+                pointer_binding.modifiers.mod3,
+                pointer_binding.modifiers.mod4,
+                pointer_binding.modifiers.mod5,
+                pointer_binding.event,
+            },
+        );
     }
 }
 
