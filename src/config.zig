@@ -244,6 +244,73 @@ fn deep_equal(comptime T: type, a: *const T, b: *const T) bool {
 }
 
 
+// copy from std.zon.parse
+pub fn zon_free(gpa: mem.Allocator, value: anytype) void {
+    const Value = @TypeOf(value);
+
+    switch (@typeInfo(Value)) {
+        .bool, .int, .float, .@"enum" => {},
+        .pointer => |pointer| {
+            switch (pointer.size) {
+                .one => {
+                    zon_free(gpa, value.*);
+                    gpa.destroy(value);
+                },
+                .slice => {
+                    // avoid free error
+                    if (pointer.child == u8 and value.ptr == default_mode[0..].ptr) return;
+
+                    for (value) |item| {
+                        zon_free(gpa, item);
+                    }
+                    gpa.free(value);
+                },
+                .many, .c => comptime unreachable,
+            }
+        },
+        .array => for (value) |item| {
+            zon_free(gpa, item);
+        },
+        .@"struct" => |@"struct"| inline for (@"struct".fields) |field| {
+            zon_free(gpa, @field(value, field.name));
+        },
+        .@"union" => |@"union"| if (@"union".tag_type == null) {
+            if (comptime requiresAllocator(Value)) unreachable;
+        } else switch (value) {
+            inline else => |_, tag| {
+                zon_free(gpa, @field(value, @tagName(tag)));
+            },
+        },
+        .optional => if (value) |some| {
+            zon_free(gpa, some);
+        },
+        .vector => |vector| for (0..vector.len) |i| zon_free(gpa, value[i]),
+        .void => {},
+        else => comptime unreachable,
+    }
+}
+
+fn requiresAllocator(T: type) bool {
+    return switch (@typeInfo(T)) {
+        .pointer => true,
+        .array => |array| return array.len > 0 and requiresAllocator(array.child),
+        .@"struct" => |@"struct"| inline for (@"struct".fields) |field| {
+            if (requiresAllocator(field.type)) {
+                break true;
+            }
+        } else false,
+        .@"union" => |@"union"| inline for (@"union".fields) |field| {
+            if (requiresAllocator(field.type)) {
+                break true;
+            }
+        } else false,
+        .optional => |optional| requiresAllocator(optional.child),
+        .vector => |vector| return vector.len > 0 and requiresAllocator(vector.child),
+        else => false,
+    };
+}
+
+
 env: []const struct { []const u8, []const u8 },
 
 working_directory: union(enum) {
@@ -345,7 +412,7 @@ fn free_user_config() void {
     if (user_config) |cfg| {
         log.debug("free user config", .{});
 
-        zon.parse.free(allocator, cfg);
+        zon_free(allocator, cfg);
     }
 }
 
