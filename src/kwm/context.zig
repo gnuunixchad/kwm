@@ -834,7 +834,7 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
     std.debug.assert(rwm == context.rwm);
 
     const cache = struct {
-        pub var mode: []const u8 = undefined;
+        pub var mode: [16] u8 = undefined;
     };
 
     const config = Config.get();
@@ -992,13 +992,13 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
         .session_locked => {
             log.debug("session locked", .{});
 
-            cache.mode = context.mode;
+            _ = fmt.bufPrintZ(&cache.mode, "{s}", .{ context.mode }) catch unreachable;
             context.switch_mode(Config.lock_mode);
         },
         .session_unlocked => {
             log.debug("session unlocked", .{});
 
-            context.switch_mode(cache.mode);
+            context.switch_mode(mem.span(@as([*:0]const u8, @ptrCast(&cache.mode))));
         }
     }
 }
