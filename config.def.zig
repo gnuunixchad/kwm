@@ -607,7 +607,7 @@ pub const xkb_bindings = blk: {
         .{
             .keysym = Keysym.w,
             .modifiers = Super|Shift,
-            .action = .{ .spawn = .{ .argv = &[_][]const u8 { "swaylock" } } },
+            .action = .{ .spawn_shell = .{ .cmd = "waylock -init-color 0x000000 -input-color 0x005577 -fail-color 0xcc3333" } },
         },
         .{
             .keysym = Keysym.e,
