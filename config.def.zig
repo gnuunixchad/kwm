@@ -975,6 +975,11 @@ pub const xkb_bindings = blk: {
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/clip" } },
         },
         .{
+            .keysym = Keysym.c,
+            .modifiers = Super|Ctrl,
+            .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/clip --wipe" } },
+        },
+        .{
             .keysym = Keysym.a,
             .modifiers = Super,
             .action = .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/address" } },
