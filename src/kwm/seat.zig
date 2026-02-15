@@ -175,10 +175,7 @@ pub fn try_focus(self: *Self) void {
                 }
 
                 if (window.output) |output| {
-                    self.rwm_seat.pointerWarp(
-                        output.exclusive_x() + @divFloor(output.exclusive_width(), 2),
-                        output.exclusive_y() + @divFloor(output.exclusive_height(), 2),
-                    );
+                    self.wrap_cursor(.{ .output = output });
                 }
             },
             .on_focus_changed => blk: {
@@ -187,12 +184,7 @@ pub fn try_focus(self: *Self) void {
                     .window => |w| if (w == window) break :blk,
                 }
 
-                if (window.output) |output| {
-                    self.rwm_seat.pointerWarp(
-                        output.exclusive_x() + window.x + @divFloor(window.width, 2),
-                        output.exclusive_y() + window.y + @divFloor(window.height, 2),
-                    );
-                }
+                self.wrap_cursor(.{ .window = window });
             }
         }
 
@@ -208,10 +200,7 @@ pub fn try_focus(self: *Self) void {
                     .output => |o| if (o == output) break :blk,
                 }
 
-                self.rwm_seat.pointerWarp(
-                    output.exclusive_x() + @divFloor(output.exclusive_width(), 2),
-                    output.exclusive_y() + @divFloor(output.exclusive_height(), 2),
-                );
+                self.wrap_cursor(.{ .output = output });
             }
         } else {
             self.previous_focused = .none;
@@ -369,6 +358,32 @@ pub fn clear_bindings(self: *Self) void {
         }
         self.pointer_bindings.clearRetainingCapacity();
     }
+}
+
+
+fn wrap_cursor(self: *Self, dest: union(enum) { window: *Window, output: *Output }) void {
+    switch (dest) {
+        .window => |window| log.debug("<{*}> wrap cursor to {*}", .{ self, window }),
+        .output => |output| log.debug("<{*}> wrap cursor to {*}", .{ self, output }),
+    }
+
+    const x, const y = switch (dest) {
+        .window => |window| blk: {
+            if (window.output) |output| {
+                const x = window.x + @divFloor(window.width, 2);
+                const y = window.y + @divFloor(window.height, 2);
+                break :blk .{
+                    output.exclusive_x() + @min(output.exclusive_width(), x),
+                    output.exclusive_y() + @min(output.exclusive_height(), y),
+                };
+            } else return;
+        },
+        .output => |output| .{
+            output.exclusive_x() + @divFloor(output.exclusive_width(), 2),
+            output.exclusive_y() + @divFloor(output.exclusive_height(), 2),
+        },
+    };
+    self.rwm_seat.pointerWarp(x, y);
 }
 
 
