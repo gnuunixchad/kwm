@@ -463,10 +463,23 @@ pub fn reload() field_mask(Self) {
             }
         }
 
-        free_user_config();
-        user_config = cfg;
+        const modified = blk: {
+            inline for (@typeInfo(@TypeOf(mask)).@"struct".fields) |field| {
+                if (@field(mask, field.name)) {
+                    break :blk true;
+                }
+                break :blk false;
+            }
+        };
 
-        refresh_config();
+        if (modified) {
+            free_user_config();
+            user_config = cfg;
+
+            refresh_config();
+        } else {
+            zon_free(allocator, cfg);
+        }
 
         return mask;
     } else return .{};
