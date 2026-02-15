@@ -530,6 +530,7 @@ fn handle_actions(self: *Self) void {
             .switch_layout => |data| {
                 if (context.current_output) |output| {
                     output.set_current_layout(data.layout);
+                    self.previous_focused = .none;
                 }
             },
             .switch_to_previous_layout => {
