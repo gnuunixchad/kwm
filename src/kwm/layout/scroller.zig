@@ -30,12 +30,23 @@ pub fn arrange(self: *const Self, output: *Output) void {
     var master_x: i32 = undefined;
     const y = self.outer_gap;
 
-    if (focus_top.scroller_x) |x| {
-        if (x < self.outer_gap) {
-            master_x = self.outer_gap;
-        } else if (x > output.width-self.outer_gap-master_width) {
-            master_x = output.width - self.outer_gap - master_width;
-        } else master_x = x;
+    if (focus_top.scroller_x) |x| blk: {
+        var link = &focus_top.link;
+        while (link.prev.? != &context.windows.link) {
+            defer link = link.prev.?;
+            const window: *Window = @fieldParentPtr("link", link.prev.?);
+            if (window.is_visible_in(output) and !window.floating) {
+                const left = self.outer_gap;
+                const right = output.width - self.outer_gap - master_width;
+                if (x < left) {
+                    master_x = left;
+                } else if (x > right) {
+                    master_x = right;
+                } else master_x = x;
+                break :blk;
+            }
+        }
+        master_x = self.outer_gap;
     } else {
         master_x = self.outer_gap;
     }
