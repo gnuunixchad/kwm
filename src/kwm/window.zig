@@ -143,7 +143,7 @@ pub fn destroy(self: *Self) void {
         while (it.next()) |seat| {
             switch (seat.previous_focused) {
                 .window => |window| if (self == window) {
-                    seat.previous_focused = .none;
+                    seat.previous_focused = if (self.output) |output| .{ .output = output } else .none;
                 },
                 else => {}
             }
