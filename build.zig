@@ -58,6 +58,8 @@ pub fn build(b: *std.Build) void {
     const default_config_path = b.option([]const u8, "config", "path to config file") orelse "config.zon";
     const backup_default_config_path = "config.def.zon";
     const default_config_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
         .root_source_file = blk: {
             fs.cwd().access(default_config_path, .{}) catch |err| switch (err) {
                 error.FileNotFound => {
@@ -79,6 +81,8 @@ pub fn build(b: *std.Build) void {
         },
     });
     const config_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
         .root_source_file = b.path("src/config.zig"),
         .imports = &.{
             .{ .name = "wayland", .module = wayland_mod },
@@ -90,6 +94,8 @@ pub fn build(b: *std.Build) void {
     });
 
     const kwm_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
         .root_source_file = b.path("src/kwm.zig"),
         .imports = &.{
             .{ .name = "wayland", .module = wayland_mod },
