@@ -1576,6 +1576,18 @@
     },
     .window_rules = .{
         .{ .app_id = .{ .str = "", .match_null = true }, .floating = true },
+        .{
+           .title = .{ .str = "Floating_Term" },
+           .floating = true,
+           .dimension = .{ .width = 1200, .height = 800},
+           .disable_swallow = true
+        },
+        .{
+           .app_id = .{ .str = "Floating_IMG" },
+           .floating = true,
+           .dimension = .{ .width = 1200, .height = 800},
+           .is_terminal = true
+        },
         .{ .app_id = .{ .str="file-*", .regex = true}, .floating = true }, // gimp
         .{ .app_id = .{ .str = "gimp" }, .floating = true },
         .{ .app_id = .{ .str = "org.inkscape.Inkscape" }, .title = .{ .str ="Select file*", .regex = true}, .floating = true },
