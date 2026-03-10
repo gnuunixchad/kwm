@@ -1,0 +1,1601 @@
+.{
+    .env = .{
+        // .{ "key", "value" },
+    },
+    .working_directory = .home,
+    .startup_cmds = .{
+        // .{ "swaybg", "-i", "/path/to/wallpaper" },
+        .{ "gammastep", "-O", "5000" },
+        .{ "kanshi" },
+        .{ "fcitx5", "-d", "--verbose", "'*=0'" },
+        .{ "swayidle" },
+        .{ "wl-paste", "--watch", "cliphist", "store" },
+        .{ "dunst", "-conf", "${HOME}/.config/dunst/dunstrc-offset" },
+        .{ "sh", "-c", "swaybg -i ${HOME}/.local/share/wallpaper -m fill" },
+        .{ "sh", "-c", "${HOME}/.local/bin/foots" },
+        .{ "sh", "-c", "${HOME}/.local/bin/lucia -d" },
+        .{ "sh", "-c", "${HOME}/.local/bin/wobd -c ${HOME}/.config/wob/wob-offset.ini" },
+        .{ "sh", "-c", "${HOME}/.local/bin/mbs-cron" },
+        .{ "sh", "-c", "${HOME}/.local/bin/damblocks-mpdd" },
+    },
+    .xcursor_theme = null,
+    .bar = .{
+        .show_default = true,
+        .position = .top,
+        .font = "SourceCodePro:size=13:weight=Medium",
+        .color = .{
+            .normal = .{
+                .fg = 0xbbbbbbff,
+                .bg = 0x000000ff,
+            },
+            .select = .{
+                .fg = 0xeeeeeeff,
+                .bg = 0x427b58ff,
+            },
+        },
+        .status = .{ .fifo = "/run/user/1000/damblocks.fifo" }, // .stdin or .{ .fifo = "fifo file path" }, could use ^#RGBA to switch text color, and use ^#! to switch back to default color
+        // bar clicked callback
+        // each part support left/right/middle
+        .click = .{
+            .tags = .{
+                // could use 0 there because it will be replace with the tag clicked
+                .left = .{ .set_output_tag = .{ .tag = 0 } },
+                .right = .{ .toggle_output_tag = .{ .mask = 0 } },
+                .middle = .{ .toggle_window_tag = .{ .mask = 0 } },
+            },
+            .layout = .{
+                .left = .switch_to_previous_layout,
+                .right = null,
+                .middle = null,
+            },
+            .mode = .{
+                .left = .{ .switch_mode = .{ .mode = "default" } },
+                .right = null,
+                .middle = null,
+            },
+            .title = .{
+                .left = .zoom,
+                .right = null,
+                .middle = null,
+            },
+            .status = .{
+                .left = null,
+                .right = null,
+                .middle = .{ .spawn = .{ .argv = .{ "foot" } } }
+            },
+        },
+    },
+    .sloppy_focus = false,
+    .cursor_wrap = .none,
+    .auto_swallow = false,
+    .default_window_decoration = .ssd,
+    .border = .{
+        .width = 2,
+        .color = .{
+            .focus = 0x427b58ff,
+            .unfocus = 0x000000ff,
+        },
+    },
+    .tags = .{ "1", "2", "3", "4", "5", "6", "7", "8", "9" },
+    .layout = .{
+        .default = .tile,
+        .tile = .{
+            .nmaster = 1,
+            .mfact = 0.50,
+            .inner_gap = 0,
+            .outer_gap = 2,
+            .master_location = .left,
+        },
+        .grid = .{
+            .outer_gap = 2,
+            .inner_gap = 0,
+            .direction = .horizontal,
+        },
+        .monocle = .{
+            .gap = 2,
+        },
+        .scroller = .{
+            .mfact = 0.5,
+            .inner_gap = 0,
+            .outer_gap = 2,
+        },
+    },
+    .layout_tag = .{
+        .tile = .{
+            .left = "[]=",
+            .right = "=[]",
+            .top = "[^]",
+            .bottom = "[_]",
+        },
+        .grid = .{
+            .horizontal = "|+|",
+            .vertical = "|||",
+        },
+        .monocle = "[=]",
+        .scroller = "[==]",
+        .float = "><>",
+    },
+    .bindings = .{
+        .repeat_info = .{
+            .rate = 30,
+            .delay = 200,
+        },
+        .mode_tag = .{
+            .{ "default", "" },
+            .{ "lock", "" },
+            .{ "passthrough", "Passthrough" },
+            .{ "floating", "Floating" },
+            .{ "wlrctl", "[hjkl]cursors [,]left [.]right [m]iddle ^[hjkl]arrows" },
+        },
+        .key = .{
+            .{
+                .keysym = "r",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .reload_config,
+                    },
+                },
+            },
+
+            // lock
+            .{
+                .mode = "lock",
+                .keysym = "space",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "mpc toggle" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "lock",
+                .keysym = "p",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "mpc prev" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "lock",
+                .keysym = "n",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "mpc next" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "lock",
+                .keysym = "minus",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "lock",
+                .keysym = "equal",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "lock",
+                .keysym = "bracketleft",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "lock",
+                .keysym = "bracketright",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus10" },
+                        },
+                    },
+                },
+            },
+
+            // passthrough
+            .{
+                .keysym = "Escape",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_mode = .{ .mode = "passthrough" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "passthrough",
+                .keysym = "Escape",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_mode = .{ .mode = "default" },
+                        },
+                    },
+                },
+            },
+
+            // floating
+            .{
+                .keysym = "f",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_mode = .{ .mode = "floating" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "f",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "Escape",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "space",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "h",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .move = .{ .step = .{ .horizontal = -50 } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "j",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .move = .{ .step = .{ .vertical = 50 } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "k",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .move = .{ .step = .{ .vertical = -50 } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "l",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .move = .{ .step = .{ .horizontal = 50 } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "y",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .resize = .{ .step = .{ .horizontal = -50 } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "u",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .resize = .{ .step = .{ .vertical = 50 } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "i",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .resize = .{ .step = .{ .vertical = -50 } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "o",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .resize = .{ .step = .{ .horizontal = 50 } },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "h",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .snap = .{ .edge = .left },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "j",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .snap = .{ .edge = .bottom },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "k",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .snap = .{ .edge = .top },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "floating",
+                .keysym = "l",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .snap = .{ .edge = .right },
+                        },
+                    },
+                },
+            },
+
+            // wlrctl
+            .{
+                .keysym = "slash",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_mode = .{ .mode = "wlrctl" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "slash",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "Escape",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "space",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "h",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer move -90 0" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "j",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer move 0 90" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "k",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer move 0 -90" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "l",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer move 90 0" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "h",
+                .modifiers = .{ .shift = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer move -15 0" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "j",
+                .modifiers = .{ .shift = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer move 0 15" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "k",
+                .modifiers = .{ .shift = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer move 0 -15" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "l",
+                .modifiers = .{ .shift = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer move 15 0" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "h",
+                .modifiers = .{ .ctrl = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wtype -k Left" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "j",
+                .modifiers = .{ .ctrl = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wtype -k Down" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "k",
+                .modifiers = .{ .ctrl = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wtype -k Up" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "l",
+                .modifiers = .{ .ctrl = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wtype -k Right" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "comma",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer click left" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "period",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer click right" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "comma",
+                .modifiers = .{ .shift = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer click left" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "period",
+                .modifiers = .{ .shift = true },
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer click right" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "n",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer scroll 30" },
+                    },
+                },
+            },
+            .{
+                .mode = "wlrctl",
+                .keysym = "p",
+                .modifiers = .{},
+                .event = .{
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "wlrctl pointer scroll -30" },
+                    },
+                },
+            },
+
+            // default
+            .{
+                .keysym = "q",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/exiland -river" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "w",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "waylock -init-color 0x000000 -input-color 0x005577 -fail-color 0xcc3333" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "e",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/hibe" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "c",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .close,
+                    },
+                },
+            },
+            .{
+                .keysym = "z",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .zoom,
+                    },
+                },
+            },
+            .{
+                .keysym = "b",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .toggle_bar,
+                    },
+                },
+            },
+            .{
+                .keysym = "j",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .focus_iter = .{ .direction = .forward },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "k",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .focus_iter = .{ .direction = .reverse },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "j",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .focus_iter = .{ .direction = .forward, .skip_floating = true },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "k",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .focus_iter = .{ .direction = .reverse, .skip_floating = true },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "j",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .swap = .{ .direction = .forward },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "k",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .swap = .{ .direction = .reverse },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "period",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .focus_output_iter = .{ .direction = .forward },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "comma",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .focus_output_iter = .{ .direction = .reverse },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "period",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .send_to_output = .{ .direction = .forward },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "comma",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .send_to_output = .{ .direction = .reverse },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "f",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .toggle_fullscreen = .{ .in_window = true },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "e",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .toggle_fullscreen = .{ .in_window = false },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "Tab",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .switch_to_previous_layout,
+                    },
+                },
+            },
+            .{
+                .keysym = "space",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .toggle_floating,
+                    },
+                },
+            },
+            .{
+                .keysym = "s",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .toggle_sticky,
+                    },
+                },
+            },
+            .{
+                .keysym = "o",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .toggle_swallow,
+                    },
+                },
+            },
+            .{
+                .keysym = "f",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_layout = .{ .layout = .float },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "t",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_layout = .{ .layout = .tile },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "g",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_layout = .{ .layout = .grid },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "m",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_layout = .{ .layout = .monocle },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "s",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_layout = .{ .layout = .scroller },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "Tab",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .switch_to_previous_tag,
+                    },
+                },
+            },
+            .{
+                .keysym = "apostrophe",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .shift_tag = .{ .direction = .forward },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "semicolon",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .shift_tag = .{ .direction = .reverse },
+                        },
+                    },
+                },
+            },
+
+            .{ .keysym = "1", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b1 } } } } },
+            .{ .keysym = "2", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b10 } } } } },
+            .{ .keysym = "3", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b100 } } } } },
+            .{ .keysym = "4", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b1000 } } } } },
+            .{ .keysym = "5", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b10000 } } } } },
+            .{ .keysym = "6", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b100000 } } } } },
+            .{ .keysym = "7", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b1000000 } } } } },
+            .{ .keysym = "8", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b10000000 } } } } },
+            .{ .keysym = "9", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b100000000 } } } } },
+            .{ .keysym = "0", .modifiers = .{ .mod4 = true }, .event = .{ .click = .{ .pressed = .{ .set_output_tag = .{ .tag = 0b111111111 } } } } },
+
+            .{ .keysym = "1", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b1 } } } } },
+            .{ .keysym = "2", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b10 } } } } },
+            .{ .keysym = "3", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b100 } } } } },
+            .{ .keysym = "4", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b1000 } } } } },
+            .{ .keysym = "5", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b10000 } } } } },
+            .{ .keysym = "6", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b100000 } } } } },
+            .{ .keysym = "7", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b1000000 } } } } },
+            .{ .keysym = "8", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b10000000 } } } } },
+            .{ .keysym = "9", .modifiers = .{ .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_output_tag = .{ .mask = 0b100000000 } } } } },
+
+            .{ .keysym = "1", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b1 } } } } },
+            .{ .keysym = "2", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b10 } } } } },
+            .{ .keysym = "3", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b100 } } } } },
+            .{ .keysym = "4", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b1000 } } } } },
+            .{ .keysym = "5", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b10000 } } } } },
+            .{ .keysym = "6", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b100000 } } } } },
+            .{ .keysym = "7", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b1000000 } } } } },
+            .{ .keysym = "8", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b10000000 } } } } },
+            .{ .keysym = "9", .modifiers = .{ .mod4 = true, .shift = true }, .event = .{ .click = .{ .pressed = .{ .set_window_tag = .{ .tag = 0b100000000 } } } } },
+
+            .{ .keysym = "1", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b1 } } } } },
+            .{ .keysym = "2", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b10 } } } } },
+            .{ .keysym = "3", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b100 } } } } },
+            .{ .keysym = "4", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b1000 } } } } },
+            .{ .keysym = "5", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b10000 } } } } },
+            .{ .keysym = "6", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b100000 } } } } },
+            .{ .keysym = "7", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b1000000 } } } } },
+            .{ .keysym = "8", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b10000000 } } } } },
+            .{ .keysym = "9", .modifiers = .{ .mod4 = true, .ctrl = true }, .event = .{ .click = .{ .pressed = .{ .toggle_window_tag = .{ .mask = 0b100000000 } } } } },
+
+            .{
+                .keysym = "l",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_mfact = .{ .step = 0.05 },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "h",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_mfact = .{ .step = -0.05 },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "j",
+                .modifiers = .{ .mod4 = true, .mod1 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_tile_master_location = .{ .location = .bottom },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "k",
+                .modifiers = .{ .mod4 = true, .mod1 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_tile_master_location = .{ .location = .top },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "l",
+                .modifiers = .{ .mod4 = true, .mod1 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_tile_master_location = .{ .location = .right },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "h",
+                .modifiers = .{ .mod4 = true, .mod1 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_tile_master_location = .{ .location = .left },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "i",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_nmaster = .{ .change = .increase },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "d",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_nmaster = .{ .change = .decrease },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "bracketleft",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_gap = .{ .step = 2 },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "bracketright",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .modify_gap = .{ .step = -2 },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "o",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .toggle_auto_swallow,
+                    },
+                },
+            },
+            .{
+                .keysym = "g",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .toggle_grid_direction,
+                    },
+                },
+            },
+
+            .{
+                .keysym = "p",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/wmenu-run-color" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "Return",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn = .{ .argv = .{ "footclient" } },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "v",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "footclient -T \"Floating_Term\" -o colors.alpha=0.9 abduco -A dvtm dvtm-status" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "r",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "footclient sh -c 'sleep 0.03 && lf'" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "q",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn = .{ .argv = .{ "qutebrowser" } },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "minus",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "equal",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "minus",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "equal",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "BackSpace",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --mute" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "minus",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --minus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "equal",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --plus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "minus",
+                .modifiers = .{ .mod4 = true, .ctrl = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --minus" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "equal",
+                .modifiers = .{ .mod4 = true, .ctrl = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --plus" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "BackSpace",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --mute" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "bracketleft",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "bracketright",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus10" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "bracketleft",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "bracketright",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "bracketleft",
+                .modifiers = .{ .mod4 = true, .ctrl = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright ---min" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "bracketright",
+                .modifiers = .{ .mod4 = true, .ctrl = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright ---max" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "m",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/mag" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "space",
+                .modifiers = .{ .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "fcitx5-remote -t" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "n",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "dunstctl history-pop" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "n",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "dunstctl close" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "n",
+                .modifiers = .{ .mod4 = true, .ctrl = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "dunstctl close-all" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "y",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "y",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot --geo" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "y",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/shoot --all" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "c",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/clip" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "c",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/clip --wipe" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "a",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/address" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "a",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/address --record" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "a",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/address --multi" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "space",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "mpc toggle && ${HOME}/.local/bin/lsmus" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "p",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "mpc prev" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "n",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "mpc next" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "s",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/wsk" },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "b",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .spawn_shell = .{ .cmd = "pgrep gammastep && killall gammastep || gammastep -O 5000" },
+                        },
+                    },
+                },
+            },
+        },
+        .pointer = .{
+            .{
+                .mode = "default",
+                .button = .left,
+                .modifiers = .{ .mod4 = true },
+                .event = .{ .pressed = .pointer_move },
+            },
+            .{
+                .mode = "default",
+                .button = .right,
+                .modifiers = .{ .mod4 = true },
+                .event = .{ .pressed = .pointer_resize },
+            },
+        },
+    },
+    .window_rules = .{
+        .{ .app_id = .{ .str = "", .match_null = true }, .floating = true },
+        .{ .app_id = .{ .str="file-*", .regex = true}, .floating = true }, // gimp
+        .{ .app_id = .{ .str = "gimp" }, .floating = true },
+        .{ .app_id = .{ .str = "org.inkscape.Inkscape" }, .title = .{ .str ="Select file*", .regex = true}, .floating = true },
+        .{ .app_id = .{ .str = "kdenlive" }, .floating = true },
+        .{ .app_id = .{ .str = "electron" }, .title = .{ .str = "Open Folder" }, .floating = true }, // code-oss
+        .{ .app_id = .{ .str = "org.fcitx.fcitx5-config-qt" }, .floating = true },
+        .{ .app_id = .{ .str = "org.qutebrowser.qutebrowser" }, .scroller_mfact = 0.7 },
+        .{ .app_id = .{ .str = "virt-manager" }, .scroller_mfact = 0.85 },
+        .{ .app_id = .{ .str = "footclient" }, .is_terminal = true, .scroller_mfact = 0.5 },
+        .{ .app_id = .{ .str = "swayimg" }, .is_terminal = true },
+        .{ .app_id = .{ .str = "mpv" }, .floating = false },
+    },
+    .input_device_rules = .{
+        .{ .repeat_info = .{ .rate = 30, .delay = 200 } },
+    },
+    .libinput_device_rules = .{
+        .{ .name = .{ .str = ".*[tT]ouchpad", .regex = true }, .tap = .enabled, .drag = .enabled, .natural_scroll = .enabled },
+        .{ .tap = .enabled, .drag = .enabled }
+    },
+    .xkb_keyboard_rules = .{
+        //
+    },
+}

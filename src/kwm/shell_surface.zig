@@ -8,8 +8,7 @@ const wayland = @import("wayland");
 const river = wayland.client.river;
 const wl = wayland.client.wl;
 
-const utils = @import("utils");
-
+const utils = @import("utils.zig");
 const types = @import("types.zig");
 const Context = @import("context.zig");
 

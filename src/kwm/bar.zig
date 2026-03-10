@@ -12,10 +12,12 @@ const wl = wayland.client.wl;
 const river = wayland.client.river;
 const pixman = @import("pixman");
 const fcft = @import("fcft");
+const mvzr = @import("mvzr");
 
-const utils = @import("utils");
-const config = @import("config");
+const types = @import("types.zig");
+const Config = @import("config");
 
+const utils = @import("utils.zig");
 const binding = @import("binding.zig");
 const Context = @import("context.zig");
 const Seat = @import("seat.zig");
@@ -24,8 +26,8 @@ const ShellSurface = @import("shell_surface.zig");
 const Buffer = @import("bar/buffer.zig");
 const Component = @import("bar/component.zig");
 
+const color_pattern = mvzr.compile("\\^#([0-9a-zA-Z]{8}|!)").?;
 pub var status_buffer = [1]u8 { 0 } ** 256;
-
 
 font: *fcft.Font,
 
@@ -39,16 +41,18 @@ dynamic_component: Component = undefined,
 output: *Output,
 
 scale: u32,
-backgournd_damaged: bool = true,
-hided: bool = !config.bar.show_default,
+background_damaged: bool = true,
+hidden: bool,
 
-split_points_buffer: [config.tags.len+3]i32 = undefined,
-static_splits: std.ArrayList(i32) = undefined,
+dynamic_splits_buffer: [@typeInfo(types.BarArea).@"enum".fields.len-2]i32 = undefined,
+static_splits: std.ArrayList(i32) = .empty,
 dynamic_splits: std.ArrayList(i32) = undefined,
 
 
 pub fn init(self: *Self, output: *Output) !void {
     log.debug("<{*}> init", .{ self });
+
+    const config = Config.get();
 
     const scale = 120;
     const font = load_font(scale) catch unreachable;
@@ -58,12 +62,12 @@ pub fn init(self: *Self, output: *Output) !void {
         .font = font,
         .output = output,
         .scale = scale,
+        .hidden = !config.bar.show_default,
     };
 
-    self.static_splits = .initBuffer(self.split_points_buffer[0..config.tags.len]);
-    self.dynamic_splits = .initBuffer(self.split_points_buffer[config.tags.len..]);
+    self.dynamic_splits = .initBuffer(&self.dynamic_splits_buffer);
 
-    if (!self.hided) {
+    if (!self.hidden) {
         try self.show();
     }
 }
@@ -72,11 +76,22 @@ pub fn init(self: *Self, output: *Output) !void {
 pub fn deinit(self: *Self) void {
     log.debug("<{*}> deinit", .{ self });
 
-    if (!self.hided) {
-        self.hided = true;
+    if (!self.hidden) {
+        self.hidden = true;
         self.hide();
     }
     self.font.destroy();
+
+    self.static_splits.deinit(utils.allocator);
+}
+
+
+pub fn reload_font(self: *Self) void {
+    log.debug("<{*}> reload font", .{ self });
+
+    const font = load_font(self.scale) catch return;
+    self.font.destroy();
+    self.font = font;
 }
 
 
@@ -87,6 +102,8 @@ pub inline fn height(self: *Self) i32 {
 
 pub fn handle_click(self: *Self, seat: *Seat) void {
     log.debug("<{*}> handle click by {*}", .{ self, seat });
+
+    const config = Config.get();
 
     const pointer_x = seat.pointer_position.x;
     const pointer_y = seat.pointer_position.y;
@@ -118,7 +135,7 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
         for (0.., self.static_splits.items) |i, split| {
             if (x <= split) {
                 const tag = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
-                const callback_action = (config.bar.click.get(.tag) orelse return).get(seat.button) orelse return;
+                const callback_action = config.bar.click.getter.get(.tags).getter.get(seat.button) orelse return;
                 action = switch (callback_action) {
                     .set_window_tag => .{ .set_window_tag = .{ .tag = tag } },
                     .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
@@ -133,57 +150,26 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
     }
 
     x -= self.static_component_width();
-
-    const context = Context.get();
-
-    const dynamic_width: i32 = @intCast(self.output.width - self.static_component_width());
-
-    const status_text: []const u8 = switch (config.bar.status) {
-        .text => |text| text,
-        else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
-    };
-    if (status_text.len > 0) {
-        const status_width = str_width(self.font, status_text) orelse 0;
-        const pad = self.get_pad();
-        const status_start = dynamic_width - @as(i32, @intCast(status_width)) - @as(i32, @intCast(pad));
-        if (x >= status_start) {
-            action = (config.bar.click.get(.status) orelse return).get(seat.button) orelse return;
+    for (&[_]types.BarArea { .layout, .mode, .title }, self.dynamic_splits.items) |area, split| {
+        if (x <= split) {
+            action = config.bar.click.getter.get(area).getter.get(seat.button) orelse return;
             return;
         }
     }
 
-    if (self.dynamic_splits.items.len > 0) {
-        if (x < self.dynamic_splits.items[0]) {
-            action = (config.bar.click.get(.layout) orelse return).get(seat.button) orelse return;
-            return;
-        }
-
-        if (self.dynamic_splits.items.len > 1) {
-            const mode_tag = if (config.mode_tag.contains(context.mode))
-                config.mode_tag.getAssertContains(context.mode)
-            else @tagName(context.mode);
-            if (mode_tag.len > 0) {
-                if (x < self.dynamic_splits.items[1]) {
-                    action = (config.bar.click.get(.mode) orelse return).get(seat.button) orelse return;
-                    return;
-                }
-            }
-        }
-    }
-
-    action = (config.bar.click.get(.title) orelse return).get(seat.button) orelse return;
+    action = config.bar.click.getter.get(.status).getter.get(seat.button) orelse return;
 }
 
 
 pub fn toggle(self: *Self) void {
-    log.debug("<{*}> toggle: {}", .{ self, !self.hided });
+    log.debug("<{*}> toggle: {}", .{ self, !self.hidden });
 
-    self.hided = !self.hided;
-    if (self.hided) {
+    self.hidden = !self.hidden;
+    if (self.hidden) {
         self.hide();
     } else {
         self.show() catch |err| {
-            self.hided = true;
+            self.hidden = true;
             log.err("<{*}> failed to show: {}", .{ self, err });
             return;
         };
@@ -196,7 +182,7 @@ pub fn damage(self: *Self, @"type": enum { all, tags, dynamic, layout, mode, tit
 
     switch (@"type") {
         .all => {
-            self.backgournd_damaged = true;
+            self.background_damaged = true;
         },
         .tags => {
             self.static_component.damaged = true;
@@ -208,24 +194,24 @@ pub fn damage(self: *Self, @"type": enum { all, tags, dynamic, layout, mode, tit
 
 
 pub fn render(self: *Self) void {
-    if (self.hided) return;
+    if (self.hidden) return;
 
     log.debug("<{*}> rendering", .{ self });
 
-    if (self.static_component.damaged or self.backgournd_damaged) {
+    if (self.static_component.damaged or self.background_damaged) {
         defer self.static_component.damaged = false;
 
         self.render_static_component();
     }
 
-    if (self.dynamic_component.damaged or self.backgournd_damaged) {
+    if (self.dynamic_component.damaged or self.background_damaged) {
         defer self.dynamic_component.damaged = false;
 
         self.render_dynamic_component();
     }
 
-    if (self.backgournd_damaged) {
-        defer self.backgournd_damaged = false;
+    if (self.background_damaged) {
+        defer self.background_damaged = false;
 
         self.render_background();
     }
@@ -233,6 +219,8 @@ pub fn render(self: *Self) void {
 
 
 inline fn static_component_width(self: *Self) i32 {
+    const config = Config.get();
+
     std.debug.assert(self.static_splits.items.len == config.tags.len);
 
     return self.static_splits.getLast();
@@ -256,6 +244,7 @@ fn get_box(self: *Self) struct { u16, i16 } {
 fn render_background(self: *Self) void {
     log.debug("<{*}> rendering background", .{ self });
 
+    const config = Config.get();
     const context = Context.get();
     const h = self.height();
 
@@ -347,16 +336,29 @@ fn render_str(
 fn render_static_component(self: *Self) void {
     log.debug("<{*}> rendering static component", .{ self });
 
+    const config = Config.get();
     const context = Context.get();
     self.static_splits.clearRetainingCapacity();
+    self.static_splits.ensureTotalCapacity(utils.allocator, config.tags.len) catch |err| {
+        log.err("<{*}> ensure static_splits total capacity to {} failed: {}", .{ self, config.tags.len, err });
+        return;
+    };
 
-    var texts: [config.tags.len]*const fcft.TextRun = undefined;
-    for (0.., config.tags) |i, label| {
+    var texts: std.ArrayList(*const fcft.TextRun) = .empty;
+    texts.ensureTotalCapacity(utils.allocator, config.tags.len) catch |err| {
+        log.err("<{*}> initCapacity for texts while render_static_component failed: {}", .{ self, err });
+        return;
+    };
+    defer texts.deinit(utils.allocator);
+
+    for (config.tags) |label| {
         if (to_utf8(label)) |utf8| {
-            texts[i] = self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
-                log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
-                return;
-            };
+            texts.appendBounded(
+                self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
+                    log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
+                    return;
+                }
+            ) catch unreachable;
             utils.allocator.free(utf8);
         } else {
             log.warn("to_utf8 failed", .{});
@@ -364,22 +366,22 @@ fn render_static_component(self: *Self) void {
         }
     }
 
+    defer {
+        for (texts.items) |text| {
+            text.destroy();
+        }
+    }
+
     const pad = self.get_pad();
     const w: u16 = blk: {
         var width: u16 = 0;
-        for (texts) |text| {
+        for (texts.items) |text| {
             width += @intCast(text_width(text)+pad);
             self.static_splits.appendBounded(@intCast(width)) catch unreachable;
         }
         break :blk width;
     };
     const h: u16 = @intCast(self.height());
-
-    defer {
-        for (texts) |text| {
-            text.destroy();
-        }
-    }
 
     const buffer = self.next_buffer(.static, w, h) orelse return;
 
@@ -411,7 +413,7 @@ fn render_static_component(self: *Self) void {
     var x: i16 = 0;
     const y: i16 = 0;
     const box_size, const box_offset = self.get_box();
-    for (0.., texts) |i, text| {
+    for (0.., texts.items) |i, text| {
         const tag: u32 = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
 
         const is_focused = self.output.tag & tag != 0;
@@ -484,6 +486,7 @@ fn render_static_component(self: *Self) void {
 fn render_dynamic_component(self: *Self) void {
     log.debug("<{*}> rendering dynamic component", .{ self });
 
+    const config = Config.get();
     const context = Context.get();
     self.dynamic_splits.clearRetainingCapacity();
 
@@ -512,46 +515,22 @@ fn render_dynamic_component(self: *Self) void {
     var x: i16 = 0;
     const y: i16 = 0;
 
-    const current_layout = self.output.current_layout();
-    if (current_layout == .monocle) {
-        var visible_count: usize = 0;
-        {
-            var it = context.windows.safeIterator(.forward);
-            while (it.next()) |window| {
-                if (window.is_visible_in(self.output) and !window.floating) {
-                    visible_count += 1;
-                }
-            }
-        }
+    x += self.render_str(
+        buffer,
+        switch (self.output.current_layout()) {
+            .tile => config.layout_tag.tile.getter.get(config.layout.tile.master_location),
+            .grid => config.layout_tag.grid.getter.get(config.layout.grid.direction),
+            .monocle => config.layout_tag.monocle,
+            .scroller => config.layout_tag.scroller,
+            .float => config.layout_tag.float,
+        },
+        &normal_fg,
+        x+@as(i16, @intCast(@divFloor(pad, 2))),
+        y,
+    ) + @as(i16, @intCast(pad));
+    self.dynamic_splits.appendBounded(x) catch unreachable;
 
-        const layout_symbol = if (visible_count == 0)
-            config.layout_tag(.monocle)
-        else blk: {
-            var buf: [16]u8 = undefined;
-            const formatted = std.fmt.bufPrint(&buf, "[{}]", .{visible_count}) catch "[?]";
-            break :blk formatted;
-        };
-
-        x += self.render_str(
-            buffer,
-            layout_symbol,
-            &normal_fg,
-            x+@as(i16, @intCast(@divFloor(pad, 2))),
-            y,
-        ) + @as(i16, @intCast(pad));
-    } else {
-        x += self.render_str(
-            buffer,
-            config.layout_tag(current_layout),
-            &normal_fg,
-            x+@as(i16, @intCast(@divFloor(pad, 2))),
-            y,
-        ) + @as(i16, @intCast(pad));
-    }
-
-    const mode_tag =
-        if (config.mode_tag.contains(context.mode)) config.mode_tag.getAssertContains(context.mode)
-        else @tagName(context.mode);
+    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
     if (mode_tag.len > 0) {
         x += self.render_str(
             buffer,
@@ -601,36 +580,85 @@ fn render_dynamic_component(self: *Self) void {
     }
 
     self.dynamic_splits.appendBounded(@intCast(w)) catch unreachable;
-    const status_text: []const u8 = switch (config.bar.status) {
-        .text => |text| text,
-        else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
-    };
-    if (status_text.len > 0) {
-        if (to_utf8(mem.trimEnd(u8, status_text, "\n "))) |utf8| {
-            defer utils.allocator.free(utf8);
+    const status_text: []const u8 = mem.trimEnd(
+        u8,
+        switch (config.bar.status) {
+            .text => |text| text,
+            else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
+        },
+        "\n ",
+    );
+    if (status_text.len > 0) status_block: {
+        var texts: std.ArrayList(struct { pixman.Color, *const fcft.TextRun }) = .empty;
+        defer texts.deinit(utils.allocator);
 
-            const text = self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
-                log.err("createU32RgbaBuffer failed: {}", .{ err });
-                return;
-            };
-            defer text.destroy();
+        var i: usize = 0;
+        var fg = normal_fg;
+        var it = color_pattern.iterator(status_text);
+        var match = it.next();
+        while (i < status_text.len) {
+            if (match == null or i < match.?.start) {
+                const end = if (match) |m| m.start else status_text.len;
+                defer i = end;
 
-            const width = text_width(text);
+                if (to_utf8(status_text[i..end])) |utf8| {
+                    defer utils.allocator.free(utf8);
 
-            x = @intCast(w -| @as(u16, @intCast(width)) -| pad);
-            bg_rect[0].x = x;
-            bg_rect[0].width = w - @as(u16, @intCast(x));
-            _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
+                    texts.append(
+                        utils.allocator,
+                        .{
+                            fg,
+                            self.font.rasterizeTextRunUtf32(
+                                utf8,
+                                .default,
+                            ) catch |err| {
+                                log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
+                                break :status_block;
+                            },
+                        },
+                    ) catch |err| {
+                        log.err("append failed: {}", .{ err });
+                        break :status_block;
+                    };
+                } else {
+                    log.warn("to_utf8 failed", .{});
+                    break :status_block;
+                }
+            } else if (i == match.?.start) blk: {
+                defer {
+                    i += match.?.slice.len;
+                    match = it.next();
+                }
 
-            self.dynamic_splits.items[self.dynamic_splits.items.len-1] = x;
+                if (match.?.slice.len == 3) {
+                    fg = normal_fg;
+                } else {
+                    const hex = match.?.slice[2..];
+                    fg = color(fmt.parseInt(u32, hex, 16) catch |err| {
+                        log.err("parseInt failed: {}", .{ err });
+                        break :blk;
+                    });
+                }
+            } else unreachable;
+        }
 
-            x += self.render_text(
-                buffer,
-                text,
-                &normal_fg,
-                x+@as(i16, @intCast(@divFloor(pad, 2))),
-                y,
-            ) + @as(i16, @intCast(pad));
+        var width: u32 = 0;
+        for (texts.items) |item| {
+            _, const text = item;
+            width += text_width(text);
+        }
+        x = @intCast(w -| @as(u16, @intCast(width)) -| pad);
+
+        self.dynamic_splits.items[self.dynamic_splits.items.len-1] = x;
+
+        bg_rect[0].x = x;
+        bg_rect[0].width = w - @as(u16, @intCast(x));
+        _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
+
+        x += @as(i16, @intCast(@divFloor(pad, 2)));
+        for (texts.items) |item| {
+            const c, const text = item;
+            x += self.render_text(buffer, text, &c, x, y);
         }
     }
 
@@ -639,10 +667,11 @@ fn render_dynamic_component(self: *Self) void {
 
 
 fn show(self: *Self) !void {
-    std.debug.assert(!self.hided);
+    std.debug.assert(!self.hidden);
 
     log.debug("<{*}> show", .{ self });
 
+    const config = Config.get();
     const context = Context.get();
 
     const wl_surface = try context.wl_compositor.createSurface();
@@ -676,7 +705,7 @@ fn show(self: *Self) !void {
 
 
 fn hide(self: *Self) void {
-    std.debug.assert(self.hided);
+    std.debug.assert(self.hidden);
 
     log.debug("<{*}> hide", .{ self });
 
@@ -697,15 +726,6 @@ fn hide(self: *Self) void {
 
     self.wl_surface.destroy();
     self.wl_surface = undefined;
-}
-
-
-fn reload_font(self: *Self) void {
-    log.debug("<{*}> reload font", .{ self });
-
-    const font = load_font(self.scale) catch return;
-    self.font.destroy();
-    self.font = font;
 }
 
 
@@ -746,6 +766,8 @@ fn next_buffer(self: *Self, @"type": enum { static, dynamic }, width: i32, heigh
 
 
 fn load_font(scale: u32) !*fcft.Font {
+    const config = Config.get();
+
     var buffer: [12]u8 = undefined;
     const backup_font = "monospace:size=10";
     var fonts = [_][*:0]const u8 { @ptrCast(config.bar.font.ptr), backup_font };

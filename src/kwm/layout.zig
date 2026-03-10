@@ -1,4 +1,4 @@
-const config = @import("config");
+const Config = @import("config");
 
 const Output = @import("output.zig");
 
@@ -17,11 +17,13 @@ pub const scroller = @import("layout/scroller.zig");
 
 
 pub fn arrange(layout: Type, output: *Output) void {
+    const config = Config.get();
+
     switch (layout) {
         .float => return,
-        .tile => config.tile.arrange(output),
-        .grid => config.grid.arrange(output),
-        .monocle => config.monocle.arrange(output),
-        .scroller => config.scroller.arrange(output),
+        .tile => config.layout.tile.arrange(output),
+        .grid => config.layout.grid.arrange(output),
+        .monocle => config.layout.monocle.arrange(output),
+        .scroller => config.layout.scroller.arrange(output),
     }
 }

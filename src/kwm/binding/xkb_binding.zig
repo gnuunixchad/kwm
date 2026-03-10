@@ -6,23 +6,23 @@ const log = std.log.scoped(.xkb_binding);
 const wayland = @import("wayland");
 const river = wayland.client.river;
 
-const utils = @import("utils");
-
+const utils = @import("../utils.zig");
 const binding = @import("../binding.zig");
 const Seat = @import("../seat.zig");
 const Context = @import("../context.zig");
 
-pub const Event = enum {
-    pressed,
-    released,
-    repeat,
+pub const Event = union(enum) {
+    repeat: binding.Action,
+    click: struct {
+        pressed: ?binding.Action = null,
+        released: ?binding.Action = null,
+    },
 };
 
 
 rwm_xkb_binding: *river.XkbBindingV1,
 
 seat: *Seat,
-action: binding.Action,
 event: Event,
 
 
@@ -30,7 +30,6 @@ pub fn create(
     seat: *Seat,
     keysym: u32,
     modifiers: river.SeatV1.Modifiers,
-    action: binding.Action,
     event: Event,
 ) !*Self {
     const xkb_binding = try utils.allocator.create(Self);
@@ -44,7 +43,6 @@ pub fn create(
     xkb_binding.* = .{
         .rwm_xkb_binding = rwm_xkb_binding,
         .seat = seat,
-        .action = action,
         .event = event
     };
 
@@ -83,21 +81,28 @@ fn rwm_xkb_binding_listener(rwm_xkb_binding: *river.XkbBindingV1, event: river.X
     log.debug("<{*}> {s}", .{ xkb_binding, @tagName(event) });
 
     switch (xkb_binding.event) {
-        .pressed => if (event != .pressed) return,
-        .released => if (event != .released) return,
-        .repeat => {
+        .click => |data| {
+            xkb_binding.seat.append_action(switch (event) {
+                .pressed => data.pressed orelse return,
+                .released => data.released orelse return,
+                .stop_repeat => return,
+            });
+        },
+        .repeat => |action| {
             const context = Context.get();
 
             if (context.key_repeat) |*key_repeat| {
                 switch (event) {
                     .pressed => {
-                        key_repeat.prepare_repeat(xkb_binding);
+                        key_repeat.prepare_repeat(xkb_binding, action);
                     },
                     .stop_repeat, .released => key_repeat.stop(xkb_binding),
                 }
             }
+
+            if (event == .pressed) {
+                xkb_binding.seat.append_action(action);
+            }
         },
     }
-
-    xkb_binding.seat.append_action(xkb_binding.action);
 }

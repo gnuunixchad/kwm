@@ -6,12 +6,13 @@ const time = std.time;
 const posix = std.posix;
 const log = std.log.scoped(.key_repeat);
 
-const config = @import("config");
+const Config = @import("config");
 
 const binding = @import("binding.zig");
 const Context = @import("context.zig");
 
 
+action: binding.Action = undefined,
 xkb_binding: ?*binding.XkbBinding = null,
 
 timer_fd: posix.fd_t,
@@ -36,14 +37,17 @@ pub fn deinit(self: *Self) void {
 }
 
 
-pub fn prepare_repeat(self: *Self, xkb_binding: *binding.XkbBinding) void {
+pub fn prepare_repeat(self: *Self, xkb_binding: *binding.XkbBinding, action: binding.Action) void {
     if (self.is_repeating()) return;
 
-    log.debug("<{*}> start repeating {*}", .{ self, xkb_binding });
+    log.debug("<{*}> start repeating {*}, action: {s}", .{ self, xkb_binding, @tagName(action) });
+
+    const config = Config.get();
+    const repeat_info = &config.bindings.repeat_info;
 
     const itimerspec: posix.system.itimerspec = .{
-        .it_value = .{ .sec = 0, .nsec = config.repeat_delay*time.ns_per_ms },
-        .it_interval = .{ .sec = 0, .nsec = @divFloor(time.ns_per_s, config.repeat_rate) },
+        .it_value = .{ .sec = 0, .nsec = repeat_info.delay*time.ns_per_ms },
+        .it_interval = .{ .sec = 0, .nsec = @divFloor(time.ns_per_s, repeat_info.rate) },
     };
     posix.timerfd_settime(self.timer_fd, .{ .ABSTIME = false }, &itimerspec, null) catch |err| {
         log.err("<{*}> call timerfd_settime of timer_fd failed: {}", .{ self, err });
@@ -51,6 +55,7 @@ pub fn prepare_repeat(self: *Self, xkb_binding: *binding.XkbBinding) void {
     };
 
     self.xkb_binding = xkb_binding;
+    self.action = action;
 }
 
 
@@ -62,7 +67,7 @@ pub fn repeat(self: *Self, count: u64) void {
     const context = Context.get();
 
     for (0..count) |_| {
-        self.xkb_binding.?.seat.append_action(self.xkb_binding.?.action);
+        self.xkb_binding.?.seat.append_action(self.action);
     }
 
     context.rwm.manageDirty();
@@ -81,6 +86,7 @@ pub fn stop(self: *Self, xkb_binding: *binding.XkbBinding) void {
     };
 
     self.xkb_binding = null;
+    self.action = undefined;
 }
 
 

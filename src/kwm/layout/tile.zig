@@ -3,24 +3,26 @@ const Self = @This();
 const std = @import("std");
 const log = std.log.scoped(.tiled);
 
-const utils = @import("utils");
 const config = @import("config");
 
+const utils = @import("../utils.zig");
 const Context = @import("../context.zig");
 const Output = @import("../output.zig");
 const Window = @import("../window.zig");
+
+pub const MasterLocation = enum {
+    left,
+    right,
+    top,
+    bottom,
+};
 
 
 nmaster: i32,
 mfact: f32,
 inner_gap: i32,
 outer_gap: i32,
-master_location: enum {
-    left,
-    right,
-    top,
-    bottom,
-},
+master_location: MasterLocation,
 
 
 pub fn arrange(self: *const Self, output: *Output) void {
@@ -47,8 +49,8 @@ pub fn arrange(self: *const Self, output: *Output) void {
     if (windows.items.len == 0) return;
 
     const usable_width, const usable_height = blk: {
-        const width = output.exclusive_width() -| 2*self.outer_gap;
-        const height = output.exclusive_height() -| 2*self.outer_gap;
+        const width = @max(0, output.exclusive_width() - 2*self.outer_gap);
+        const height = @max(0, output.exclusive_height() - 2*self.outer_gap);
         break :blk switch (self.master_location) {
             .left, .right => .{ width, height },
             .top, .bottom => .{ height, width },
@@ -95,6 +97,8 @@ pub fn arrange(self: *const Self, output: *Output) void {
             w = stack_width - @divFloor(self.inner_gap, 2);
             h = (stack_height + if (i == nmaster) stack_remain else 0) - if (i > nmaster) self.inner_gap else 0;
         }
+        w = @max(0, w);
+        h = @max(0, h);
 
         switch (self.master_location) {
             .left => {

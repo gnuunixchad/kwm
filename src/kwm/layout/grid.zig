@@ -3,22 +3,23 @@ const Self = @This();
 const std = @import("std");
 const log = std.log.scoped(.grid);
 
-const utils = @import("utils");
-
+const utils = @import("../utils.zig");
 const Context = @import("../context.zig");
 const Output = @import("../output.zig");
 const Window = @import("../window.zig");
 
+pub const Direction = enum {
+    horizontal,
+    vertical,
+};
+
 
 outer_gap: i32,
 inner_gap: i32,
-direction: enum {
-    horizontal,
-    vertical,
-} = .horizontal,
+direction: Direction,
 
 
-pub fn arrange(self: *Self, output: *Output) void {
+pub fn arrange(self: *const Self, output: *Output) void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
     const context = Context.get();
@@ -44,8 +45,8 @@ pub fn arrange(self: *Self, output: *Output) void {
     const col_num: i32 = @intFromFloat(@ceil(@sqrt(@as(f64, @floatFromInt(windows.items.len)))));
     const row_num: i32 = @intFromFloat(@ceil(@as(f32, @floatFromInt(windows.items.len)) / @as(f32, @floatFromInt(col_num))));
     const available_width, const available_height = blk: {
-        const width = output.exclusive_width() -| 2*self.outer_gap;
-        const height = output.exclusive_height() -| 2*self.outer_gap;
+        const width = @max(0, output.exclusive_width() - 2*self.outer_gap);
+        const height = @max(0, output.exclusive_height() - 2*self.outer_gap);
         break :blk switch (self.direction) {
             .horizontal => .{ width, height },
             .vertical => .{ height, width },
