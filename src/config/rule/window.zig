@@ -39,7 +39,7 @@ pub fn match(self: *const Self, app_id: ?[]const u8, title: ?[]const u8) bool {
     if (self.title) |pattern| {
         log.debug("try match title: `{s}` with {*}({*}: `{s}`)", .{ title orelse "null", self, &pattern, pattern.str });
 
-        if (!pattern.is_match(app_id)) return false;
+        if (!pattern.is_match(title)) return false;
     }
 
     return true;
