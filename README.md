@@ -68,7 +68,7 @@ For all options available see `man 7 xkeyboard-config`
 ### How I run kwm with river
 Read status from a fifo(to restart the status command without restarting kwm)
 ```zig
-// config.zig
+// config.zon
 .status = .{ .fifo = "/run/user/1000/damblocks.fifo" },
 ```
 Add below in  `~/.config/river/init`
