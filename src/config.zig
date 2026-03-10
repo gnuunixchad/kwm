@@ -525,7 +525,7 @@ fn try_load_user_config() ?make_fields_optional(Self) {
     _ = file.readAll(buffer) catch return null;
     buffer[stat.size] = 0;
 
-    @setEvalBranchQuota(7000);
+    @setEvalBranchQuota(10000);
     return zon.parse.fromSlice(
         make_fields_optional(Self),
         allocator,

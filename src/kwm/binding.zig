@@ -73,4 +73,9 @@ pub const Action = union(enum) {
     toggle_auto_swallow,
 
     reload_config,
+
+    group: struct {
+        actions: []const Action,
+    },
+
 };

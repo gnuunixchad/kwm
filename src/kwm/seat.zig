@@ -610,6 +610,12 @@ fn handle_actions(self: *Self) void {
             .reload_config => {
                 context.reload_config();
             },
+
+            .group => |group| {
+                for (group.actions) |nested_action| {
+                    self.append_action(nested_action);
+                }
+            },
         }
     }
 }
