@@ -147,6 +147,12 @@ pub fn destroy(self: *Self) void {
 
     const context = Context.get();
 
+    if (self.output) |output| {
+        if (output.prev_focused_window == self) {
+            output.prev_focused_window = null;
+        }
+    }
+
     {
         var it = context.seats.safeIterator(.forward);
         while (it.next()) |seat| {
