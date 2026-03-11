@@ -170,6 +170,8 @@
             .{ "lock", "" },
             .{ "passthrough", "Passthrough" },
             .{ "floating", "Floating" },
+            .{ "wmenu", "[w]iki [h]eart [b]ooks bl[u]e [s]peaker [e]moji [j]doc" },
+            .{ "dunst", "clip-w[i]pe [l]supdates [w]ttr d[c]al ls[m]us" },
             .{ "wlrctl", "[hjkl]cursors [,]left [.]right [m]iddle ^[hjkl]arrows" },
         },
 
@@ -487,6 +489,296 @@
                     .click = .{
                         .pressed = .{
                             .snap = .{ .edge = .right },
+                        },
+                    },
+                },
+            },
+
+            // wmenu
+            .{
+                .keysym = "w",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_mode = .{ .mode = "wmenu" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "w",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "Escape",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "space",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "w",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/wiki" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "h",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/heart" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "b",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/books" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "u",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/blue" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "s",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/speaker" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "e",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/emoji" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "wmenu",
+                .keysym = "j",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/jdoc" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+
+            // dunst
+            .{
+                .keysym = "x",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_mode = .{ .mode = "dunst" },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "dunst",
+                .keysym = "x",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "dunst",
+                .keysym = "Escape",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "dunst",
+                .keysym = "space",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{ .switch_mode = .{ .mode = "default" } },
+                    },
+                },
+            },
+            .{
+                .mode = "dunst",
+                .keysym = "l",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/lsupdates" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "dunst",
+                .keysym = "w",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/wttr" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "dunst",
+                .keysym = "c",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/dcal" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "dunst",
+                .keysym = "m",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/lsmus" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .mode = "dunst",
+                .keysym = "i",
+                .modifiers = .{},
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .spawn_shell = .{ .cmd = "${HOME}/.local/bin/clip --wipe" } },
+                                    .{ .switch_mode = .{ .mode = "default" } },
+                                },
+                            },
                         },
                     },
                 },
