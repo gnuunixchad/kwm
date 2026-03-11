@@ -523,7 +523,7 @@ fn handle_actions(self: *Self) void {
                 if (context.focused_window()) |window| {
                     if (window.output) |output| {
                         switch (output.current_layout()) {
-                            .tile => {
+                            .tile, .deck => {
                                 context.shift_to_head(window);
                                 context.focus(window);
                             },
@@ -581,6 +581,7 @@ fn handle_actions(self: *Self) void {
                         .tile => config.layout.tile.inner_gap = @max(config.border.width*2, config.layout.tile.inner_gap+data.step),
                         .grid => config.layout.grid.inner_gap = @max(config.border.width*2, config.layout.grid.inner_gap+data.step),
                         .monocle => config.layout.monocle.gap = @max(config.border.width*2, config.layout.monocle.gap+data.step),
+                        .deck => config.layout.deck.inner_gap = @max(config.border.width*2, config.layout.deck.inner_gap+data.step),
                         .scroller => config.layout.scroller.inner_gap = @max(config.border.width*2, config.layout.scroller.inner_gap+data.step),
                         .float => {},
                     }

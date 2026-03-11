@@ -96,6 +96,7 @@
         // .tile
         // .grid
         // .monocle
+        // .deck
         // .scroller
         .default = .tile,
 
@@ -122,6 +123,10 @@
         .monocle = .{
             .gap = 9,
         },
+        .deck = .{
+            .inner_gap = 12,
+            .outer_gap = 9,
+        },
         .scroller = .{
             .mfact = 0.5,
             .inner_gap = 16,
@@ -142,6 +147,7 @@
             .vertical = "|||",
         },
         .monocle = "[=]",
+        .deck = "[D]",
         .scroller = "[==]",
         .float = "><>",
     },
@@ -611,6 +617,17 @@
                     .click = .{
                         .pressed = .{
                             .switch_layout = .{ .layout = .grid },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "d",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_layout = .{ .layout = .deck },
                         },
                     },
                 },
