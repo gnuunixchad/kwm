@@ -889,7 +889,60 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .switch_layout = .{ .layout = .tile },
+                            .group = .{
+                                .actions = .{
+                                    .{ .switch_layout = .{ .layout = .tile } },
+                                    .{ .modify_tile_master_location = .{ .location = .left } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "t",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .switch_layout = .{ .layout = .tile } },
+                                    .{ .modify_tile_master_location = .{ .location = .right } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "u",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .switch_layout = .{ .layout = .tile } },
+                                    .{ .modify_tile_master_location = .{ .location = .bottom } },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            .{
+                .keysym = "u",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .group = .{
+                                .actions = .{
+                                    .{ .switch_layout = .{ .layout = .tile } },
+                                    .{ .modify_tile_master_location = .{ .location = .top } },
+                                },
+                            },
                         },
                     },
                 },
