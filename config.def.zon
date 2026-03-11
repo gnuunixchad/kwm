@@ -1,8 +1,13 @@
 .{
+    // environment variables
+    // used by processes spawned by kwm
     .env = .{
         // .{ "key", "value" },
     },
+
+    // working direction of processes spawned by kwm
     .working_directory = .home,
+
     .startup_cmds = .{
         // .{ "swaybg", "-i", "/path/to/wallpaper" },
         .{ "gammastep", "-O", "5000" },
@@ -18,9 +23,14 @@
         .{ "sh", "-c", "${HOME}/.local/bin/mbs-cron" },
         .{ "sh", "-c", "${HOME}/.local/bin/damblocks-mpdd" },
     },
+
+    // .{ .name = []const u8, .size = u32 }
     .xcursor_theme = null,
+
     .bar = .{
         .show_default = true,
+        // .top
+        // .bottom
         .position = .top,
         .font = "SourceCodePro:size=13:weight=Medium",
         .color = .{
@@ -65,10 +75,21 @@
             },
         },
     },
+
     .sloppy_focus = false,
+
+    // .none
+    // .on_focus_changed: wrap cursor to the center of window focused
+    // .on_output_changed: wrap cursor to the center of output focused
     .cursor_wrap = .none,
+
     .auto_swallow = false,
+
+    // .csd
+    // .ssd
     .default_window_decoration = .ssd,
+
+    // window border
     .border = .{
         .width = 2,
         .color = .{
@@ -76,19 +97,35 @@
             .unfocus = 0x000000ff,
         },
     },
+
+    // tags show on bar
     .tags = .{ "1", "2", "3", "4", "5", "6", "7", "8", "9" },
+
     .layout = .{
+        // .tile
+        // .grid
+        // .monocle
+        // .scroller
         .default = .tile,
+
         .tile = .{
             .nmaster = 1,
             .mfact = 0.50,
             .inner_gap = 0,
             .outer_gap = 2,
+
+            // .left
+            // .right
+            // .top
+            // .bottom
             .master_location = .left,
         },
         .grid = .{
             .outer_gap = 2,
             .inner_gap = 0,
+
+            // .horizontal
+            // .vertical
             .direction = .horizontal,
         },
         .monocle = .{
@@ -100,6 +137,8 @@
             .outer_gap = 2,
         },
     },
+
+    // layout tags show on bar
     .layout_tag = .{
         .tile = .{
             .left = "[]=",
@@ -115,18 +154,51 @@
         .scroller = "[==]",
         .float = "><>",
     },
+
+    // key/pointer bindings
     .bindings = .{
+        // repeat info for key repeat event, different with the repeat_info of input device
         .repeat_info = .{
             .rate = 30,
             .delay = 200,
         },
+
+        // mode tags show on bar
+        // display full mode string by default
         .mode_tag = .{
-            .{ "default", "" },
+            .{ "default", "" },         // hide mode tag in default mode
             .{ "lock", "" },
             .{ "passthrough", "Passthrough" },
             .{ "floating", "Floating" },
             .{ "wlrctl", "[hjkl]cursors [,]left [.]right [m]iddle ^[hjkl]arrows" },
         },
+
+        // list of key bindings
+        // full scheme:
+        //       mode: string(< 16 bytes)
+        //          "default" and "lock" are defined by default
+        //          "default" is the default mode, if you not set `mode`, the binding will be seemed as "default" mode
+        //          when the session locked, kwm will switch to "lock" mode
+        //          you could define any other mode
+        //       keysym: keysym string
+        //       modifiers:
+        //          a struct with fields: shift, ctrl, mod1, mod3, mod4, mod5, and all of these fields are `false` by default
+        //          set modifiers to .{} means key binding without any modifier
+        //       event: key binding trigger event
+        //          there are two options:
+        //              .event = .{
+        //                  .repeat = action
+        //              }
+        //              after the key pressed, the action will repeatly trigger until key released or any another key pressed
+        //
+        //              .event = .{
+        //                  .click = .{
+        //                      .pressed = null or action, default is null
+        //                      .released = null or action, default is null
+        //                  }
+        //              }
+        //              the corrosponding action will only trigger once when key pressed or released
+        //              the pressed action and released action could define at the same time
         .key = .{
             .{
                 .keysym = "r",
@@ -1612,6 +1684,22 @@
                 },
             },
         },
+
+        // list of pointer bindings
+        // full scheme:
+        //       mode: same as key binding
+        //       button: pointer button
+        //          .left
+        //          .right
+        //          .middle
+        //       modifiers: same as key binding
+        //       event: pointer binding trigger event
+        //              .event = .{
+        //                  .pressed = null or action, default is null
+        //                  .released = null or action, default is null
+        //              }
+        //              the corrosponding action will only trigger once when pointer button pressed or released
+        //              the pressed action and released action could define at the same time
         .pointer = .{
             .{
                 .mode = "default",
@@ -1627,6 +1715,28 @@
             },
         },
     },
+
+    // rule part
+    //
+    // a rule pattern has fields below:
+    //      str: pattern string, required
+    //      regex: bool, if enable regex
+    //      match_null: bool, if match null
+    //
+    // only the first rule matched will be applied
+
+    // window rules
+    // full scheme:
+    //      app_id: rule pattern
+    //      title: rule pattern
+    //
+    //      tag: window tag
+    //      floating: bool, if floating
+    //      dimension: .{ .width = i32, .height = i32 }, initial dimension
+    //      decoration: .csd or .ssd, window decoration
+    //      is_terminal: bool, if set true, means the window could be swallowed
+    //      disable_swallow: bool, if set true, the window could not swallow any other windows
+    //      scroller_mfact: f32, initial mfact of the window for scroller layout
     .window_rules = .{
         .{ .app_id = .{ .str = "", .match_null = true }, .floating = true },
         .{
@@ -1653,13 +1763,77 @@
         .{ .app_id = .{ .str = "swayimg" }, .is_terminal = true },
         .{ .app_id = .{ .str = "mpv" }, .floating = false },
     },
+
+    // input device rules
+    // full scheme:
+    //      name: rule pattern
+    //
+    //      repeat_info: .{ .rate = i32, .delay = i32 }
+    //      scroll_factor: f64
     .input_device_rules = .{
         .{ .repeat_info = .{ .rate = 30, .delay = 200 } },
     },
+
+    // libinput device rules
+    // full scheme:
+    //      name: rule pattern
+    //
+    //      send_events_modes:
+    //          .enabled
+    //          .disabled
+    //          .disabled_on_external_mouse
+    //      tap: .enabled or .disabled
+    //      drag: .enabled or .disabled
+    //      drag_lock: .enabled or .disabled
+    //      tap_button_map: .lrm or .lmr
+    //      three_finger_drag:
+    //          .disabled
+    //          .enabled_3fg
+    //          .enabled_4fg
+    //      calibration_matrix: [6]f32
+    //      accel_profile:
+    //          .none
+    //          .flat
+    //          .adaptive
+    //          .custom
+    //      accel_speed: f32
+    //      natural_scroll: .enabled or .disabled
+    //      left_handed: .enabled or .disabled
+    //      click_method:
+    //          .none
+    //          .button_areas
+    //          .clickfinger
+    //      clickfinger_button_map: .lrm or .lmr
+    //      middle_button_emulation: .enabled or .disabled
+    //      scroll_method:
+    //          .no_scroll
+    //          .two_finger
+    //          .edge
+    //          .on_button_down
+    //      scroll_button:
+    //          .left
+    //          .right
+    //          .middle
+    //      scroll_button_lock: .enabled or .disabled
+    //      disable_while_typing: .enabled or .disabled
+    //      disable_while_trackpointing: .enabled or .disabled
+    //      rotation_angle: u32
     .libinput_device_rules = .{
         .{ .name = .{ .str = ".*[tT]ouchpad", .regex = true }, .tap = .enabled, .drag = .enabled, .natural_scroll = .enabled },
         .{ .tap = .enabled, .drag = .enabled }
     },
+
+    // xkb_keyboard rules
+    // full scheme:
+    //      name: rule pattern
+    //
+    //      numlock: .enabled or .disabled
+    //      capslock: .enabled or .disabled
+    //      layout:
+    //          layout index: .{ .index = u32 }
+    //          or
+    //          layout name: .{ .name = "layout name" }
+    //      keymap: .{ .file = "keymap file", .format = .text_v1 or .text_v2 }
     .xkb_keyboard_rules = .{
         //
     },
