@@ -192,6 +192,10 @@ pub fn set_output(self: *Self, output: ?*Output, clear_former: bool) void {
 
         self.output = output;
 
+        // reset floating_geometry
+        // window's output had changed, restore its geometry may cause error
+        self.floating_geometry = null;
+
         if (comptime build_options.bar_enabled) {
             if (self.output) |o| o.bar.damage(.tags);
         }
