@@ -524,8 +524,29 @@ fn handle_actions(self: *Self) void {
                     if (window.output) |output| {
                         switch (output.current_layout()) {
                             .tile => {
-                                context.shift_to_head(window);
-                                context.focus(window);
+                                if (window.floating) return;
+                                var master: ?*Window = null;
+                                var it = context.windows.safeIterator(.forward);
+                                while (it.next()) |w| {
+                                    if (w.is_visible_in(output) and !w.floating) {
+                                        master = w;
+                                        break;
+                                    }
+                                }
+                                const current_master = master orelse return;
+                                if (window == current_master) {
+                                    if (output.prev_focused_window) |prev| {
+                                        if (prev.is_visible_in(output) and !prev.floating and prev != current_master) {
+                                            output.prev_focused_window = current_master;
+                                            current_master.link.swapWith(&prev.link);
+                                            context.focus(prev);
+                                        }
+                                    }
+                                } else {
+                                    output.prev_focused_window = current_master;
+                                    window.link.swapWith(&current_master.link);
+                                    context.focus(window);
+                                }
                             },
                             .scroller => window.scroller_x = .center,
                             else => {}
