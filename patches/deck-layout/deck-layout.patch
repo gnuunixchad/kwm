@@ -1,0 +1,228 @@
+From 1696167e8f063b481be4551feb32f5189eb0663a Mon Sep 17 00:00:00 2001
+From: nate zhou <gnuunixchad@outlook.com>
+Date: Wed, 11 Mar 2026 19:25:19 +0800
+Subject: [PATCH] Add: deck layout
+
+Add Deck layout:
+- master window on left, while stack windows overlap on right, like a
+  deck of cards
+- default keybindings <kbd>mod4</kbd> + <kbd>d</kbd>
+---
+ README.md               |  2 +-
+ config.def.zon          | 17 ++++++++++++
+ src/config.zig          |  2 ++
+ src/kwm/bar.zig         |  1 +
+ src/kwm/layout.zig      |  3 +++
+ src/kwm/layout/deck.zig | 57 +++++++++++++++++++++++++++++++++++++++++
+ src/kwm/seat.zig        |  3 ++-
+ 7 files changed, 83 insertions(+), 2 deletions(-)
+ create mode 100644 src/kwm/layout/deck.zig
+
+diff --git a/README.md b/README.md
+index 8f81de3..92cb556 100644
+--- a/README.md
++++ b/README.md
+@@ -17,7 +17,7 @@ A window manager based on River Wayland Compositor, written in Zig
+ 
+ ## Features
+ 
+-**Multiple layout:** tile, grid, monocle, scroller, floating
++**Multiple layout:** tile, grid, monocle, deck, scroller, floating
+ 
+ **Tag:** base tags not workspaces (supports separate window layouts for each tag)
+ 
+diff --git a/config.def.zon b/config.def.zon
+index 9670b64..2cff127 100644
+--- a/config.def.zon
++++ b/config.def.zon
+@@ -96,6 +96,7 @@
+         // .tile
+         // .grid
+         // .monocle
++        // .deck
+         // .scroller
+         .default = .tile,
+ 
+@@ -122,6 +123,10 @@
+         .monocle = .{
+             .gap = 9,
+         },
++        .deck = .{
++            .inner_gap = 12,
++            .outer_gap = 9,
++        },
+         .scroller = .{
+             .mfact = 0.5,
+             .inner_gap = 16,
+@@ -142,6 +147,7 @@
+             .vertical = "|||",
+         },
+         .monocle = "[=]",
++        .deck = "[D]",
+         .scroller = "[==]",
+         .float = "><>",
+     },
+@@ -615,6 +621,17 @@
+                     },
+                 },
+             },
++            .{
++                .keysym = "d",
++                .modifiers = .{ .mod4 = true },
++                .event = .{
++                    .click = .{
++                        .pressed = .{
++                            .switch_layout = .{ .layout = .deck },
++                        },
++                    },
++                },
++            },
+             .{
+                 .keysym = "m",
+                 .modifiers = .{ .mod4 = true },
+diff --git a/src/config.zig b/src/config.zig
+index d07eba8..a2917f2 100644
+--- a/src/config.zig
++++ b/src/config.zig
+@@ -383,12 +383,14 @@ layout: struct {
+     tile: kwm.layout.tile,
+     grid: kwm.layout.grid,
+     monocle: kwm.layout.monocle,
++    deck: kwm.layout.deck,
+     scroller: kwm.layout.scroller,
+ },
+ layout_tag: struct {
+     tile: enum_struct(kwm.layout.tile.MasterLocation, []const u8),
+     grid: enum_struct(kwm.layout.grid.Direction, []const u8),
+     monocle: []const u8,
++    deck: []const u8,
+     scroller: []const u8,
+     float: []const u8,
+ },
+diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
+index 9a764f3..c5895ee 100644
+--- a/src/kwm/bar.zig
++++ b/src/kwm/bar.zig
+@@ -521,6 +521,7 @@ fn render_dynamic_component(self: *Self) void {
+             .tile => config.layout_tag.tile.getter.get(config.layout.tile.master_location),
+             .grid => config.layout_tag.grid.getter.get(config.layout.grid.direction),
+             .monocle => config.layout_tag.monocle,
++            .deck => config.layout_tag.deck,
+             .scroller => config.layout_tag.scroller,
+             .float => config.layout_tag.float,
+         },
+diff --git a/src/kwm/layout.zig b/src/kwm/layout.zig
+index 44f33ef..d475466 100644
+--- a/src/kwm/layout.zig
++++ b/src/kwm/layout.zig
+@@ -6,6 +6,7 @@ pub const Type = enum {
+     tile,
+     grid,
+     monocle,
++    deck,
+     scroller,
+     float,
+ };
+@@ -13,6 +14,7 @@ pub const Type = enum {
+ pub const tile = @import("layout/tile.zig");
+ pub const grid = @import("layout/grid.zig");
+ pub const monocle = @import("layout/monocle.zig");
++pub const deck = @import("layout/deck.zig");
+ pub const scroller = @import("layout/scroller.zig");
+ 
+ 
+@@ -24,6 +26,7 @@ pub fn arrange(layout: Type, output: *Output) void {
+         .tile => config.layout.tile.arrange(output),
+         .grid => config.layout.grid.arrange(output),
+         .monocle => config.layout.monocle.arrange(output),
++        .deck => config.layout.deck.arrange(output),
+         .scroller => config.layout.scroller.arrange(output),
+     }
+ }
+diff --git a/src/kwm/layout/deck.zig b/src/kwm/layout/deck.zig
+new file mode 100644
+index 0000000..cdf7a78
+--- /dev/null
++++ b/src/kwm/layout/deck.zig
+@@ -0,0 +1,57 @@
++const Self = @This();
++
++const std = @import("std");
++const log = std.log.scoped(.deck);
++
++const utils = @import("../utils.zig");
++const Context = @import("../context.zig");
++const Output = @import("../output.zig");
++const Window = @import("../window.zig");
++
++inner_gap: i32,
++outer_gap: i32,
++
++pub fn arrange(self: *const Self, output: *Output) void {
++    log.debug("<{*}> arrange windows in output {*}", .{ self, output });
++
++    const context = Context.get();
++
++    var windows: std.ArrayList(*Window) = .empty;
++    defer windows.deinit(utils.allocator);
++
++    var it = context.windows.safeIterator(.forward);
++    while (it.next()) |window| {
++        if (window.is_visible_in(output) and !window.floating)
++            windows.append(utils.allocator, window) catch |err| {
++                log.err("<{*}> append failed: {}", .{ self, err });
++                return;
++            };
++    }
++
++    if (windows.items.len == 0) return;
++
++    const w = output.exclusive_width() - 2 * self.outer_gap;
++    const h = output.exclusive_height() - 2 * self.outer_gap;
++
++    if (windows.items.len == 1) {
++        windows.items[0].unbound_move(self.outer_gap, self.outer_gap);
++        windows.items[0].unbound_resize(w, h);
++        return;
++    }
++
++    const master_w = @divFloor(w, 2);
++    const stack_w = w - master_w - self.inner_gap;
++
++    for (windows.items, 0..) |window, i| {
++        if (i == 0) {
++            window.unbound_move(self.outer_gap, self.outer_gap);
++            window.unbound_resize(master_w, h);
++        } else {
++            window.unbound_move(
++                self.outer_gap + master_w + self.inner_gap,
++                self.outer_gap
++            );
++            window.unbound_resize(stack_w, h);
++        }
++    }
++}
+diff --git a/src/kwm/seat.zig b/src/kwm/seat.zig
+index fcd9c8c..b643d61 100644
+--- a/src/kwm/seat.zig
++++ b/src/kwm/seat.zig
+@@ -523,7 +523,7 @@ fn handle_actions(self: *Self) void {
+                 if (context.focused_window()) |window| {
+                     if (window.output) |output| {
+                         switch (output.current_layout()) {
+-                            .tile => {
++                            .tile, .deck => {
+                                 context.shift_to_head(window);
+                                 context.focus(window);
+                             },
+@@ -581,6 +581,7 @@ fn handle_actions(self: *Self) void {
+                         .tile => config.layout.tile.inner_gap = @max(config.border.width*2, config.layout.tile.inner_gap+data.step),
+                         .grid => config.layout.grid.inner_gap = @max(config.border.width*2, config.layout.grid.inner_gap+data.step),
+                         .monocle => config.layout.monocle.gap = @max(config.border.width*2, config.layout.monocle.gap+data.step),
++                        .deck => config.layout.deck.inner_gap = @max(config.border.width*2, config.layout.deck.inner_gap+data.step),
+                         .scroller => config.layout.scroller.inner_gap = @max(config.border.width*2, config.layout.scroller.inner_gap+data.step),
+                         .float => {},
+                     }
+-- 
+2.53.0
+

@@ -1,0 +1,83 @@
+From 44689a533181a8bec872cb4f68972f2582e933de Mon Sep 17 00:00:00 2001
+From: nate zhou <gnuunixchad@outlook.com>
+Date: Thu, 12 Mar 2026 02:22:13 +0800
+Subject: [PATCH] zoom: swap with previous master window if exists
+
+This matches the default dwm behavior:
+- On stack: swap focused window with master, save old master as previous
+- On master: swap with previous master window if exists
+---
+ src/kwm/output.zig |  2 ++
+ src/kwm/seat.zig   | 25 +++++++++++++++++++++++--
+ src/kwm/window.zig |  6 ++++++
+ 3 files changed, 31 insertions(+), 2 deletions(-)
+
+diff --git a/src/kwm/output.zig b/src/kwm/output.zig
+index 82ab39b..5a96355 100644
+--- a/src/kwm/output.zig
++++ b/src/kwm/output.zig
+@@ -32,6 +32,8 @@ prev_main_tag: u32 = 1,
+ layout_tag: [32]layout.Type,
+ prev_layout_tag: [32]layout.Type,
+ 
++prev_focused_window: ?*Window = null,
++
+ name: ?[]const u8 = null,
+ x: i32 = undefined,
+ y: i32 = undefined,
+diff --git a/src/kwm/seat.zig b/src/kwm/seat.zig
+index fcd9c8c..1b29cc3 100644
+--- a/src/kwm/seat.zig
++++ b/src/kwm/seat.zig
+@@ -524,8 +524,29 @@ fn handle_actions(self: *Self) void {
+                     if (window.output) |output| {
+                         switch (output.current_layout()) {
+                             .tile => {
+-                                context.shift_to_head(window);
+-                                context.focus(window);
++                                if (window.floating) return;
++                                var master: ?*Window = null;
++                                var it = context.windows.safeIterator(.forward);
++                                while (it.next()) |w| {
++                                    if (w.is_visible_in(output) and !w.floating) {
++                                        master = w;
++                                        break;
++                                    }
++                                }
++                                const current_master = master orelse return;
++                                if (window == current_master) {
++                                    if (output.prev_focused_window) |prev| {
++                                        if (prev.is_visible_in(output) and !prev.floating and prev != current_master) {
++                                            output.prev_focused_window = current_master;
++                                            current_master.link.swapWith(&prev.link);
++                                            context.focus(prev);
++                                        }
++                                    }
++                                } else {
++                                    output.prev_focused_window = current_master;
++                                    window.link.swapWith(&current_master.link);
++                                    context.focus(window);
++                                }
+                             },
+                             .scroller => window.scroller_x = .center,
+                             else => {}
+diff --git a/src/kwm/window.zig b/src/kwm/window.zig
+index 6b9af88..f159879 100644
+--- a/src/kwm/window.zig
++++ b/src/kwm/window.zig
+@@ -147,6 +147,12 @@ pub fn destroy(self: *Self) void {
+ 
+     const context = Context.get();
+ 
++    if (self.output) |output| {
++        if (output.prev_focused_window == self) {
++            output.prev_focused_window = null;
++        }
++    }
++
+     {
+         var it = context.seats.safeIterator(.forward);
+         while (it.next()) |seat| {
+-- 
+2.53.0
+

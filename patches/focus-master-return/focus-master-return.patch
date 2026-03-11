@@ -1,0 +1,157 @@
+From 0900bc38f9fa8d3ca81382c14f00cb43f755f4f5 Mon Sep 17 00:00:00 2001
+From: nate zhou <gnuunixchad@outlook.com>
+Date: Thu, 12 Mar 2026 01:31:33 +0800
+Subject: [PATCH] Feat: focus_master action
+
+Switch to the master from anywhere in the stack, when the master is
+selected return to the client switched from using the same keybind.
+
+Insipred by dwm's
+[focusmaster-return](https://dwm.suckless.org/patches/focusmaster).
+---
+ config.def.zon      | 18 ++++++++++++++++++
+ src/kwm/binding.zig |  1 +
+ src/kwm/context.zig | 13 +++++++++++++
+ src/kwm/output.zig  |  2 ++
+ src/kwm/seat.zig    | 29 +++++++++++++++++++++++++++++
+ src/kwm/window.zig  |  6 ++++++
+ 6 files changed, 69 insertions(+)
+
+diff --git a/config.def.zon b/config.def.zon
+index 9670b64..8c8d90e 100644
+--- a/config.def.zon
++++ b/config.def.zon
+@@ -458,6 +458,24 @@
+                     },
+                 },
+             },
++            .{
++                .keysym = "h",
++                .modifiers = .{ .mod4 = true, .ctrl = true },
++                .event = .{
++                    .click = .{
++                        .pressed = .focus_master,
++                    },
++                },
++            },
++            .{
++                .keysym = "l",
++                .modifiers = .{ .mod4 = true, .ctrl = true },
++                .event = .{
++                    .click = .{
++                        .pressed = .focus_master,
++                    },
++                },
++            },
+             .{
+                 .keysym = "j",
+                 .modifiers = .{ .mod4 = true, .shift = true },
+diff --git a/src/kwm/binding.zig b/src/kwm/binding.zig
+index fda81f8..fe6703c 100644
+--- a/src/kwm/binding.zig
++++ b/src/kwm/binding.zig
+@@ -25,6 +25,7 @@ pub const Action = union(enum) {
+         direction: types.Direction,
+         skip_floating: bool = false,
+     },
++    focus_master,
+     focus_output_iter: struct {
+         direction: types.Direction,
+     },
+diff --git a/src/kwm/context.zig b/src/kwm/context.zig
+index 0bc93a9..5c13ddf 100644
+--- a/src/kwm/context.zig
++++ b/src/kwm/context.zig
+@@ -433,6 +433,19 @@ pub fn focus(self: *Self, window: *Window) void {
+ 
+     if (window.output) |output| {
+         self.set_current_output(output);
++
++        var is_master = true;
++        var it = self.windows.safeIterator(.forward);
++        while (it.next()) |w| {
++            if (w.is_visible_in(output) and !w.floating) {
++                is_master = (w == window);
++                break;
++            }
++        }
++
++        if (!is_master) {
++            output.prev_focused_window = window;
++        }
+     }
+ 
+     window.flink.remove();
+diff --git a/src/kwm/output.zig b/src/kwm/output.zig
+index 82ab39b..5a96355 100644
+--- a/src/kwm/output.zig
++++ b/src/kwm/output.zig
+@@ -32,6 +32,8 @@ prev_main_tag: u32 = 1,
+ layout_tag: [32]layout.Type,
+ prev_layout_tag: [32]layout.Type,
+ 
++prev_focused_window: ?*Window = null,
++
+ name: ?[]const u8 = null,
+ x: i32 = undefined,
+ y: i32 = undefined,
+diff --git a/src/kwm/seat.zig b/src/kwm/seat.zig
+index fcd9c8c..e51c9b7 100644
+--- a/src/kwm/seat.zig
++++ b/src/kwm/seat.zig
+@@ -460,6 +460,35 @@ fn handle_actions(self: *Self) void {
+             .focus_iter => |data| {
+                 context.focus_iter(data.direction, data.skip_floating);
+             },
++            .focus_master => {
++                if (context.current_output) |output| {
++                    if (context.focused_window()) |current_window| {
++                        var master_window: ?*Window = null;
++                        var it = context.windows.safeIterator(.forward);
++                        while (it.next()) |window| {
++                            if (window.is_visible_in(output) and !window.floating) {
++                                master_window = window;
++                                break;
++                            }
++                        }
++
++                        if (master_window) |master| {
++                            if (current_window == master) {
++                                if (output.prev_focused_window) |last| {
++                                    if (last.is_visible_in(output)) {
++                                        context.focus(last);
++                                    } else {
++                                        context.focus(master);
++                                    }
++                                }
++                            } else {
++                                output.prev_focused_window = current_window;
++                                context.focus(master);
++                            }
++                        }
++                    }
++                }
++            },
+             .focus_output_iter => |data| {
+                 context.focus_output_iter(data.direction);
+             },
+diff --git a/src/kwm/window.zig b/src/kwm/window.zig
+index 6b9af88..f159879 100644
+--- a/src/kwm/window.zig
++++ b/src/kwm/window.zig
+@@ -147,6 +147,12 @@ pub fn destroy(self: *Self) void {
+ 
+     const context = Context.get();
+ 
++    if (self.output) |output| {
++        if (output.prev_focused_window == self) {
++            output.prev_focused_window = null;
++        }
++    }
++
+     {
+         var it = context.seats.safeIterator(.forward);
+         while (it.next()) |seat| {
+-- 
+2.53.0
+
