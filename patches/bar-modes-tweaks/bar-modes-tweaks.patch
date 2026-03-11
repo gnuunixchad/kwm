@@ -1,0 +1,103 @@
+From 299ad9c326910cc2fdcc5a38dd20ed93dbcadd71 Mon Sep 17 00:00:00 2001
+From: nate zhou <gnuunixchad@outlook.com>
+Date: Wed, 11 Mar 2026 09:15:32 +0800
+Subject: [PATCH 1/2] Mod(bar): swap drawing order of modes and layouts
+
+---
+ src/kwm/bar.zig | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
+index 9a764f3..90391ed 100644
+--- a/src/kwm/bar.zig
++++ b/src/kwm/bar.zig
+@@ -515,6 +515,18 @@ fn render_dynamic_component(self: *Self) void {
+     var x: i16 = 0;
+     const y: i16 = 0;
+ 
++    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
++    if (mode_tag.len > 0) {
++        x += self.render_str(
++            buffer,
++            mode_tag,
++            &normal_fg,
++            x+@as(i16, @intCast(@divFloor(pad, 2))),
++            y,
++        ) + @as(i16, @intCast(pad));
++    }
++    self.dynamic_splits.appendBounded(x) catch unreachable;
++
+     x += self.render_str(
+         buffer,
+         switch (self.output.current_layout()) {
+@@ -530,18 +542,6 @@ fn render_dynamic_component(self: *Self) void {
+     ) + @as(i16, @intCast(pad));
+     self.dynamic_splits.appendBounded(x) catch unreachable;
+ 
+-    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
+-    if (mode_tag.len > 0) {
+-        x += self.render_str(
+-            buffer,
+-            mode_tag,
+-            &normal_fg,
+-            x+@as(i16, @intCast(@divFloor(pad, 2))),
+-            y,
+-        ) + @as(i16, @intCast(pad));
+-    }
+-    self.dynamic_splits.appendBounded(x) catch unreachable;
+-
+     if (context.focus_top_in(self.output, false)) |window| {
+         if (self.output == context.current_output) {
+             bg_rect[0].x = x;
+-- 
+2.53.0
+
+
+From 8c1d70ff1e677e8ba37881a08eeb0547aafe0c8d Mon Sep 17 00:00:00 2001
+From: nate zhou <gnuunixchad@outlook.com>
+Date: Wed, 11 Mar 2026 10:02:49 +0800
+Subject: [PATCH 2/2] Mod(bar): add background color for modes
+
+---
+ src/kwm/bar.zig | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
+index 90391ed..6187312 100644
+--- a/src/kwm/bar.zig
++++ b/src/kwm/bar.zig
+@@ -517,10 +517,30 @@ fn render_dynamic_component(self: *Self) void {
+ 
+     const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
+     if (mode_tag.len > 0) {
++        const mode_width = if (str_width(self.font, mode_tag)) |mode_width|
++            @as(u16, @intCast(mode_width + pad))
++        else
++            @as(u16, @intCast(pad));
++
++    const mode_rect = [_]pixman.Rectangle16 {
++        .{
++            .x = x,
++            .y = y,
++            .width = mode_width,
++            .height = h,
++        }
++    };
++    _ = pixman.Image.fillRectangles(
++        .src,
++        buffer.image,
++        &select_bg,
++        1,
++        &mode_rect,
++    );
+         x += self.render_str(
+             buffer,
+             mode_tag,
+-            &normal_fg,
++            &select_fg,
+             x+@as(i16, @intCast(@divFloor(pad, 2))),
+             y,
+         ) + @as(i16, @intCast(pad));
+-- 
+2.53.0
+
