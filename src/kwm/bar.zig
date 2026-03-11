@@ -515,6 +515,18 @@ fn render_dynamic_component(self: *Self) void {
     var x: i16 = 0;
     const y: i16 = 0;
 
+    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
+    if (mode_tag.len > 0) {
+        x += self.render_str(
+            buffer,
+            mode_tag,
+            &normal_fg,
+            x+@as(i16, @intCast(@divFloor(pad, 2))),
+            y,
+        ) + @as(i16, @intCast(pad));
+    }
+    self.dynamic_splits.appendBounded(x) catch unreachable;
+
     x += self.render_str(
         buffer,
         switch (self.output.current_layout()) {
@@ -528,18 +540,6 @@ fn render_dynamic_component(self: *Self) void {
         x+@as(i16, @intCast(@divFloor(pad, 2))),
         y,
     ) + @as(i16, @intCast(pad));
-    self.dynamic_splits.appendBounded(x) catch unreachable;
-
-    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
-    if (mode_tag.len > 0) {
-        x += self.render_str(
-            buffer,
-            mode_tag,
-            &normal_fg,
-            x+@as(i16, @intCast(@divFloor(pad, 2))),
-            y,
-        ) + @as(i16, @intCast(pad));
-    }
     self.dynamic_splits.appendBounded(x) catch unreachable;
 
     if (context.focus_top_in(self.output, false)) |window| {
