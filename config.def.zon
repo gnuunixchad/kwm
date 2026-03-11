@@ -83,6 +83,9 @@
     // .on_output_changed: wrap cursor to the center of output focused
     .cursor_wrap = .none,
 
+    // if to remember last floating geometry
+    .remember_floating_geometry = true,
+
     .auto_swallow = false,
 
     // .csd
