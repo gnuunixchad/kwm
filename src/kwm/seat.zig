@@ -525,6 +525,7 @@ fn handle_actions(self: *Self) void {
                         switch (output.current_layout()) {
                             .tile, .deck => {
                                 if (window.floating) return;
+                                const remember_previous_master = config.remember_previous_master;
                                 var master: ?*Window = null;
                                 var it = context.windows.safeIterator(.forward);
                                 while (it.next()) |w| {
@@ -534,17 +535,22 @@ fn handle_actions(self: *Self) void {
                                     }
                                 }
                                 const current_master = master orelse return;
-                                if (window == current_master) {
-                                    if (output.prev_focused_window) |prev| {
-                                        if (prev.is_visible_in(output) and !prev.floating and prev != current_master) {
-                                            output.prev_focused_window = current_master;
-                                            current_master.link.swapWith(&prev.link);
-                                            context.focus(prev);
+                                if (remember_previous_master) {
+                                    if (window == current_master) {
+                                        if (output.prev_focused_window) |prev| {
+                                            if (prev.is_visible_in(output) and !prev.floating and prev != current_master) {
+                                                output.prev_focused_window = current_master;
+                                                current_master.link.swapWith(&prev.link);
+                                                context.focus(prev);
+                                            }
                                         }
+                                    } else {
+                                        output.prev_focused_window = current_master;
+                                        window.link.swapWith(&current_master.link);
+                                        context.focus(window);
                                     }
                                 } else {
-                                    output.prev_focused_window = current_master;
-                                    window.link.swapWith(&current_master.link);
+                                    context.shift_to_head(window);
                                     context.focus(window);
                                 }
                             },
