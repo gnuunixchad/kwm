@@ -535,17 +535,18 @@ fn handle_actions(self: *Self) void {
                                     }
                                 }
                                 const current_master = master orelse return;
+                                const tag_index = @ctz(output.main_tag);
                                 if (remember_previous_master) {
                                     if (window == current_master) {
-                                        if (output.prev_focused_window) |prev| {
+                                        if (output.prev_focused_window[tag_index]) |prev| {
                                             if (prev.is_visible_in(output) and !prev.floating and prev != current_master) {
-                                                output.prev_focused_window = current_master;
+                                                output.prev_focused_window[tag_index] = current_master;
                                                 current_master.link.swapWith(&prev.link);
                                                 context.focus(prev);
                                             }
                                         }
                                     } else {
-                                        output.prev_focused_window = current_master;
+                                        output.prev_focused_window[tag_index] = current_master;
                                         window.link.swapWith(&current_master.link);
                                         context.focus(window);
                                     }
