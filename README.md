@@ -15,55 +15,76 @@ For changes I've made, check [patches](./patches)
 ## Requirements
 
 - Zig 0.15
-- River Wayland compositor 0.4.x (with river-window-management-v1 protocol)
+- [river] >= 0.4.x (with river-window-management-v1 protocol)
 
 ## Features
 
-**Multiple layout:** tile, grid, monocle, deck, scroller, floating
+- **Layouts:** tile, grid, monocle, deck, scroller, and floating, with per-tag
+customization
 
-**Tag:** base tags not workspaces (supports separate window layouts for each tag)
+- **Tags:** organize windows with tags instead of workspaces, with shift-tags
+support
 
-**Rule support:** regex rule match
+- **Rules:** regex pattern matching for window rules
 
-**Bindings:** bindings in different mode such as default, passthrough orelse your custom mode
+- **Modes:** separate keybindings for each mode (default, lock, passthrough,
+custom)
 
-**Rich window state:** swallow, maximize, fullscreen, fakefullscreen
+- **Window States:** swallow, maximize, fullscreen, fake fullscreen, floating,
+sticky
 
-**With simple status bar:** dwm like bar
+- **Autostart:** run commands on startup
 
-## build
+- **Status Bar:** dwm-like bar, supporting static text, stdin, and fifo, with
+  customized colors
+
+- **Configuration:** support both compile-time and runtime configuration,
+  reloading on the fly
+
+See the default [configuration](./config.def.zon) file for detailed features.
+
+## Build
 
 ```zig
 zig build -Doptimize=ReleaseSafe
 ```
 
-- `-Dconfig`: specify custom default config file path, `config.zon`(if not exists, will copy from `config.def.zon`) will used by default.
-- `-Dbar`: to enable/disable status bar, default is true.
+- `-Dconfig`: specify the default config file path (defaults to `config.zon`,
+  copied from `config.def.zon` if missing)
+- `-Dbar`: enable or disable the status bar (defaults to `true`)
+- `--prefix`: specify the path to install files
 
-## configuration
+## Configuration
 
-### compile time
+### Compile Time
 
-If you want to configure at compile time, make your custom modifications in `config.zon`(if not specify custom config path by `-Dconfig`).
+Make custom modifications in `config.zon` (if `-Dconfig` is not specified).
 
-### runtime
+### Runtime
 
-`kwm` will search user config file follow:
+`kwm` searches for a user configuration in the following paths:
 - `$XDG_CONFIG_HOME/kwm/config.zon`
 - `$HOME/.config/kwm/config.zon`
 
-The user configuration will override the compile time configuration.
-You can declare only the configuration items that need to override compile time in the user configuration file, instead of declaring all configuration items.
+The user configuration overrides compile-time configuration. You only need to
+specify the values you want to change, rather than duplicating the entire
+configuration.
 
-## usage
+User configuration can be reloaded on the fly with
+<kbd>mod4</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>.
 
-Run `kwm` in your river init file or run with `river -c kwm`.
+## Usage
 
-You could remap keyboard keys(e.g. swap CapsLock with Escape) by setting the XKB layout rules before starting river:
+Run `kwm` in your river init file, or start it with `river -c kwm`.
+
+### Keymaps
+
+Keyboard mapping can be customized by setting XKB layout rules before launching
+river. For example, to swap <kbd>CapsLock</kbd> with <kbd>Escape</kbd>:
+
 ```sh
 export XKB_DEFAULT_OPTIONS=caps:swapescape,altwin:swap_alt_win
 ```
-For all options available see `man 7 xkeyboard-config`
 
 ### How I run kwm with river
 Read status from a fifo(to restart the status command without restarting kwm)
@@ -74,17 +95,14 @@ Read status from a fifo(to restart the status command without restarting kwm)
 Add below in  `~/.config/river/init`
 ```sh
 /usr/local/bin/kwm &
-
 # Start kwm with damblocks, a line generator with signaling support I wrote
 # https://codeberg.org/unixchad/damblocks
-# https://github.com/gnuunixchad/damblocks
 ${HOME}/.local/bin/damblocks --fifo &
 ```
 
 And run
 ```sh
-exec ssh-agent river --no-xwayland
-# (in case a software doesn't support wayland, I use xwayland-satellite)
+exec ssh-agent river
 ```
 
 To restart the bar script
@@ -92,15 +110,35 @@ To restart the bar script
 nohup damblocks --fifo >/dev/null 2>&1 &
 ```
 
-## Thanks to these reference project
+## Acknowledgments
+Thanks to the following reference projects:
 
-- https://github.com/riverwm/river - River Wayland compositor
-- https://github.com/pinpox/river-pwm - River based window manager
-- https://codeberg.org/machi/machi - River based window manager
-- https://codeberg.org/dwl/dwl - dwm for wayland
-- https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch - swallow window patch for dwl
-- https://github.com/mnemnion/mvzr - regex support
+- [river] - Wayland compositor
+- [river-pwm] - River-based window manager
+- [machi] - River-based window manager
+- [dwl] - dwm for Wayland
+- [swallow patch] - swallow window patch for dwl
+- [mvzr] - regex support
 
 ## License
 
-The source code in this project is released under the [GPL-3.0](./LICENSE)
+The source code of kwm is released under the [GPL-3.0].
+
+The protocols in `protocol/` directory prefixed with river and developed by the
+[River] project are released under the ISC license (as stated in their
+copyright blocks).
+
+## Contributing
+
+Contributions are welcome! By contributing to kwm, you agree that your
+submitted code will be licensed under [GPL-3.0]. It is the contributors'
+responsibility to ensure that all submitted code is either original or
+GPL-3.0-compatible.
+
+[GPL-3.0]: ./LICENSE
+[river]: https://codeberg.org/river/river
+[river-pwm]: https://github.com/pinpox/river-pwm
+[machi]: https://codeberg.org/machi/machi
+[dwl]: https://codeberg.org/dwl/dwl
+[swallow patch]: https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch
+[mvzr]: https://github.com/mnemnion/mvzr
