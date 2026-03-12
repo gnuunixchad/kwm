@@ -442,11 +442,6 @@ pub fn focus(self: *Self, window: *Window) void {
                 break;
             }
         }
-
-        if (!is_master) {
-            const tag_index = @ctz(output.main_tag);
-            output.prev_focused_window[tag_index] = window;
-        }
     }
 
     window.flink.remove();
