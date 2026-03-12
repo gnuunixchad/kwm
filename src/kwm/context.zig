@@ -433,6 +433,15 @@ pub fn focus(self: *Self, window: *Window) void {
 
     if (window.output) |output| {
         self.set_current_output(output);
+
+        var is_master = true;
+        var it = self.windows.safeIterator(.forward);
+        while (it.next()) |w| {
+            if (w.is_visible_in(output) and !w.floating) {
+                is_master = (w == window);
+                break;
+            }
+        }
     }
 
     window.flink.remove();
