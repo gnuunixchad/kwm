@@ -27,3 +27,10 @@ pub const BarArea = enum {
     title,
     status,
 };
+
+pub const LayoutMasterLocation = enum {
+    left,
+    right,
+    top,
+    bottom,
+};

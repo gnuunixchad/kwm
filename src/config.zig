@@ -390,7 +390,7 @@ layout_tag: struct {
     tile: enum_struct(kwm.layout.tile.MasterLocation, []const u8),
     grid: enum_struct(kwm.layout.grid.Direction, []const u8),
     monocle: []const u8,
-    deck: []const u8,
+    deck: enum_struct(kwm.layout.deck.MasterLocation, []const u8),
     scroller: []const u8,
     float: []const u8,
 },

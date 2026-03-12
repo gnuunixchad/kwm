@@ -637,10 +637,12 @@ fn handle_actions(self: *Self) void {
                     }
                 }
             },
-            .modify_tile_master_location => |data| {
+            .modify_master_location => |data| {
                 if (context.current_output) |output| {
-                    if (output.current_layout() == .tile) {
-                        config.layout.tile.master_location = data.location;
+                    switch (output.current_layout()) {
+                        .tile => config.layout.tile.master_location = data.location,
+                        .deck => config.layout.deck.master_location = data.location,
+                        else => {},
                     }
                 }
             },

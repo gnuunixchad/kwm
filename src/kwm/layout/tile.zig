@@ -5,17 +5,13 @@ const log = std.log.scoped(.tiled);
 
 const config = @import("config");
 
+const types = @import("../types.zig");
 const utils = @import("../utils.zig");
 const Context = @import("../context.zig");
 const Output = @import("../output.zig");
 const Window = @import("../window.zig");
 
-pub const MasterLocation = enum {
-    left,
-    right,
-    top,
-    bottom,
-};
+pub const MasterLocation = types.LayoutMasterLocation;
 
 
 nmaster: i32,
