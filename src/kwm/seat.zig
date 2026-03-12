@@ -471,10 +471,10 @@ fn handle_actions(self: *Self) void {
                                 break;
                             }
                         }
-
                         if (master_window) |master| {
+                            const tag_index = @ctz(output.main_tag);
                             if (current_window == master) {
-                                if (output.prev_focused_window) |last| {
+                                if (output.prev_focused_window[tag_index]) |last| {
                                     if (last.is_visible_in(output)) {
                                         context.focus(last);
                                     } else {
@@ -482,7 +482,7 @@ fn handle_actions(self: *Self) void {
                                     }
                                 }
                             } else {
-                                output.prev_focused_window = current_window;
+                                output.prev_focused_window[tag_index] = current_window;
                                 context.focus(master);
                             }
                         }

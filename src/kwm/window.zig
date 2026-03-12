@@ -148,8 +148,10 @@ pub fn destroy(self: *Self) void {
     const context = Context.get();
 
     if (self.output) |output| {
-        if (output.prev_focused_window == self) {
-            output.prev_focused_window = null;
+        for (&output.prev_focused_window) |*prev| {
+            if (prev.* == self) {
+                prev.* = null;
+            }
         }
     }
 

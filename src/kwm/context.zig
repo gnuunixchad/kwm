@@ -444,7 +444,8 @@ pub fn focus(self: *Self, window: *Window) void {
         }
 
         if (!is_master) {
-            output.prev_focused_window = window;
+            const tag_index = @ctz(output.main_tag);
+            output.prev_focused_window[tag_index] = window;
         }
     }
 
