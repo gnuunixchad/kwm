@@ -460,35 +460,6 @@ fn handle_actions(self: *Self) void {
             .focus_iter => |data| {
                 context.focus_iter(data.direction, data.skip_floating);
             },
-            .focus_master => {
-                if (context.current_output) |output| {
-                    if (context.focused_window()) |current_window| {
-                        var master_window: ?*Window = null;
-                        var it = context.windows.safeIterator(.forward);
-                        while (it.next()) |window| {
-                            if (window.is_visible_in(output) and !window.floating) {
-                                master_window = window;
-                                break;
-                            }
-                        }
-
-                        if (master_window) |master| {
-                            if (current_window == master) {
-                                if (output.prev_focused_window) |last| {
-                                    if (last.is_visible_in(output)) {
-                                        context.focus(last);
-                                    } else {
-                                        context.focus(master);
-                                    }
-                                }
-                            } else {
-                                output.prev_focused_window = current_window;
-                                context.focus(master);
-                            }
-                        }
-                    }
-                }
-            },
             .focus_output_iter => |data| {
                 context.focus_output_iter(data.direction);
             },
