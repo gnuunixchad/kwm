@@ -425,6 +425,24 @@
                 },
             },
             .{
+                .keysym = "h",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .focus_master_return,
+                    },
+                },
+            },
+            .{
+                .keysym = "l",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .focus_master_return,
+                    },
+                },
+            },
+            .{
                 .keysym = "b",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
