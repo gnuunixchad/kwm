@@ -460,35 +460,6 @@ fn handle_actions(self: *Self) void {
             .focus_iter => |data| {
                 context.focus_iter(data.direction, data.skip_floating);
             },
-            .focus_master => {
-                if (context.current_output) |output| {
-                    if (context.focused_window()) |current_window| {
-                        var master_window: ?*Window = null;
-                        var it = context.windows.safeIterator(.forward);
-                        while (it.next()) |window| {
-                            if (window.is_visible_in(output) and !window.floating) {
-                                master_window = window;
-                                break;
-                            }
-                        }
-                        if (master_window) |master| {
-                            const tag_index = @ctz(output.main_tag);
-                            if (current_window == master) {
-                                if (output.prev_focused_window[tag_index]) |last| {
-                                    if (last.is_visible_in(output)) {
-                                        context.focus(last);
-                                    } else {
-                                        context.focus(master);
-                                    }
-                                }
-                            } else {
-                                output.prev_focused_window[tag_index] = current_window;
-                                context.focus(master);
-                            }
-                        }
-                    }
-                }
-            },
             .focus_output_iter => |data| {
                 context.focus_output_iter(data.direction);
             },
@@ -548,41 +519,29 @@ fn handle_actions(self: *Self) void {
                     window.toggle_swallow();
                 }
             },
-            .zoom => {
+            .zoom => |data| {
                 if (context.focused_window()) |window| {
+                    if (window.floating) return;
+
                     if (window.output) |output| {
                         switch (output.current_layout()) {
                             .tile, .deck => {
-                                if (window.floating) return;
-                                const remember_previous_master = config.remember_previous_master;
-                                var master: ?*Window = null;
-                                var it = context.windows.safeIterator(.forward);
-                                while (it.next()) |w| {
-                                    if (w.is_visible_in(output) and !w.floating) {
-                                        master = w;
-                                        break;
-                                    }
-                                }
-                                const current_master = master orelse return;
-                                const tag_index = @ctz(output.main_tag);
-                                if (remember_previous_master) {
-                                    if (window == current_master) {
-                                        if (output.prev_focused_window[tag_index]) |prev| {
-                                            if (prev.is_visible_in(output) and !prev.floating and prev != current_master) {
-                                                output.prev_focused_window[tag_index] = current_master;
-                                                current_master.link.swapWith(&prev.link);
-                                                context.focus(prev);
-                                            }
-                                        }
-                                    } else {
-                                        output.prev_focused_window[tag_index] = current_master;
-                                        window.link.swapWith(&current_master.link);
-                                        context.focus(window);
-                                    }
-                                } else {
-                                    context.shift_to_head(window);
+                                if (!data.swap) {
                                     context.focus(window);
+                                    context.shift_to_head(window);
+                                    return;
                                 }
+
+                                var master = output.master_window() orelse return;
+                                var new_master = if (window != master) window
+                                    else context.focused_before(window, true) orelse return;
+
+                                // ensure the old master immediately behind the new master in focus_stack
+                                context.focus(master);
+                                context.focus(new_master);
+
+                                // swap old master with new master
+                                master.link.swapWith(&new_master.link);
                             },
                             .scroller => window.scroller_x = .center,
                             else => {}

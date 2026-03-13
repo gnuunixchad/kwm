@@ -32,8 +32,6 @@ prev_main_tag: u32 = 1,
 layout_tag: [32]layout.Type,
 prev_layout_tag: [32]layout.Type,
 
-prev_focused_window: [32]?*Window = .{null} ** 32,
-
 name: ?[]const u8 = null,
 x: i32 = undefined,
 y: i32 = undefined,
@@ -154,6 +152,22 @@ pub fn fullscreen_window(self: *Self) ?*Window {
                     }
                 },
                 else => {}
+            }
+        }
+    }
+
+    return null;
+}
+
+
+pub fn master_window(self: *Self) ?*Window {
+    const context = Context.get();
+
+    {
+        var it = context.windows.safeIterator(.forward);
+        while (it.next()) |window| {
+            if (window.is_visible_in(self) and !window.floating) {
+                return window;
             }
         }
     }

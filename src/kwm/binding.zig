@@ -25,7 +25,6 @@ pub const Action = union(enum) {
         direction: types.Direction,
         skip_floating: bool = false,
     },
-    focus_master,
     focus_output_iter: struct {
         direction: types.Direction,
     },
@@ -61,7 +60,7 @@ pub const Action = union(enum) {
     toggle_floating,
     toggle_sticky,
     toggle_swallow,
-    zoom,
+    zoom: struct { swap: bool },
     switch_layout: struct { layout: layout.Type },
     switch_to_previous_layout,
     toggle_bar,

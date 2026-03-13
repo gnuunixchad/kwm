@@ -64,7 +64,7 @@
                 .middle = null,
             },
             .title = .{
-                .left = .zoom,
+                .left = .{ .zoom = .{ .swap = false } },
                 .right = null,
                 .middle = null,
             },
@@ -85,9 +85,6 @@
 
     // if to remember last floating geometry
     .remember_floating_geometry = true,
-
-    // if to remember previous master window for zoom
-    .remember_previous_master = true,
 
     .auto_swallow = false,
 
@@ -1078,7 +1075,9 @@
                 .modifiers = .{ .mod4 = true },
                 .event = .{
                     .click = .{
-                        .pressed = .zoom,
+                        .pressed = .{
+                            .zoom = .{ .swap = true },
+                        },
                     },
                 },
             },
@@ -1132,24 +1131,6 @@
                         .pressed = .{
                             .focus_iter = .{ .direction = .reverse, .skip_floating = true },
                         },
-                    },
-                },
-            },
-            .{
-                .keysym = "h",
-                .modifiers = .{ .mod4 = true, .ctrl = true },
-                .event = .{
-                    .click = .{
-                        .pressed = .focus_master,
-                    },
-                },
-            },
-            .{
-                .keysym = "l",
-                .modifiers = .{ .mod4 = true, .ctrl = true },
-                .event = .{
-                    .click = .{
-                        .pressed = .focus_master,
                     },
                 },
             },

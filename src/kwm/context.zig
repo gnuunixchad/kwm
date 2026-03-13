@@ -433,15 +433,6 @@ pub fn focus(self: *Self, window: *Window) void {
 
     if (window.output) |output| {
         self.set_current_output(output);
-
-        var is_master = true;
-        var it = self.windows.safeIterator(.forward);
-        while (it.next()) |w| {
-            if (w.is_visible_in(output) and !w.floating) {
-                is_master = (w == window);
-                break;
-            }
-        }
     }
 
     window.flink.remove();
@@ -490,6 +481,22 @@ pub fn focus_top_in(self: *Self, output: *Output, skip_floating: bool) ?*Window 
         if (window.is_visible_in(output)) {
             if (skip_floating and window.floating) continue;
             return window;
+        }
+    }
+    return null;
+}
+
+
+pub fn focused_before(self: *Self, window: *Window, skip_floating: bool) ?*Window {
+    if (window.output) |output| {
+        var flink = &window.flink;
+        while (flink.next.? != &self.focus_stack.link) {
+            defer flink = flink.next.?;
+            const w: *Window = @fieldParentPtr("flink", flink.next.?);
+            if (w.is_visible_in(output)) {
+                if (skip_floating and w.floating) continue;
+                return w;
+            }
         }
     }
     return null;
