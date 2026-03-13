@@ -553,36 +553,8 @@ fn handle_actions(self: *Self) void {
                     if (window.output) |output| {
                         switch (output.current_layout()) {
                             .tile, .deck => {
-                                if (window.floating) return;
-                                const remember_previous_master = config.remember_previous_master;
-                                var master: ?*Window = null;
-                                var it = context.windows.safeIterator(.forward);
-                                while (it.next()) |w| {
-                                    if (w.is_visible_in(output) and !w.floating) {
-                                        master = w;
-                                        break;
-                                    }
-                                }
-                                const current_master = master orelse return;
-                                const tag_index = @ctz(output.main_tag);
-                                if (remember_previous_master) {
-                                    if (window == current_master) {
-                                        if (output.prev_focused_window[tag_index]) |prev| {
-                                            if (prev.is_visible_in(output) and !prev.floating and prev != current_master) {
-                                                output.prev_focused_window[tag_index] = current_master;
-                                                current_master.link.swapWith(&prev.link);
-                                                context.focus(prev);
-                                            }
-                                        }
-                                    } else {
-                                        output.prev_focused_window[tag_index] = current_master;
-                                        window.link.swapWith(&current_master.link);
-                                        context.focus(window);
-                                    }
-                                } else {
-                                    context.shift_to_head(window);
-                                    context.focus(window);
-                                }
+                                context.shift_to_head(window);
+                                context.focus(window);
                             },
                             .scroller => window.scroller_x = .center,
                             else => {}

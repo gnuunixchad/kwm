@@ -364,8 +364,6 @@ cursor_wrap: enum {
 
 remember_floating_geometry: bool,
 
-remember_previous_master: bool,
-
 auto_swallow: bool,
 
 default_window_decoration: kwm.WindowDecoration,

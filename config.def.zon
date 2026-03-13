@@ -86,9 +86,6 @@
     // if to remember last floating geometry
     .remember_floating_geometry = true,
 
-    // if to remember previous master window for zoom
-    .remember_previous_master = true,
-
     .auto_swallow = false,
 
     // .csd
