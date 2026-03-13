@@ -543,6 +543,7 @@ fn render_dynamic_component(self: *Self) void {
     }
     self.dynamic_splits.appendBounded(x) catch unreachable;
 
+    const title_start = x;
     if (context.focus_top_in(self.output, false)) |window| {
         if (self.output == context.current_output) {
             bg_rect[0].x = x;
@@ -648,7 +649,10 @@ fn render_dynamic_component(self: *Self) void {
             _, const text = item;
             width += text_width(text);
         }
-        x = @intCast(w -| @as(u16, @intCast(width)) -| pad);
+        x = @max(
+            title_start,
+            @as(i16, @intCast(w -| @as(u16, @intCast(width)) -| pad))
+        );
 
         self.dynamic_splits.items[self.dynamic_splits.items.len-1] = x;
 
