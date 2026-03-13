@@ -515,6 +515,38 @@ fn render_dynamic_component(self: *Self) void {
     var x: i16 = 0;
     const y: i16 = 0;
 
+    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
+    if (mode_tag.len > 0) {
+        const mode_width = if (str_width(self.font, mode_tag)) |mode_width|
+            @as(u16, @intCast(mode_width + pad))
+        else
+            @as(u16, @intCast(pad));
+
+    const mode_rect = [_]pixman.Rectangle16 {
+        .{
+            .x = x,
+            .y = y,
+            .width = mode_width,
+            .height = h,
+        }
+    };
+    _ = pixman.Image.fillRectangles(
+        .src,
+        buffer.image,
+        &select_bg,
+        1,
+        &mode_rect,
+    );
+        x += self.render_str(
+            buffer,
+            mode_tag,
+            &select_fg,
+            x+@as(i16, @intCast(@divFloor(pad, 2))),
+            y,
+        ) + @as(i16, @intCast(pad));
+    }
+    self.dynamic_splits.appendBounded(x) catch unreachable;
+
     x += self.render_str(
         buffer,
         switch (self.output.current_layout()) {
@@ -529,18 +561,6 @@ fn render_dynamic_component(self: *Self) void {
         x+@as(i16, @intCast(@divFloor(pad, 2))),
         y,
     ) + @as(i16, @intCast(pad));
-    self.dynamic_splits.appendBounded(x) catch unreachable;
-
-    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
-    if (mode_tag.len > 0) {
-        x += self.render_str(
-            buffer,
-            mode_tag,
-            &normal_fg,
-            x+@as(i16, @intCast(@divFloor(pad, 2))),
-            y,
-        ) + @as(i16, @intCast(pad));
-    }
     self.dynamic_splits.appendBounded(x) catch unreachable;
 
     const title_start = x;
