@@ -549,6 +549,34 @@ fn handle_actions(self: *Self) void {
                     }
                 }
             },
+            .focus_master_return => {
+                if (context.focused_window()) |current_window| {
+                    if (current_window.floating) return;
+
+                    if (context.current_output) |output| {
+                        switch (output.current_layout()) {
+                            .tile, .deck => {
+                                const master = output.master_window() orelse return;
+                                const tag_index = @ctz(output.main_tag);
+
+                                if (current_window == master) {
+                                    if (output.prev_focused_window[tag_index]) |last| {
+                                        if (last.is_visible_in(output) and !last.floating) {
+                                            context.focus(last);
+                                        } else {
+                                            output.prev_focused_window[tag_index] = null;
+                                        }
+                                    }
+                                } else {
+                                    output.prev_focused_window[tag_index] = current_window;
+                                    context.focus(master);
+                                }
+                            },
+                            else => {}
+                        }
+                    }
+                }
+            },
             .switch_layout => |data| {
                 if (context.current_output) |output| {
                     output.set_current_layout(data.layout);
