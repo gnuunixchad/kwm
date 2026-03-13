@@ -487,6 +487,22 @@ pub fn focus_top_in(self: *Self, output: *Output, skip_floating: bool) ?*Window 
 }
 
 
+pub fn focused_before(self: *Self, window: *Window, skip_floating: bool) ?*Window {
+    if (window.output) |output| {
+        var flink = &window.flink;
+        while (flink.next.? != &self.focus_stack.link) {
+            defer flink = flink.next.?;
+            const w: *Window = @fieldParentPtr("flink", flink.next.?);
+            if (w.is_visible_in(output)) {
+                if (skip_floating and w.floating) continue;
+                return w;
+            }
+        }
+    }
+    return null;
+}
+
+
 pub fn focus_output_iter(self: *Self, direction: types.Direction) void {
     log.debug("focus output iter: {s}", .{ @tagName(direction) });
 

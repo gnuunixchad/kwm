@@ -519,13 +519,29 @@ fn handle_actions(self: *Self) void {
                     window.toggle_swallow();
                 }
             },
-            .zoom => {
+            .zoom => |data| {
                 if (context.focused_window()) |window| {
+                    if (window.floating) return;
+
                     if (window.output) |output| {
                         switch (output.current_layout()) {
                             .tile, .deck => {
-                                context.shift_to_head(window);
-                                context.focus(window);
+                                if (!data.swap) {
+                                    context.focus(window);
+                                    context.shift_to_head(window);
+                                    return;
+                                }
+
+                                var master = output.master_window() orelse return;
+                                var new_master = if (window != master) window
+                                    else context.focused_before(window, true) orelse return;
+
+                                // ensure the old master immediately behind the new master in focus_stack
+                                context.focus(master);
+                                context.focus(new_master);
+
+                                // swap old master with new master
+                                master.link.swapWith(&new_master.link);
                             },
                             .scroller => window.scroller_x = .center,
                             else => {}

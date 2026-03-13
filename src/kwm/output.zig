@@ -160,6 +160,22 @@ pub fn fullscreen_window(self: *Self) ?*Window {
 }
 
 
+pub fn master_window(self: *Self) ?*Window {
+    const context = Context.get();
+
+    {
+        var it = context.windows.safeIterator(.forward);
+        while (it.next()) |window| {
+            if (window.is_visible_in(self) and !window.floating) {
+                return window;
+            }
+        }
+    }
+
+    return null;
+}
+
+
 pub fn set_tag(self: *Self, tag: u32) void {
     if (tag == 0 or self.tag == tag) return;
 
