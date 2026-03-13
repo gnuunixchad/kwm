@@ -549,6 +549,23 @@ fn handle_actions(self: *Self) void {
                     }
                 }
             },
+            .focus_master_return => {
+                if (context.focused_window()) |window| {
+                    if (window.floating) return;
+                    if (window.output) |output| {
+                        switch (output.current_layout()) {
+                            .tile, .deck => {
+                                const master = output.master_window() orelse return;
+                                context.focus(
+                                    if (window != master) master
+                                    else context.focused_before(window, true) orelse return,
+                                );
+                            },
+                            else => {}
+                        }
+                    }
+                }
+            },
             .switch_layout => |data| {
                 if (context.current_output) |output| {
                     output.set_current_layout(data.layout);
