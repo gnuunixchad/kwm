@@ -32,6 +32,8 @@ prev_main_tag: u32 = 1,
 layout_tag: [32]layout.Type,
 prev_layout_tag: [32]layout.Type,
 
+prev_focused_window: [32]?*Window = .{null} ** 32,
+
 name: ?[]const u8 = null,
 x: i32 = undefined,
 y: i32 = undefined,

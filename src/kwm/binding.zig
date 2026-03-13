@@ -61,6 +61,7 @@ pub const Action = union(enum) {
     toggle_sticky,
     toggle_swallow,
     zoom: struct { swap: bool },
+    focus_master_return,
     switch_layout: struct { layout: layout.Type },
     switch_to_previous_layout,
     toggle_bar,
