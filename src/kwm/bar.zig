@@ -612,7 +612,12 @@ fn render_dynamic_component(self: *Self) void {
     );
     if (status_text.len > 0) status_block: {
         var texts: std.ArrayList(struct { pixman.Color, *const fcft.TextRun }) = .empty;
-        defer texts.deinit(utils.allocator);
+        defer {
+            for (texts.items) |item| {
+                item[1].destroy();
+            }
+            texts.deinit(utils.allocator);
+        }
 
         var i: usize = 0;
         var fg = normal_fg;
