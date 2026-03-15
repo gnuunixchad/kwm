@@ -274,10 +274,8 @@
                 .keysym = "minus",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" },
                     },
                 },
             },
@@ -286,10 +284,8 @@
                 .keysym = "equal",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus10" },
                     },
                 },
             },
@@ -298,10 +294,8 @@
                 .keysym = "bracketleft",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus10" },
                     },
                 },
             },
@@ -310,10 +304,8 @@
                 .keysym = "bracketright",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus10" },
                     },
                 },
             },
@@ -1560,10 +1552,8 @@
                 .keysym = "bracketleft",
                 .modifiers = .{ .mod4 = true, .ctrl = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .modify_gap = .{ .step = 2 },
-                        },
+                    .repeat = .{
+                        .modify_gap = .{ .step = 2 },
                     },
                 },
             },
@@ -1571,10 +1561,8 @@
                 .keysym = "bracketright",
                 .modifiers = .{ .mod4 = true, .ctrl = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .modify_gap = .{ .step = -2 },
-                        },
+                    .repeat = .{
+                        .modify_gap = .{ .step = -2 },
                     },
                 },
             },
@@ -1656,10 +1644,8 @@
                 .keysym = "minus",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus10" },
                     },
                 },
             },
@@ -1667,10 +1653,8 @@
                 .keysym = "equal",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus10" },
                     },
                 },
             },
@@ -1678,10 +1662,8 @@
                 .keysym = "minus",
                 .modifiers = .{ .mod4 = true, .shift = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --minus" },
                     },
                 },
             },
@@ -1689,10 +1671,8 @@
                 .keysym = "equal",
                 .modifiers = .{ .mod4 = true, .shift = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio sink --plus" },
                     },
                 },
             },
@@ -1711,10 +1691,8 @@
                 .keysym = "minus",
                 .modifiers = .{ .mod4 = true, .ctrl = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --minus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --minus10" },
                     },
                 },
             },
@@ -1722,10 +1700,8 @@
                 .keysym = "equal",
                 .modifiers = .{ .mod4 = true, .ctrl = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --plus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --plus10" },
                     },
                 },
             },
@@ -1733,10 +1709,8 @@
                 .keysym = "minus",
                 .modifiers = .{ .mod4 = true, .ctrl = true, .shift = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --minus" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --minus" },
                     },
                 },
             },
@@ -1744,10 +1718,8 @@
                 .keysym = "equal",
                 .modifiers = .{ .mod4 = true, .ctrl = true, .shift = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --plus" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/audio source --plus" },
                     },
                 },
             },
@@ -1766,10 +1738,8 @@
                 .keysym = "bracketleft",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus10" },
                     },
                 },
             },
@@ -1777,10 +1747,8 @@
                 .keysym = "bracketright",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus10" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus10" },
                     },
                 },
             },
@@ -1788,10 +1756,8 @@
                 .keysym = "bracketleft",
                 .modifiers = .{ .mod4 = true, .shift = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --minus" },
                     },
                 },
             },
@@ -1799,10 +1765,8 @@
                 .keysym = "bracketright",
                 .modifiers = .{ .mod4 = true, .shift = true },
                 .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus" },
-                        },
+                    .repeat = .{
+                        .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --plus" },
                     },
                 },
             },
