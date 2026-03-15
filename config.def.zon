@@ -1776,7 +1776,7 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright ---min" },
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --min" },
                         },
                     },
                 },
@@ -1787,7 +1787,7 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright ---max" },
+                            .spawn_shell = .{ .cmd = "${HOME}/.local/bin/bright --max" },
                         },
                     },
                 },
