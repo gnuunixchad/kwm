@@ -6,10 +6,12 @@ const mem = std.mem;
 const posix = std.posix;
 const process = std.process;
 
+const mvzr = @import("mvzr");
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 
 pub var allocator: std.mem.Allocator = undefined;
+const env_pattern = mvzr.compile("\\$\\{.*\\}").?;
 
 
 pub inline fn init_allocator(al: *const std.mem.Allocator) void {
@@ -93,4 +95,32 @@ extern fn wl_proxy_set_user_data(proxy: *wl.Proxy, data: ?*anyopaque) void;
 pub fn set_user_data(comptime T: type, object: *T, comptime DataT: type, data: DataT) void {
     const proxy: *wl.Proxy = @ptrCast(object);
     wl_proxy_set_user_data(proxy, @ptrFromInt(@intFromPtr(data)));
+}
+
+
+pub fn expand_env_str(al: std.mem.Allocator, str: []const u8, env: *const process.EnvMap) !std.ArrayList(u8) {
+    var result: std.ArrayList(u8) = .empty;
+
+    var i: usize = 0;
+    var it = env_pattern.iterator(str);
+    var match = it.next();
+    while (i < str.len) {
+        var part: []const u8 = undefined;
+        if (match == null or i < match.?.start) {
+            const end = if (match) |m| m.start else str.len;
+            defer i = end;
+
+            part = str[i..end];
+        } else if (i == match.?.start) {
+            defer {
+                i += match.?.slice.len;
+                match = it.next();
+            }
+
+            part = env.get(match.?.slice[2..match.?.slice.len-1]) orelse match.?.slice;
+        } else unreachable;
+        try result.appendSlice(al, part);
+    }
+
+    return result;
 }

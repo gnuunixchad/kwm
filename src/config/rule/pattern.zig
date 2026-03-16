@@ -21,7 +21,7 @@ pub fn is_match(self: *const Self, haystack: ?[]const u8) bool {
             const pattern = mvzr.compile(self.str) orelse return false;
             break :blk pattern.isMatch(haystack.?);
         } else {
-            break :blk mem.order(u8, self.str, haystack.?) == .eq;
+            break :blk mem.eql(u8, self.str, haystack.?);
         }
     };
 

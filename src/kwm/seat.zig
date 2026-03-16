@@ -143,7 +143,7 @@ pub fn manage(self: *Self) void {
 
     const context = Context.get();
 
-    if (self.mode == null or mem.order(u8, self.mode.?, context.mode) != .eq) {
+    if (self.mode == null or !mem.eql(u8, self.mode.?, context.mode)) {
         defer self.mode = fmt.bufPrint(&self.mode_buffer, "{s}", .{ context.mode }) catch unreachable;
 
         if (self.mode) |mode| {
