@@ -3,8 +3,10 @@ const Self = @This();
 const std = @import("std");
 const mem = std.mem;
 const posix = std.posix;
+const linux = std.os.linux;
 const log = std.log.scoped(.xkb_keyboard);
 
+const xkbcommon = @import("xkbcommon");
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
@@ -28,9 +30,18 @@ pub const Layout = union(enum) {
     index: u32,
     name: []const u8,
 };
-pub const Keymap = struct {
-    file: []const u8,
-    format: river.XkbConfigV1.KeymapFormat,
+pub const Keymap = union(enum) {
+    file: struct {
+        path: []const u8,
+        format: river.XkbConfigV1.KeymapFormat,
+    },
+    options: struct {
+        rules: ?[]const u8 = null,
+        model: ?[]const u8 = null,
+        layout: ?[]const u8 = null,
+        variant: ?[]const u8 = null,
+        options: ?[]const u8 = null,
+    },
 };
 
 
@@ -43,8 +54,11 @@ input_device: ?*InputDevice = null,
 new: bool = true,
 numlock: NumlockState = undefined,
 capslock: CapslockState = undefined,
-layout_index: u32 = undefined,
-layout_name: ?[]const u8 = null,
+layout: struct {
+    index: u32 = 0,
+    name: ?[]const u8 = null,
+} = .{},
+keymap: ?Keymap = null,
 
 
 pub fn create(rwm_xkb_keyboard: *river.XkbKeyboardV1) !*Self {
@@ -67,9 +81,9 @@ pub fn create(rwm_xkb_keyboard: *river.XkbKeyboardV1) !*Self {
 pub fn destroy(self: *Self) void {
     log.debug("<{*}> destroyed", .{ self });
 
-    if (self.layout_name) |name| {
+    if (self.layout.name) |name| {
         utils.allocator.free(name);
-        self.layout_name = null;
+        self.layout.name = null;
     }
 
     self.link.remove();
@@ -113,18 +127,26 @@ fn apply_rule(self: *Self, rule: *const Config.XkbKeyboardRule) void {
         if (self.capslock != state) self.set_capslock(state);
     }
 
-    if (rule.layout) |layout| {
-        if (switch (layout) {
-            .index => |index| index != self.layout_index,
-            .name => |name| self.layout_name == null or mem.order(u8, name, self.layout_name.?) != .eq,
-        }) self.set_layout(layout);
-    }
-
+    var keymap_updated = false;
     if (rule.keymap) |keymap| blk: {
-        self.set_keymap(keymap) catch |err| {
+        if (self.keymap != null and Config.deep_equal(Keymap, &self.keymap.?, &keymap)) break :blk;
+
+        self.set_keymap(&keymap) catch |err| {
             log.err("<{*}> set keymap failed: {}", .{ self, err });
             break :blk;
         };
+
+        keymap_updated = true;
+
+        if (self.layout.name) |name| utils.allocator.free(name);
+        self.layout = .{};
+    }
+
+    if (rule.layout) |layout| {
+        if (keymap_updated or switch (layout) {
+            .index => |index| index != self.layout.index,
+            .name => |name| if (self.layout.name) |layout_name| !mem.eql(u8, layout_name, name) else true,
+        }) self.set_layout(layout);
     }
 }
 
@@ -170,18 +192,76 @@ fn set_layout(self: *Self, layout: Layout) void {
 }
 
 
-fn set_keymap(self: *Self, keymap: Keymap) !void {
-    log.debug("<{*}> set keymap to `{s}` with format {s}", .{ self, keymap.file, @tagName(keymap.format) });
-
+fn set_keymap(self: *Self, keymap: *const Keymap) !void {
     const context = Context.get();
 
     if (context.rwm_xkb_config) |rwm_xkb_config| {
-        const fd = try posix.open(keymap.file, .{ .ACCMODE = .RDWR }, 0);
-        defer posix.close(fd);
+        const rwm_xkb_keymap = switch (keymap.*) {
+            .file => |file| blk: {
+                log.debug("<{*}> set keymap to `{s}` with format {s}", .{ self, file.path, @tagName(file.format) });
 
-        const xkb_keymap = try rwm_xkb_config.createKeymap(fd, keymap.format);
+                const fd = try posix.open(file.path, .{ .ACCMODE = .RDWR }, 0);
+                defer posix.close(fd);
 
-        self.rwm_xkb_keyboard.setKeymap(xkb_keymap);
+                break :blk try rwm_xkb_config.createKeymap(fd, file.format);
+            },
+            .options => |map| blk: {
+                log.debug(
+                    "<{*}> set keymap to (rules: {s}, model: {s}, layout: {s}, variant: {s}, options: {s})",
+                    .{
+                        self,
+                        map.rules orelse "null",
+                        map.model orelse "null",
+                        map.layout orelse "null",
+                        map.variant orelse "null",
+                        map.options orelse "null",
+                    },
+                );
+
+                const xkb_context = xkbcommon.Context.new(.no_flags) orelse return error.XkbContextNewFailed;
+                defer xkb_context.unref();
+
+                const xkb_keymap_rules = if (map.rules) |rules| try utils.allocator.dupeZ(u8, rules) else null;
+                const xkb_keymap_model = if (map.model) |model| try utils.allocator.dupeZ(u8, model) else null;
+                const xkb_keymap_layout = if (map.layout) |layout| try utils.allocator.dupeZ(u8, layout) else null;
+                const xkb_keymap_variant = if (map.variant) |variant| try utils.allocator.dupeZ(u8, variant) else null;
+                const xkb_keymap_options = if (map.options) |options| try utils.allocator.dupeZ(u8, options) else null;
+                defer {
+                    if (xkb_keymap_rules) |rules| utils.allocator.free(rules);
+                    if (xkb_keymap_model) |model| utils.allocator.free(model);
+                    if (xkb_keymap_layout) |layout| utils.allocator.free(layout);
+                    if (xkb_keymap_variant) |variant| utils.allocator.free(variant);
+                    if (xkb_keymap_options) |options| utils.allocator.free(options);
+                }
+
+                const xkb_rule_names = xkbcommon.RuleNames {
+                    .rules = if (xkb_keymap_rules) |rules| rules.ptr else null,
+                    .model = if (xkb_keymap_model) |model| model.ptr else null,
+                    .layout = if (xkb_keymap_layout) |layout| layout.ptr else null,
+                    .variant = if (xkb_keymap_variant) |variant| variant.ptr else null,
+                    .options = if (xkb_keymap_options) |options| options.ptr else null,
+                };
+
+                const xkb_keymap = xkbcommon.Keymap.newFromNames(
+                    xkb_context,
+                    &xkb_rule_names,
+                    .no_flags,
+                ) orelse return error.XkbKeymapNewFailed;
+                defer xkb_keymap.unref();
+
+                const fd = try posix.memfd_create("kwm-keymap-file", linux.MFD.CLOEXEC);
+                defer posix.close(fd);
+
+                const xkb_keymap_str: ?[*:0]const u8 = @ptrCast(xkb_keymap.getAsString(.text_v1));
+                _ = try posix.write(fd, mem.span(xkb_keymap_str orelse return error.GetXkbKeymapStringFailed));
+
+                break :blk try rwm_xkb_config.createKeymap(fd, .text_v1);
+            }
+        };
+        defer rwm_xkb_keymap.destroy();
+
+        self.keymap = keymap.*;
+        self.rwm_xkb_keyboard.setKeymap(rwm_xkb_keymap);
     } else return error.MissingRiverXkbConfig;
 }
 
@@ -203,14 +283,14 @@ fn rwm_xkb_keyboard_listener(rwm_xkb_keyboard: *river.XkbKeyboardV1, event: rive
         .layout => |data| {
             log.debug("<{*}> layout, index: {}, name: {s}", .{ xkb_keyboard, data.index, data.name orelse "" });
 
-            if (xkb_keyboard.layout_name) |name| {
+            if (xkb_keyboard.layout.name) |name| {
                 utils.allocator.free(name);
-                xkb_keyboard.layout_name = null;
+                xkb_keyboard.layout.name = null;
             }
 
-            xkb_keyboard.layout_index = data.index;
+            xkb_keyboard.layout.index = data.index;
             if (data.name) |name| {
-                xkb_keyboard.layout_name = utils.allocator.dupe(u8, mem.span(name)) catch null;
+                xkb_keyboard.layout.name = utils.allocator.dupe(u8, mem.span(name)) catch null;
             }
         },
         .capslock_enabled => {

@@ -2140,7 +2140,18 @@
     //          layout index: .{ .index = u32 }
     //          or
     //          layout name: .{ .name = "layout name" }
-    //      keymap: .{ .file = "keymap file", .format = .text_v1 or .text_v2 }
+    //      keymap:
+    //          .{ .file = .{ .path = "keymap file path", .format = .text_v1 or .text_v2 } }
+    //          or
+    //          .{
+    //              .options = .{
+    //                  .rules = ?[]const u8,
+    //                  .model = ?[]const u8,
+    //                  .layout = ?[]const u8,
+    //                  .variant = ?[]const u8,
+    //                  .options = ?[]const u8,
+    //              }
+    //          }
     .xkb_keyboard_rules = .{
         //
     },

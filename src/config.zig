@@ -174,7 +174,7 @@ fn merge(comptime T: type, base: *const T, new: *const make_optional(T)) T {
 }
 
 
-fn deep_equal(comptime T: type, a: *const T, b: *const T) bool {
+pub fn deep_equal(comptime T: type, a: *const T, b: *const T) bool {
     return switch (@typeInfo(T)) {
         .@"struct" => |info| blk: {
             inline for (info.fields) |field| {
