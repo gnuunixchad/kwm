@@ -43,7 +43,7 @@
                 .bg = 0x427b58ff,
             },
         },
-        .status = .{ .fifo = "/run/user/1000/damblocks.fifo" }, // .stdin or .{ .fifo = "fifo file path" }, could use ^#RGBA to switch text color, and use ^#! to switch back to default color
+        .status = .{ .fifo = "${XDG_RUNTIME_DIR}/damblocks.fifo" }, // .stdin or .{ .fifo = "fifo file path" }, could use ^#RGBA to switch text color, and use ^#! to switch back to default color
         // bar clicked callback
         // each part support left/right/middle
         .click = .{
