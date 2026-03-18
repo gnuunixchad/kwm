@@ -1397,6 +1397,15 @@
                 },
             },
             .{
+                .keysym = "backslash",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .switch_to_previous_tag,
+                    },
+                },
+            },
+            .{
                 .keysym = "apostrophe",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
