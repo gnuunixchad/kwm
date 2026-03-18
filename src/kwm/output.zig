@@ -315,6 +315,8 @@ pub fn switch_to_previous_layout(self: *Self) void {
 
     const i = @ctz(self.main_tag);
     mem.swap(layout.Type, &self.layout_tag[i], &self.prev_layout_tag[i]);
+
+    if (comptime build_options.bar_enabled) self.bar.damage(.layout);
 }
 
 

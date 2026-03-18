@@ -1,13 +1,36 @@
+const build_options = @import("build_options");
 const std = @import("std");
+const fs = std.fs;
+const os = std.os;
+const fmt = std.fmt;
+const log = std.log;
 const mem = std.mem;
+const posix = std.posix;
 
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const wp = wayland.client.wp;
 const river = wayland.client.river;
 
-const Config = @import("config");
 const kwm = @import("kwm");
+const flags = @import("flags");
+const Config = @import("config");
+
+var stderr_buffer: [1024]u8 = undefined;
+var stderr_writer = fs.File.stderr().writer(&stderr_buffer);
+const stderr = &stderr_writer.interface;
+
+var stdout_buffer: [1024]u8 = undefined;
+var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
+const stdout = &stdout_writer.interface;
+
+const usage =
+    \\usage: kwm [options]
+    \\  -h,-help               Print this help message and exit.
+    \\  -v,-version            Print the version number and exit.
+    \\  -c,-config             Specify custom configuration file path.
+    \\
+;
 
 const Globals = struct {
     wl_compositor: ?*wl.Compositor = null,
@@ -26,11 +49,52 @@ const Globals = struct {
 
 
 pub fn main() !void {
+    const options = flags.parser(
+        [*:0]const u8,
+        &.{
+            .{ .name = "h", .kind = .boolean },
+            .{ .name = "help", .kind = .boolean },
+            .{ .name = "c", .kind = .arg },
+            .{ .name = "config", .kind = .arg },
+            .{ .name = "v", .kind = .boolean },
+            .{ .name = "version", .kind = .boolean },
+        },
+    ).parse(os.argv[1..]) catch {
+        try stderr.writeAll(usage);
+        try stderr.flush();
+        posix.exit(1);
+    };
+    if (options.flags.h or options.flags.help) {
+        try stdout.writeAll(usage);
+        try stdout.flush();
+        posix.exit(0);
+    }
+    if (options.flags.v or options.flags.version) {
+        try stdout.writeAll(build_options.version++"\n");
+        try stdout.flush();
+        posix.exit(0);
+    }
+    if (options.args.len != 0) {
+        log.err("unknown option '{s}'", .{options.args[0]});
+        try stderr.writeAll(usage);
+        try stderr.flush();
+        posix.exit(1);
+    }
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}) {};
     defer if (gpa.deinit() != .ok) @panic("memory leak");
     const allocator = gpa.allocator();
 
-    Config.init(&allocator);
+    var path_buffer: [256]u8 = undefined;
+    const config_path = options.flags.c orelse options.flags.config orelse (
+        if (posix.getenv("XDG_CONFIG_HOME")) |config_home| fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
+        else if (posix.getenv("HOME")) |home| fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
+        else return error.GetConfigHomeFailed
+    ) catch |err| {
+        log.err("format config path failed: {}", .{ err });
+        return err;
+    };
+    Config.init(&allocator, config_path);
     defer Config.deinit();
 
     kwm.init_allocator(&allocator);

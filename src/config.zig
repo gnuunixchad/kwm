@@ -2,7 +2,6 @@ const Self = @This();
 
 const std = @import("std");
 const fs = std.fs;
-const fmt = std.fmt;
 const mem = std.mem;
 const zon = std.zon;
 const meta = std.meta;
@@ -18,6 +17,7 @@ const rule = @import("config/rule.zig");
 
 var allocator: mem.Allocator = undefined;
 
+var path: []const u8 = undefined;
 var config: ?Self = null;
 var user_config: ?make_fields_optional(Self) = null;
 const default_config: Self = @import("default_config");
@@ -427,10 +427,11 @@ fn free_user_config() void {
 }
 
 
-pub fn init(al: *const mem.Allocator) void {
+pub fn init(al: *const mem.Allocator, config_path: []const u8) void {
     log.debug("config init", .{});
 
     allocator = al.*;
+    path = config_path;
 
     user_config = try_load_user_config();
     refresh_config();
@@ -491,25 +492,15 @@ pub fn reload() field_mask(Self) {
 
 
 fn try_load_user_config() ?make_fields_optional(Self) {
-    var path_buffer: [256]u8 = undefined;
-    const config_path = (
-        if (posix.getenv("XDG_CONFIG_HOME")) |config_home| fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
-        else if (posix.getenv("HOME")) |home| fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
-        else return null
-    ) catch |err| {
-        log.err("format config path failed: {}", .{ err });
-        return null;
-    };
+    log.info("try load user config from `{s}`", .{ path });
 
-    log.info("try load user config from `{s}`", .{ config_path });
-
-    const file = fs.cwd().openFile(config_path, .{ .mode = .read_only }) catch |err| {
+    const file = fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
         switch (err) {
             error.FileNotFound => {
-                log.warn("`{s}` not exists", .{ config_path });
+                log.warn("`{s}` not exists", .{ path });
             },
             else => {
-                log.err("access file `{s}` failed: {}", .{ config_path, err });
+                log.err("access file `{s}` failed: {}", .{ path, err });
             }
         }
         return null;
@@ -517,7 +508,7 @@ fn try_load_user_config() ?make_fields_optional(Self) {
     defer file.close();
 
     const stat = file.stat() catch |err| {
-        log.err("stat file `{s}` failed: {}", .{ config_path, err });
+        log.err("stat file `{s}` failed: {}", .{ path, err });
         return null;
     };
     const buffer = allocator.alloc(u8, stat.size+1) catch |err| {

@@ -1,7 +1,11 @@
 const std = @import("std");
 const fs = std.fs;
+const mem = std.mem;
 
 const wayland = @import("wayland");
+
+const manifest = @import("build.zig.zon");
+const version = manifest.version;
 
 // Although this function looks imperative, it does not perform the build
 // directly and instead it mutates the build graph (`b`) that will be then
@@ -54,6 +58,12 @@ pub fn build(b: *std.Build) void {
     const wayland_mod = b.createModule(.{ .root_source_file = scanner.result });
     const xkbcommon_mod = b.dependency("xkbcommon", .{}).module("xkbcommon");
     const mvzr_mod = b.dependency("mvzr", .{}).module("mvzr");
+
+    const flags_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .root_source_file = b.path("src/flags.zig"),
+    });
 
     const default_config_path = b.option([]const u8, "config", "path to config file") orelse "config.zon";
     const backup_default_config_path = "config.def.zon";
@@ -115,11 +125,6 @@ pub fn build(b: *std.Build) void {
         kwm_mod.addImport("fcft", fcft_mod);
     }
 
-    const options = b.addOptions();
-    options.addOption(bool, "bar_enabled", bar_enabled);
-
-    kwm_mod.addOptions("build_options", options);
-
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
     // to the module defined above, it's sometimes preferable to split business
@@ -154,6 +159,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "wayland", .module = wayland_mod },
 
+                .{ .name = "flags", .module = flags_mod },
                 .{ .name = "config", .module = config_mod },
                 .{ .name = "kwm", .module = kwm_mod },
             },
@@ -169,6 +175,39 @@ pub fn build(b: *std.Build) void {
         exe.root_module.linkSystemLibrary("pixman-1", .{});
         exe.root_module.linkSystemLibrary("fcft", .{});
     }
+
+    const kwm_options = b.addOptions();
+    kwm_options.addOption(bool, "bar_enabled", bar_enabled);
+    kwm_mod.addOptions("build_options", kwm_options);
+
+    const full_version = blk: {
+        if (b.option([]const u8, "version-string", "Override `kwm -version` output.")) |version_override| {
+            break :blk version_override;
+        } else if (mem.endsWith(u8, version, "-dev")) {
+            var ret: u8 = undefined;
+
+            const git_describe_long = b.runAllowFail(
+                &.{ "git", "-C", b.build_root.path orelse ".", "describe", "--long" },
+                &ret,
+                .Ignore,
+            ) catch break :blk version;
+
+            var it = mem.splitSequence(u8, mem.trim(u8, git_describe_long, &std.ascii.whitespace), "-");
+            _ = it.next().?; // previous tag
+            const commit_count = it.next().?;
+            const commit_hash = it.next().?;
+            std.debug.assert(it.next() == null);
+            std.debug.assert(commit_hash[0] == 'g');
+
+            // Follow semantic versioning, e.g. 0.2.0-dev.42+d1cf95b
+            break :blk b.fmt(version ++ ".{s}+{s}", .{ commit_count, commit_hash[1..] });
+        } else {
+            break :blk version;
+        }
+    };
+    const root_options = b.addOptions();
+    root_options.addOption([]const u8, "version", full_version);
+    exe.root_module.addOptions("build_options", root_options);
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
