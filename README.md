@@ -82,6 +82,8 @@ User configuration can be reloaded on the fly with
 
 Run `kwm` in your river init file, or start it with `river -c kwm`.
 
+See `kwm(1)` man page for complete documentation.
+
 ### Keymaps
 
 Keyboard mapping can be customized by setting XKB layout rules before launching

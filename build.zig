@@ -215,6 +215,13 @@ pub fn build(b: *std.Build) void {
     // by passing `--prefix` or `-p`.
     b.installArtifact(exe);
 
+    const man_page_install = b.addInstallFile(
+        b.path("doc/kwm.1"),
+        "share/man/man1/kwm.1",
+    );
+
+    b.getInstallStep().dependOn(&man_page_install.step);
+
     // This creates a top level step. Top level steps have a name and can be
     // invoked by name when running `zig build` (e.g. `zig build run`).
     // This will evaluate the `run` step rather than the default step.
