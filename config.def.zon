@@ -1128,7 +1128,7 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .focus_iter = .{ .direction = .forward, .skip_floating = true },
+                            .focus_iter = .{ .direction = .forward, .skip = .floating },
                         },
                     },
                 },
@@ -1139,7 +1139,7 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .focus_iter = .{ .direction = .reverse, .skip_floating = true },
+                            .focus_iter = .{ .direction = .reverse, .skip = .floating },
                         },
                     },
                 },
@@ -2021,6 +2021,21 @@
                 .event = .{ .pressed = .pointer_resize },
             },
         },
+        // other unmentioned actions:
+        //      group: run multiple actions in sequence
+        //         .event = .{
+        //             .click = .{
+        //                 .pressed = .{
+        //                     .group = .{
+        //                         .actions = .{
+        //                             action1,
+        //                             action2,
+        //                             ...
+        //                         },
+        //                     },
+        //                 },
+        //             },
+        //         }
     },
 
     // rule part

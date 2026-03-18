@@ -453,7 +453,7 @@ pub fn focused_window(self: *Self) ?*Window {
 }
 
 
-pub fn focus_iter(self: *Self, direction: types.Direction, skip_floating: bool) void {
+pub fn focus_iter(self: *Self, direction: types.Direction, skip: types.WindowIterSkip) void {
     log.debug("focus iter: {s}", .{ @tagName(direction) });
 
     if (self.focused_window()) |window| {
@@ -466,7 +466,11 @@ pub fn focus_iter(self: *Self, direction: types.Direction, skip_floating: bool) 
             defer win = new_window;
             if (new_window == window) break;
             if (new_window.is_visible_in(window.output.?)) {
-                if (skip_floating and new_window.floating) continue;
+                switch (skip) {
+                    .none => {},
+                    .floating => if (new_window.floating) continue,
+                    .nonfloating => if (!new_window.floating) continue,
+                }
                 self.focus(new_window);
                 break;
             }

@@ -34,3 +34,9 @@ pub const LayoutMasterLocation = enum {
     top,
     bottom,
 };
+
+pub const WindowIterSkip = enum {
+    none,
+    floating,
+    nonfloating,
+};
