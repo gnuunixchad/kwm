@@ -231,17 +231,17 @@ Mod4-Shift-a
 Toggle auto swallow.\&
 .PP
 .RE
-Mod-Shift-g
+Mod4-Shift-g
 .RS 4
 Toggle grid layout'\&s direction.\&
 .PP
 .RE
-Mod-p
+Mod4-p
 .RS 4
 Spawn \fIwmenu(1)\fR.\&
 .PP
 .RE
-Mod-Shift-Return
+Mod4-Shift-Return
 .RS 4
 Spawn \fIfoot(1)\fR.\&
 .PP
@@ -279,9 +279,97 @@ Snap the floating window to the left/bottom/top/right edge on the
 output.\&
 .PP
 .RE
+.SS status bar
+.PP
+Button1
+.RS 4
+Click on a tag label to set the output tag.\&
+.br
+Click on layout label to switch to the previous layout.\&
+.br
+Click on mode label to switch to the default mode.\&
+.br
+Click on title label to move the window on top of the stack.\&
+.PP
+.RE
+Button2
+.RS 4
+Click on a tag to toggle the window tag.\&
+.br
+Click on status to spawn \fIfoot(1)\fR.\&
+.PP
+.RE
+Button3
+.RS 4
+Click on a tag to toggle the output tag.\&
+.PP
+.RE
+.SS mouse keybindings
+.PP
+Mod4-Button1
+.RS 4
+Move the window while dragging.\&
+.PP
+.RE
+Mod4-Button3
+.RS 4
+Resize the window while dragging.\&
+.PP
+.RE
 .SH CONFIGURATION
 .PP
 kwm supports both compile-time and runtime configuration.\&
+.PP
+Default configuration is usually installed to one of the following paths:
+.PP
+.RS 4
+/usr/share/doc/kwm/config.\&zon
+.PP
+/usr/local/share/doc/kwm/config.\&zon
+.PP
+.RE
+Below are some examples on configurable settings:
+.PP
+.PD 0
+.IP \(bu 4
+\fBStartup commands\fR
+.br
+Commands to run when starting kwm.\&
+.PD
+.PP
+.PD 0
+.IP \(bu 4
+\fBBar\fR
+.br
+Change bar position and fonts.\&
+.br
+Choose status among static text, stdin, and fifo.\&
+.PD
+.PP
+.PD 0
+.IP \(bu 4
+\fBInput devices\fR
+.br
+Configure touchpad and keyboard such as repeat delay and rate.\&
+.br
+Change cursor theme and keyboard layout.\&
+.PD
+.PP
+.PD 0
+.IP \(bu 4
+\fBKeybindings\fR
+.br
+Change keybindings in each mode, and add custom modes.\&
+.PD
+.PP
+.PD 0
+.IP \(bu 4
+\fBRules\fR
+.br
+Match windows by app_id or title with regex support.\&
+.br
+Set tag, floating, dimension, decoration, swallow and scroller behaviors.\&
+.PD
 .PP
 .SS Compile Time
 .PP
@@ -326,7 +414,15 @@ river -c \&'while :; do date; sleep 1; done | kwm\&'
 .RE
 .PP
 .SH SEE ALSO
+.PP
 \fIriver\fR(1)
+.PP
+Useful software:
+.nf
+.RS 4
+https://codeberg\&.org/river/wiki/src/branch/main/pages/useful-software\&.md
+.fi
+.RE
 .PP
 .SH BUGS
 .PP

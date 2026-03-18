@@ -84,10 +84,16 @@ Run `kwm` in your river init file, or start it with `river -c kwm`.
 
 See `kwm(1)` man page for complete documentation.
 
+See [Useful Software] in river wiki for compatible software.
+
+### Keybindings
+
+See `KEYBINDINGS` section in `kwm(1)` for default keybindings.
+
 ### Keymaps
 
 Keyboard mapping can be customized by setting XKB layout rules before launching
-river. For example, to swap <kbd>CapsLock</kbd> with <kbd>Escape</kbd>:
+river. For example, to swap <kbd>CapsLock</kbd> with <kbd>Escape</kbd>, and <kbd>Mod1</kbd> with <kbd>Mod4</kbd>:
 
 ```sh
 export XKB_DEFAULT_OPTIONS=caps:swapescape,altwin:swap_alt_win
@@ -144,6 +150,7 @@ GPL-3.0-compatible.
 
 [GPL-3.0]: ./LICENSE
 [river]: https://codeberg.org/river/river
+[Useful Software]: 	https://codeberg.org/river/wiki/src/branch/main/pages/useful-software.md
 [river-pwm]: https://github.com/pinpox/river-pwm
 [machi]: https://codeberg.org/machi/machi
 [dwl]: https://codeberg.org/dwl/dwl

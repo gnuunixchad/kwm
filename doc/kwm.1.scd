@@ -145,13 +145,13 @@ Mod1-Mod4-\[-=\]
 Mod4-Shift-a
 	Toggle auto swallow.
 
-Mod-Shift-g
+Mod4-Shift-g
 	Toggle grid layout's direction.
 
-Mod-p
+Mod4-p
 	Spawn _wmenu(1)_.
 
-Mod-Shift-Return
+Mod4-Shift-Return
 	Spawn _foot(1)_.
 
 ## passthrough mode
@@ -177,9 +177,58 @@ Mod4-Shift-\[hjkl\]
 	Snap the floating window to the left/bottom/top/right edge on the
 	output.
 
+## status bar
+
+Button1
+	Click on a tag label to set the output tag.++
+	Click on layout label to switch to the previous layout.++
+	Click on mode label to switch to the default mode.++
+	Click on title label to move the window on top of the stack.
+
+Button2
+	Click on a tag to toggle the window tag.++
+	Click on status to spawn _foot(1)_.
+
+Button3
+	Click on a tag to toggle the output tag.
+
+## mouse keybindings
+
+Mod4-Button1
+	Move the window while dragging.
+
+Mod4-Button3
+	Resize the window while dragging.
+
 # CONFIGURATION
 
 kwm supports both compile-time and runtime configuration.
+
+Default configuration is usually installed to one of the following paths:
+
+	/usr/share/doc/kwm/config.zon
+
+	/usr/local/share/doc/kwm/config.zon
+
+Below are some examples on configurable settings:
+
+- *Startup commands*++
+	Commands to run when starting kwm.
+
+- *Bar*++
+	Change bar position and fonts.++
+	Choose status among static text, stdin, and fifo.
+
+- *Input devices*++
+	Configure touchpad and keyboard such as repeat delay and rate.++
+	Change cursor theme and keyboard layout.
+
+- *Keybindings*++
+	Change keybindings in each mode, and add custom modes.
+
+- *Rules*++
+	Match windows by app_id or title with regex support.++
+	Set tag, floating, dimension, decoration, swallow and scroller behaviors.
 
 ## Compile Time
 
@@ -216,7 +265,13 @@ river -c 'while :; do date; sleep 1; done | kwm'
 ```
 
 # SEE ALSO
+
 _river_(1)
+
+Useful software:
+```
+https://codeberg.org/river/wiki/src/branch/main/pages/useful-software.md
+```
 
 # BUGS
 

@@ -222,6 +222,14 @@ pub fn build(b: *std.Build) void {
 
     b.getInstallStep().dependOn(&man_page_install.step);
 
+    const config_doc_install = b.addInstallFile(
+        b.path("config.def.zon"),
+        "share/doc/kwm/config.zon",
+    );
+
+    b.getInstallStep().dependOn(&config_doc_install.step);
+
+
     // This creates a top level step. Top level steps have a name and can be
     // invoked by name when running `zig build` (e.g. `zig build run`).
     // This will evaluate the `run` step rather than the default step.
