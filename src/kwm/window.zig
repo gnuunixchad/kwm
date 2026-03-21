@@ -858,7 +858,20 @@ fn unswallow(self: *Self) void {
 
 
 fn apply_rule(self: *Self, rule: *const Config.WindowRule) void {
+    const context = Context.get();
+
     if (rule.tag) |tag| self.set_tag(tag);
+    if (rule.output) |output_pattern| {
+        {
+            var it = context.outputs.safeIterator(.forward);
+            while (it.next()) |output| {
+                if (output_pattern.is_match(output.name)) {
+                    self.set_output(output, true);
+                    break;
+                }
+            }
+        }
+    }
     if (rule.floating) |floating| self.floating = floating;
     if (rule.dimension) |dimension| self.resize(dimension.width, dimension.height);
     if (rule.decoration) |decoration| self.decoration = decoration;

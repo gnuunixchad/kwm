@@ -19,6 +19,22 @@ pub inline fn init_allocator(al: *const std.mem.Allocator) void {
 }
 
 
+pub inline fn logical2physics(T: type, logical: T, scale: u32) T {
+    return @intCast(@divFloor(
+        logical*@as(T, @intCast(scale)),
+        120
+    ));
+}
+
+
+pub inline fn physics2logical(T: type, physics: T, scale: u32) T {
+    return @intCast(@divFloor(
+        physics*120,
+        @as(T, @intCast(scale))
+    ));
+}
+
+
 pub fn cycle_list(
     comptime T: type,
     head: *wl.list.Link,

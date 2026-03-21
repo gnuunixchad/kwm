@@ -95,8 +95,12 @@ pub fn reload_font(self: *Self) void {
 }
 
 
-pub inline fn height(self: *Self) i32 {
-    return self.font.height;
+pub inline fn height(self: *Self, logical: bool) i32 {
+    return if (logical) utils.physics2logical(
+        i32,
+        self.font.height,
+        self.scale,
+    ) else self.font.height;
 }
 
 
@@ -114,12 +118,13 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
     }
     switch (config.bar.position) {
         .top => {
-            if (pointer_y < self.output.y or pointer_y > self.output.y + self.height()) {
+            if (pointer_y < self.output.y or pointer_y > self.output.y + self.height(true)) {
                 return;
             }
         },
         .bottom => {
-            if (pointer_y < self.output.y + self.output.height - self.height() or pointer_y > self.output.y + self.output.height) {
+            if (pointer_y < self.output.y + self.output.height - self.height(true)
+                or pointer_y > self.output.y + self.output.height) {
                 return;
             }
         }
@@ -130,7 +135,7 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
         seat.append_action(a);
     };
 
-    var x: i32 = pointer_x - self.output.x;
+    var x = utils.logical2physics(i32, pointer_x - self.output.x, self.scale);
     if (x <= self.static_component_width()) {
         for (0.., self.static_splits.items) |i, split| {
             if (x <= split) {
@@ -228,12 +233,12 @@ inline fn static_component_width(self: *Self) i32 {
 
 
 inline fn get_pad(self: *Self) u16 {
-    return @intCast(@divFloor(self.height() * 3, 4)); // 0.75 = 3/4
+    return @intCast(@divFloor(self.font.height * 3, 4)); // reduce padding to 3/4
 }
 
 
 fn get_box(self: *Self) struct { u16, i16 } {
-    const h: u16 = @intCast(self.height());
+    const h: u16 = @intCast(self.height(false));
     return .{
         @intCast(@divFloor(h, 6) + 2),
         @intCast(@divFloor(h, 9)),
@@ -246,13 +251,14 @@ fn render_background(self: *Self) void {
 
     const config = Config.get();
     const context = Context.get();
-    const h = self.height();
+    const h = self.height(false);
+    const logical_h = self.height(true);
 
     self.shell_surface.sync_next_commit();
     self.shell_surface.place(.bottom);
     self.shell_surface.set_position(self.output.x, self.output.y + switch (config.bar.position) {
         .top => 0,
-        .bottom => self.output.height - self.height(),
+        .bottom => self.output.height - logical_h,
     });
 
     const rgba = utils.rgba(config.bar.color.normal.bg);
@@ -263,11 +269,17 @@ fn render_background(self: *Self) void {
     defer buffer.destroy();
 
     self.static_component.manage(0, 0);
-    self.dynamic_component.manage(self.static_component_width(), 0);
+    self.dynamic_component.manage(
+        utils.physics2logical(i32, self.static_component_width(), self.scale),
+        0,
+    );
 
     self.wl_surface.attach(buffer, 0, 0);
-    self.wl_surface.damageBuffer(0, 0, self.output.width, h);
-    self.wp_viewport.setDestination(self.output.width, h);
+    self.wl_surface.damageBuffer(
+        0, 0,
+        utils.logical2physics(i32, self.output.width, self.scale), h,
+    );
+    self.wp_viewport.setDestination(self.output.width, logical_h);
     self.wl_surface.commit();
 }
 
@@ -381,7 +393,7 @@ fn render_static_component(self: *Self) void {
         }
         break :blk width;
     };
-    const h: u16 = @intCast(self.height());
+    const h: u16 = @intCast(self.height(false));
 
     const buffer = self.next_buffer(.static, w, h) orelse return;
 
@@ -479,7 +491,7 @@ fn render_static_component(self: *Self) void {
         );
     }
 
-    self.static_component.render(buffer);
+    self.static_component.render(buffer, self.scale);
 }
 
 
@@ -496,8 +508,10 @@ fn render_dynamic_component(self: *Self) void {
     const transparent = mem.zeroes(pixman.Color);
 
     const pad = self.get_pad();
-    const w: u16 = @intCast(self.output.width-self.static_component_width());
-    const h: u16 = @intCast(self.height());
+    const w: u16 = @intCast(
+        utils.logical2physics(i32, self.output.width, self.scale)-self.static_component_width()
+    );
+    const h: u16 = @intCast(self.height(false));
 
     const buffer = self.next_buffer(.dynamic, w, h) orelse return;
 
@@ -692,7 +706,7 @@ fn render_dynamic_component(self: *Self) void {
         }
     }
 
-    self.dynamic_component.render(buffer);
+    self.dynamic_component.render(buffer, self.scale);
 }
 
 

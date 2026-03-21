@@ -118,7 +118,7 @@ pub inline fn exclusive_y(self: *Self) i32 {
     return
         if (comptime build_options.bar_enabled)
             if (config.bar.position == .bottom or self.bar.hidden) self.y
-            else self.y + self.bar.height()
+            else self.y + self.bar.height(true)
         else self.y;
 }
 
@@ -132,7 +132,7 @@ pub inline fn exclusive_height(self: *Self) i32 {
     return
         if (comptime build_options.bar_enabled)
             if (self.bar.hidden) self.height
-            else self.height - self.bar.height()
+            else self.height - self.bar.height(true)
         else self.height;
 }
 

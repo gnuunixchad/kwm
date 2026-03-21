@@ -2067,6 +2067,7 @@
     //      title: rule pattern
     //
     //      tag: window tag
+    //      output: output name pattern, same as rule pattern
     //      floating: bool, if floating
     //      dimension: .{ .width = i32, .height = i32 }, initial dimension
     //      decoration: .csd or .ssd, window decoration

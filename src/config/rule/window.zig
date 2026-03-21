@@ -21,6 +21,7 @@ title: ?Pattern = null,
 app_id: ?Pattern = null,
 
 tag: ?u32 = null,
+output: ?Pattern = null,
 floating: ?bool = null,
 dimension: ?Dimension = null,
 decoration: ?kwm.WindowDecoration = null,

@@ -5,13 +5,16 @@ const log = std.log.scoped(.component);
 
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
+const wp = wayland.client.wp;
 
+const utils = @import("../utils.zig");
 const Context = @import("../context.zig");
 const Buffer = @import("buffer.zig");
 
 
 wl_surface: *wl.Surface,
 wl_subsurface: *wl.Subsurface,
+wp_viewport: *wp.Viewport,
 buffers: [2]Buffer = undefined,
 
 damaged: bool = true,
@@ -28,9 +31,13 @@ pub fn init(self: *Self, parent: *wl.Surface) !void {
     const wl_subsurface = try context.wl_subcompositor.getSubsurface(wl_surface, parent);
     errdefer wl_subsurface.destroy();
 
+    const wp_viewport = try context.wp_viewporter.getViewport(wl_surface);
+    errdefer wp_viewport.destroy();
+
     self.* = .{
         .wl_surface = wl_surface,
         .wl_subsurface = wl_subsurface,
+        .wp_viewport = wp_viewport,
         .buffers = .{ .{}, .{} },
     };
 
@@ -41,6 +48,7 @@ pub fn init(self: *Self, parent: *wl.Surface) !void {
 pub fn deinit(self: *Self) void {
     log.debug("<{*}> deinit", .{ self });
 
+    self.wp_viewport.destroy();
     self.wl_subsurface.destroy();
     self.wl_surface.destroy();
     self.buffers[0].deinit();
@@ -55,11 +63,15 @@ pub fn manage(self: *Self, x: i32, y: i32) void {
 }
 
 
-pub fn render(self: *Self, buffer: *Buffer) void {
+pub fn render(self: *Self, buffer: *Buffer, scale: u32) void {
     log.debug("<{*}> rendering", .{ self });
 
     self.wl_surface.attach(buffer.wl_buffer, 0, 0);
     self.wl_surface.damageBuffer(0, 0, buffer.width, buffer.height);
+    self.wp_viewport.setDestination(
+        utils.physics2logical(i32, buffer.width, scale),
+        utils.physics2logical(i32, buffer.height, scale),
+    );
     self.wl_surface.commit();
 }
 
