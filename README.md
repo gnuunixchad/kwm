@@ -56,6 +56,7 @@ zig build -Doptimize=ReleaseSafe
 
 - `-Dconfig`: specify the default config file path (defaults to `config.zon`,
   copied from `config.def.zon` if missing)
+- `-Dbackground`: enable or disable the solid background (defaults to `false`)
 - `-Dbar`: enable or disable the status bar (defaults to `true`)
 - `--prefix`: specify the path to install files
 

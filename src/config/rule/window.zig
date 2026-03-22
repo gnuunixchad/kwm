@@ -28,6 +28,7 @@ decoration: ?kwm.WindowDecoration = null,
 is_terminal: ?bool = null,
 disable_swallow: ?bool = null,
 scroller_mfact: ?f32 = null,
+attach_mode: ?kwm.WindowAttachMode = null,
 
 
 pub fn match(self: *const Self, app_id: ?[]const u8, title: ?[]const u8) bool {

@@ -27,35 +27,31 @@ pub fn arrange(self: *const Self, output: *Output) void {
         @as(f32, @floatFromInt(available_width)) * focus_top.scroller_mfact
     );
     const height = available_height - 2*self.outer_gap;
-    var master_x: i32 = undefined;
     const y = self.outer_gap;
 
-    if (focus_top.scroller_x) |scroller_x| blk: {
-        switch (scroller_x) {
-            .x => |x| {
-                var link = &focus_top.link;
-                while (link.prev.? != &context.windows.link) {
-                    defer link = link.prev.?;
-                    const window: *Window = @fieldParentPtr("link", link.prev.?);
-                    if (window.is_visible_in(output) and !window.floating) {
-                        const left = self.outer_gap;
-                        const right = output.width - self.outer_gap - master_width;
-                        if (x < left) {
-                            master_x = left;
-                        } else if (x > right) {
-                            master_x = right;
-                        } else master_x = x;
-                        break :blk;
-                    }
-                }
-                master_x = self.outer_gap;
-            },
-            .center => master_x = @divFloor(output.width-focus_top.width, 2),
+    const left = @max(self.outer_gap, blk: {
+        var link = &focus_top.link;
+        while (link.prev.? != &context.windows.link) {
+            defer link = link.prev.?;
+            const window: *Window = @fieldParentPtr("link", link.prev.?);
+            if (window.is_visible_in(output) and !window.floating) {
+                break :blk switch (window.scroller_x orelse break :blk self.outer_gap) {
+                    .x => |x| x,
+                    .center => window.x,
+                } + window.width + self.inner_gap;
+            }
         }
-    } else {
-        master_x = self.outer_gap;
-    }
-    if (focus_top.scroller_x != null and focus_top.scroller_x.? == .x) {
+        break :blk self.outer_gap;
+    });
+    const right = output.width - self.outer_gap - master_width;
+    const master_x = blk: {
+        const x = if (focus_top.scroller_x) |scroller_x| switch (scroller_x) {
+            .x => |x| x,
+            .center => break :blk @divFloor(output.width-focus_top.width, 2),
+        } else left;
+        break :blk if (x > right) right else left;
+    };
+    if (focus_top.scroller_x == null or focus_top.scroller_x.? == .x) {
         focus_top.scroller_x = .{ .x = master_x };
     }
 

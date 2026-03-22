@@ -117,6 +117,8 @@ pub fn build(b: *std.Build) void {
     config_mod.addImport("kwm", kwm_mod);
     kwm_mod.addImport("config", config_mod);
 
+    const background_enabled = b.option(bool, "background", "if enable background") orelse false;
+
     const bar_enabled = b.option(bool, "bar", "if enable bar") orelse true;
     if (bar_enabled) {
         const pixman_mod = b.dependency("pixman", .{}).module("pixman");
@@ -177,6 +179,7 @@ pub fn build(b: *std.Build) void {
     }
 
     const kwm_options = b.addOptions();
+    kwm_options.addOption(bool, "background_enabled", background_enabled);
     kwm_options.addOption(bool, "bar_enabled", bar_enabled);
     kwm_mod.addOptions("build_options", kwm_options);
 

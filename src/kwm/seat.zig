@@ -848,6 +848,14 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
 
                     bar.handle_click(seat);
                 } else unreachable,
+                .background => |background| if (comptime build_options.background_enabled) {
+                    log.debug("<{*}> interaction with {*}", .{ seat, background });
+
+                    // avoid cursor wrapping
+                    seat.previous_focused = .{ .output = background.output };
+
+                    context.set_current_output(background.output);
+                } else unreachable,
             }
         },
         .window_interaction => |data| {

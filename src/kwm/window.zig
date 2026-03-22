@@ -878,6 +878,12 @@ fn apply_rule(self: *Self, rule: *const Config.WindowRule) void {
     if (rule.is_terminal) |is_terminal| self.is_terminal = is_terminal;
     if (rule.disable_swallow) |disable_swallow| self.disable_swallow = disable_swallow;
     if (rule.scroller_mfact) |scroller_mfact| self.scroller_mfact = scroller_mfact;
+    if (rule.attach_mode) |mode| {
+        self.link.remove(); self.link.init();
+        self.flink.remove(); self.flink.init();
+        context.attach_window(self, mode);
+        context.focus(self);
+    }
 }
 
 

@@ -27,6 +27,10 @@
     // .{ .name = []const u8, .size = u32 }
     .xcursor_theme = null,
 
+    // solid color background
+    // note: set this to null if you use other wallpaper program like `swaybg`, orelse it will be covered by this and unable to see
+    .background = null,
+
     .bar = .{
         .show_default = true,
         // .top
@@ -92,6 +96,20 @@
     .remember_floating_geometry = true,
 
     .auto_swallow = false,
+
+    // .top: stack top
+    // .bottom: stack bottom
+    // .stack_top: for tile and deck layout
+    // .above_focused
+    // .below_focused
+    .default_attach_mode = .{
+        .tile = .top,
+        .grid = .top,
+        .monocle = .top,
+        .deck = .stack_top,
+        .scroller = .below_focused,
+        .float = .top,
+    },
 
     // .csd
     // .ssd
@@ -2074,6 +2092,7 @@
     //      is_terminal: bool, if set true, means the window could be swallowed
     //      disable_swallow: bool, if set true, the window could not swallow any other windows
     //      scroller_mfact: f32, initial mfact of the window for scroller layout
+    //      attach_mode: like `default_attach_mode`, change attach_mode for window matched
     .window_rules = .{
         .{ .app_id = .{ .str = "", .match_null = true }, .floating = true },
         .{

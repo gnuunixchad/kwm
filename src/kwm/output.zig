@@ -38,6 +38,7 @@ y: i32 = undefined,
 width: i32 = undefined,
 height: i32 = undefined,
 
+background: if (build_options.background_enabled) @import("background.zig") else void = undefined,
 bar: if (build_options.bar_enabled) @import("bar.zig") else void = undefined,
 
 
@@ -59,6 +60,10 @@ pub fn create(
         .prev_layout_tag = .{ config.layout.default } ** 32,
     };
     output.link.init();
+
+    if (comptime build_options.background_enabled) {
+        try output.background.init(output);
+    }
 
     if (comptime build_options.bar_enabled) {
         try output.bar.init(output);
@@ -100,6 +105,8 @@ pub fn destroy(self: *Self) void {
     if (self.rwm_layer_shell_output) |rwm_layer_shell_output| {
         rwm_layer_shell_output.destroy();
     }
+
+    if (comptime build_options.background_enabled) self.background.deinit();
 
     if (comptime build_options.bar_enabled) self.bar.deinit();
 
@@ -348,12 +355,18 @@ fn rwm_output_listener(rwm_output: *river.OutputV1, event: river.OutputV1.Event,
 
             output.width = data.width;
             output.height = data.height;
+
+            if (comptime build_options.background_enabled) output.background.damage();
+            if (comptime build_options.bar_enabled) output.bar.damage(.all);
         },
         .position => |data| {
             log.debug("<{*}> new position: (x: {}, y: {})", .{ output, data.x, data.y });
 
             output.x = data.x;
             output.y = data.y;
+
+            if (comptime build_options.background_enabled) output.background.damage();
+            if (comptime build_options.bar_enabled) output.bar.damage(.all);
         },
         .removed => {
             log.debug("<{*}> removed, name: {s}", .{ output, output.name orelse "" });

@@ -23,6 +23,7 @@ const FDType = enum {
 
 pub const layout = @import("kwm/layout.zig");
 pub const BarArea = types.BarArea;
+pub const WindowAttachMode = types.WindowAttachMode;
 pub const BindingAction = binding.Action;
 pub const XkbBindingEvent = binding.XkbBinding.Event;
 pub const PointerBindingEvent = binding.PointerBinding.Event;

@@ -40,6 +40,14 @@ pub const LayoutMasterLocation = enum {
     bottom,
 };
 
+pub const WindowAttachMode = enum {
+    top,
+    bottom,
+    stack_top,
+    above_focused,
+    below_focused,
+};
+
 pub const WindowIterSkip = enum {
     none,
     floating,

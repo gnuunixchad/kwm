@@ -1,5 +1,6 @@
 const Self = @This();
 
+const build_options = @import("build_options");
 const std = @import("std");
 const mem = std.mem;
 const fmt = std.fmt;
@@ -255,7 +256,11 @@ fn render_background(self: *Self) void {
     const logical_h = self.height(true);
 
     self.shell_surface.sync_next_commit();
-    self.shell_surface.place(.bottom);
+    if (comptime build_options.background_enabled) {
+        self.shell_surface.place(.{ .above = self.output.background.shell_surface.rwm_shell_surface_node });
+    } else {
+        self.shell_surface.place(.bottom);
+    }
     self.shell_surface.set_position(self.output.x, self.output.y + switch (config.bar.position) {
         .top => 0,
         .bottom => self.output.height - logical_h,
