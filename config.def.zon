@@ -2142,19 +2142,17 @@
         .{
            .title = .{ .str = "Floating_Term" },
            .floating = true,
-           .dimension = .{ .width = 1200, .height = 800},
+           .dimension = .{ .width = 956, .height = 717},
            .disable_swallow = true
         },
         .{
            .app_id = .{ .str = "Floating_IMG" },
            .floating = true,
-           .dimension = .{ .width = 1200, .height = 800},
+           .dimension = .{ .width = 956, .height = 717},
            .is_terminal = true
         },
         .{ .app_id = .{ .str="file-*", .regex = true}, .floating = true }, // gimp
-        .{ .app_id = .{ .str = "gimp" }, .floating = true },
         .{ .app_id = .{ .str = "org.inkscape.Inkscape" }, .title = .{ .str ="Select file*", .regex = true}, .floating = true },
-        .{ .app_id = .{ .str = "kdenlive" }, .floating = true },
         .{ .app_id = .{ .str = "electron" }, .title = .{ .str = "Open Folder" }, .floating = true }, // code-oss
         .{ .app_id = .{ .str = "org.fcitx.fcitx5-config-qt" }, .floating = true },
         .{ .app_id = .{ .str = "org.qutebrowser.qutebrowser" }, .scroller_mfact = 0.7 },
