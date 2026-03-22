@@ -116,7 +116,13 @@ Mod4-Tab
 	Switch to the previous tag.
 
 Mod4-\[';\]
-	Shift to the next/previous tag.
+	Shift each tag to its next/previous occupied tag.
+
+Mod4-Shift-\[';\]
+	Shift each tag to its next/previous tag.
+
+Mod4-Ctrl-\[';\]
+	Shift each tag to its next/previous unoccupied tag.
 
 Mod4-[1-9]
 	Set the output tag.

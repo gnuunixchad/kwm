@@ -62,7 +62,11 @@ pub const Action = union(enum) {
     toggle_output_tag: struct { mask: u32 },
     toggle_window_tag: struct { mask: u32 },
     switch_to_previous_tag,
-    shift_tag: struct { direction: types.Direction },
+    shift_tag: struct {
+        direction: types.Direction,
+        skip_unoccupied: bool = false,
+        skip_occupied: bool = false,
+    },
     toggle_floating,
     toggle_sticky,
     toggle_swallow,
