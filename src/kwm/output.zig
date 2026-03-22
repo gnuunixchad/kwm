@@ -213,12 +213,13 @@ pub fn switch_to_previous_tag(self: *Self) void {
 }
 
 
-pub fn shift_tag(self: *Self, direction: types.Direction) void {
+pub fn shift_tag(self: *Self, direction: types.Direction, skip_unoccupied: bool, skip_occupied: bool) void {
     const config = Config.get();
     const context = Context.get();
     const total_tags = config.tags.len;
 
-    log.debug("<{*}> shift tag: {}", .{ self, direction });
+    log.debug("<{*}> shift tag: direction={}, skip_unoccupied={}, skip_occupied={}",
+        .{ self, direction, skip_unoccupied, skip_occupied });
 
     const current_tags = self.tag;
     if (current_tags == 0) {
@@ -232,6 +233,19 @@ pub fn shift_tag(self: *Self, direction: types.Direction) void {
         if (window.output == self) occupied_tags |= window.tag;
     }
 
+    const all_tags_mask = (@as(u32, 1) << @as(u5, @intCast(total_tags))) - 1;
+    const unoccupied_tags = all_tags_mask ^ occupied_tags;
+
+    if (skip_occupied and !skip_unoccupied and unoccupied_tags == 0) {
+        log.debug("<{*}> no unoccupied tags available", .{ self });
+        return;
+    }
+
+    if (skip_unoccupied and !skip_occupied and occupied_tags == 0) {
+        log.debug("<{*}> no occupied tags available", .{ self });
+        return;
+    }
+
     if (occupied_tags == 0) {
         var new_tags = current_tags;
         if (direction == .forward) {
@@ -239,7 +253,7 @@ pub fn shift_tag(self: *Self, direction: types.Direction) void {
         } else {
             new_tags = (new_tags >> 1) | (new_tags << @as(u5, @intCast(total_tags - 1)));
         }
-        new_tags &= (@as(u32, 1) << @as(u5, @intCast(total_tags))) - 1;
+        new_tags &= all_tags_mask;
         if (new_tags != 0) self.set_tag(new_tags);
         return;
     }
@@ -261,20 +275,37 @@ pub fn shift_tag(self: *Self, direction: types.Direction) void {
                     test_index - 1;
 
                 const test_mask = @as(u32, 1) << @as(u5, @intCast(test_index));
-                if (occupied_tags & test_mask != 0) {
+                const is_occupied = occupied_tags & test_mask != 0;
+
+                const should_select =
+                    if (skip_occupied and skip_unoccupied)
+                        false
+                    else if (skip_occupied)
+                        !is_occupied
+                    else if (skip_unoccupied)
+                        is_occupied
+                    else
+                        true;
+
+                if (should_select) {
                     new_tags |= test_mask;
                     found = true;
                     break;
                 }
             }
 
-            if (!found and (occupied_tags & tag_mask != 0)) new_tags |= tag_mask;
+            if (!found) {
+                new_tags |= tag_mask;
+            }
         }
         tag_mask <<= 1;
     }
 
-    if (new_tags != 0) self.set_tag(new_tags)
-    else log.warn("<{*}> no valid tags found after shifting", .{ self });
+    if (new_tags != 0 and new_tags != current_tags) {
+        self.set_tag(new_tags);
+    } else {
+        log.debug("<{*}> no valid tags found after shifting", .{ self });
+    }
 }
 
 
