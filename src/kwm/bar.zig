@@ -605,6 +605,48 @@ fn render_dynamic_component(self: *Self) void {
             );
         }
 
+        if (window.floating) {
+            const box_size, const box_offset = self.get_box();
+            const box_y = if (window.sticky)
+                y + @as(i16, @intCast(h)) - @as(i16, @intCast(box_size)) - 1
+            else
+                y + 1;
+
+            const box = [_]pixman.Rectangle16 {
+                .{
+                    .x = x + box_offset,
+                    .y = box_y,
+                    .width = box_size,
+                    .height = box_size,
+                }
+            };
+
+            _ = pixman.Image.fillRectangles(
+                .src,
+                buffer.image,
+                &select_fg,
+                1,
+                &box,
+            );
+
+            const border = 1;
+            const inner = [_]pixman.Rectangle16 {
+                .{
+                    .x = box[0].x + border,
+                    .y = box[0].y + border,
+                    .width = box[0].width - 2*border,
+                    .height = box[0].height - 2*border,
+                }
+            };
+            _ = pixman.Image.fillRectangles(
+                .src,
+                buffer.image,
+                &select_bg,
+                1,
+                &inner,
+            );
+        }
+
         if (window.title) |title| {
             x += self.render_str(
                 buffer,
