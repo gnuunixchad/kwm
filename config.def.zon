@@ -24,12 +24,14 @@
         .{ "sh", "-c", "${HOME}/.local/bin/damblocks-mpdd" },
     },
 
-    // .{ .name = []const u8, .size = u32 }
-    .xcursor_theme = null,
+    // .none
+    // or
+    // .theme = .{ .name = []const u8, .size = u32 }
+    .xcursor_theme = .none,
 
     // solid color background
-    // note: set this to null if you use other wallpaper program like `swaybg`, orelse it will be covered by this and unable to see
-    .background = null,
+    // note: set this to .none if you use other wallpaper program like `swaybg`, orelse it will be covered by this and unable to see
+    .background = .none,
 
     .bar = .{
         .show_default = true,
@@ -50,37 +52,25 @@
         .status = .{ .fifo = "${XDG_RUNTIME_DIR}/damblocks.fifo" }, // .stdin or .{ .fifo = "fifo file path" }, could use ^#RGBA to switch text color, and use ^#! to switch back to default color
         // bar clicked callback
         // each part supports left/right/middle/side/extra/forward/back/task
+        // set .none to disable
         .click = .{
             .tags = .{
                 // could use 0 there because it will be replace with the tag clicked
-                .left = .{ .set_output_tag = .{ .tag = 0 } },
-                .right = .{ .toggle_output_tag = .{ .mask = 0 } },
-                .middle = .{ .toggle_window_tag = .{ .mask = 0 } },
+                .left = .{ .action = .{ .set_output_tag = .{ .tag = 0 } } },
+                .right = .{ .action = .{ .toggle_output_tag = .{ .mask = 0 } } },
+                .middle = .{ .action = .{ .toggle_window_tag = .{ .mask = 0 } } },
             },
             .layout = .{
-                .left = .switch_to_previous_layout,
-                .right = null,
-                .middle = null,
+                .left = .{ .action = .switch_to_previous_layout },
             },
             .mode = .{
-                .left = .{ .switch_mode = .{ .mode = "default" } },
-                .right = null,
-                .middle = null,
+                .left = .{ .action = .{ .switch_mode = .{ .mode = "default" } } },
             },
             .title = .{
-                .left = .{ .zoom = .{ .swap = false } },
-                .right = null,
-                .middle = null,
+                .left = .{ .action = .{ .zoom = .{ .swap = false } } },
             },
             .status = .{
-                .left = null,
-                .right = null,
-                .middle = .{ .spawn = .{ .argv = .{ "foot" } } },
-                .side = null,
-                .extra = null,
-                .forward = null,
-                .back = null,
-                .task = null,
+                .middle = .{ .action = .{ .spawn = .{ .argv = .{ "foot" } } } },
             },
         },
     },
@@ -127,14 +117,14 @@
     // tags show on bar
     .tags = .{ "1", "2", "3", "4", "5", "6", "7", "8", "9" },
 
+    // .tile
+    // .grid
+    // .monocle
+    // .deck
+    // .scroller
+    // .float
+    .default_layout = .tile,
     .layout = .{
-        // .tile
-        // .grid
-        // .monocle
-        // .deck
-        // .scroller
-        .default = .tile,
-
         .tile = .{
             .nmaster = 1,
             .mfact = 0.50,
@@ -2160,6 +2150,17 @@
         .{ .app_id = .{ .str = "footclient" }, .is_terminal = true, .scroller_mfact = 0.5 },
         .{ .app_id = .{ .str = "swayimg" }, .is_terminal = true },
         .{ .app_id = .{ .str = "mpv" }, .floating = false },
+    },
+
+    // output rules
+    // full scheme:
+    //      name: rule pattern
+    //
+    //      presentation_mode: presentation mode, .vsync or .async
+    //      layout: same as `layout` before but you only need to specify the values you want to change
+    //      default_layout: same as `default_layout` before
+    .output_rules = .{
+        //
     },
 
     // input device rules

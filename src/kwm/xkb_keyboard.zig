@@ -2,6 +2,7 @@ const Self = @This();
 
 const std = @import("std");
 const mem = std.mem;
+const meta = std.meta;
 const posix = std.posix;
 const linux = std.os.linux;
 const log = std.log.scoped(.xkb_keyboard);
@@ -42,6 +43,31 @@ pub const Keymap = union(enum) {
         variant: ?[]const u8 = null,
         options: ?[]const u8 = null,
     },
+
+    pub fn eql_with(self: *const @This(), other: *const @This()) bool {
+        const self_tag = meta.activeTag(self.*);
+        const other_tag = meta.activeTag(other.*);
+        if (self_tag != other_tag) return false;
+        switch (self.*) {
+            .file => |*self_file| {
+                const other_file = &other.file;
+                if (!mem.eql(u8, self_file.path, other_file.path)) return false;
+                if (self_file.format != other_file.format) return false;
+            },
+            .options => |*self_options| {
+                const other_options = &other.options;
+                inline for (&[_][]const u8 { "rules", "model", "layout", "variant", "options" }) |name| {
+                    const a = @field(self_options, name);
+                    const b = @field(other_options, name);
+                    if (a != null or b != null) {
+                        if (a == null or b == null) return false;
+                        if (!mem.eql(u8, a.?, b.?)) return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 };
 
 
@@ -129,7 +155,7 @@ fn apply_rule(self: *Self, rule: *const Config.XkbKeyboardRule) void {
 
     var keymap_updated = false;
     if (rule.keymap) |keymap| blk: {
-        if (self.keymap != null and Config.deep_equal(Keymap, &self.keymap.?, &keymap)) break :blk;
+        if (self.keymap != null and self.keymap.?.eql_with(&keymap)) break :blk;
 
         self.set_keymap(&keymap) catch |err| {
             log.err("<{*}> set keymap failed: {}", .{ self, err });

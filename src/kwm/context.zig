@@ -587,14 +587,12 @@ pub fn swap(self: *Self, direction: types.Direction) void {
 pub fn attach_window(self: *Self, window: *Window, mode: types.WindowAttachMode) void {
     log.debug("attach {*}: {s}", .{ window, @tagName(mode) });
 
-    const config = Config.get();
-
     switch (mode) {
         .top => self.windows.prepend(window),
         .bottom => self.windows.append(window),
         .stack_top => if (self.current_output) |output| {
             const nmaster = switch (output.current_layout()) {
-                .tile => config.layout.tile.nmaster,
+                .tile => output.layout.tile.nmaster,
                 .deck => 1,
                 else => 0,
             };
@@ -659,7 +657,7 @@ pub fn prepare_remove_seat(self: *Self, seat: *Seat) void {
 }
 
 
-pub inline fn switch_mode(self: *Self, mode: []const u8) void {
+pub fn switch_mode(self: *Self, mode: []const u8) void {
     log.debug("switch mode from {s} to {s}", .{ self.mode, mode });
 
     self.mode = fmt.bufPrint(&mode_buffer, "{s}", .{ mode }) catch @panic("mode name too lone");
@@ -721,7 +719,7 @@ pub inline fn find_terminal(self: *Self, pid: i32) ?*Window {
 }
 
 
-pub inline fn set_current_output(self: *Self, output: ?*Output) void {
+pub fn set_current_output(self: *Self, output: ?*Output) void {
     log.debug("set current output: {*}", .{ output });
 
     if (comptime build_options.bar_enabled) {
@@ -798,19 +796,22 @@ fn init_env_map(self: *Self) void {
         };
     }
 
-    if (config.xcursor_theme) |xcursor_theme| blk: {
-        ctx.?.env.put("XCURSOR_THEME", xcursor_theme.name) catch |err| {
-            log.warn("put XCURSOR_THEME to `{s}` failed: {}", .{ xcursor_theme.name, err });
-        };
+    switch (config.xcursor_theme) {
+        .none => {},
+        .theme => |xcursor_theme| blk: {
+            ctx.?.env.put("XCURSOR_THEME", xcursor_theme.name) catch |err| {
+                log.warn("put XCURSOR_THEME to `{s}` failed: {}", .{ xcursor_theme.name, err });
+            };
 
-        var buffer: [8]u8 = undefined;
-        const xcursor_size = fmt.bufPrint(&buffer, "{}", .{ xcursor_theme.size }) catch |err| {
-            log.warn("bufPrint failed: {}", .{ err });
-            break :blk;
-        };
-        ctx.?.env.put("XCURSOR_SIZE", xcursor_size) catch |err| {
-            log.warn("put XCURSOR_SIZE to `{}` failed: {}", .{ xcursor_theme.size, err });
-        };
+            var buffer: [8]u8 = undefined;
+            const xcursor_size = fmt.bufPrint(&buffer, "{}", .{ xcursor_theme.size }) catch |err| {
+                log.warn("bufPrint failed: {}", .{ err });
+                break :blk;
+            };
+            ctx.?.env.put("XCURSOR_SIZE", xcursor_size) catch |err| {
+                log.warn("put XCURSOR_SIZE to `{}` failed: {}", .{ xcursor_theme.size, err });
+            };
+        }
     }
 }
 
@@ -1047,7 +1048,7 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
                 window,
                 config.default_attach_mode.getter.get(
                     if (context.current_output) |output| output.current_layout()
-                    else config.layout.default,
+                    else config.default_layout,
                 ),
             );
             context.focus(window);

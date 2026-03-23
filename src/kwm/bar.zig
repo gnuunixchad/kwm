@@ -141,7 +141,10 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
         for (0.., self.static_splits.items) |i, split| {
             if (x <= split) {
                 const tag = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
-                const callback_action = config.bar.click.getter.get(.tags).getter.get(seat.button) orelse return;
+                const callback_action = switch (config.bar.click.getter.get(.tags).getter.get(seat.button)) {
+                    .none => return,
+                    .action => |a| a,
+                };
                 action = switch (callback_action) {
                     .set_window_tag => .{ .set_window_tag = .{ .tag = tag } },
                     .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
@@ -158,12 +161,18 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
     x -= self.static_component_width();
     for (&[_]types.BarArea { .layout, .mode, .title }, self.dynamic_splits.items) |area, split| {
         if (x <= split) {
-            action = config.bar.click.getter.get(area).getter.get(seat.button) orelse return;
+            action = switch (config.bar.click.getter.get(area).getter.get(seat.button)) {
+                .none => return,
+                .action => |a| a,
+            };
             return;
         }
     }
 
-    action = config.bar.click.getter.get(.status).getter.get(seat.button) orelse return;
+    action = switch (config.bar.click.getter.get(.status).getter.get(seat.button)) {
+        .none => return,
+        .action => |a| a,
+    };
 }
 
 
@@ -569,10 +578,10 @@ fn render_dynamic_component(self: *Self) void {
     x += self.render_str(
         buffer,
         switch (self.output.current_layout()) {
-            .tile => config.layout_tag.tile.getter.get(config.layout.tile.master_location),
-            .grid => config.layout_tag.grid.getter.get(config.layout.grid.direction),
+            .tile => config.layout_tag.tile.getter.get(self.output.layout.tile.master_location),
+            .grid => config.layout_tag.grid.getter.get(self.output.layout.grid.direction),
             .monocle => config.layout_tag.monocle,
-            .deck => config.layout_tag.deck.getter.get(config.layout.deck.master_location),
+            .deck => config.layout_tag.deck.getter.get(self.output.layout.deck.master_location),
             .scroller => config.layout_tag.scroller,
             .float => config.layout_tag.float,
         },

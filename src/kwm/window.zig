@@ -126,7 +126,7 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
         .rwm_window = rwm_window,
         .rwm_window_node = rwm_window_node,
         .unhandled_events = try .initCapacity(utils.allocator, 2),
-        .scroller_mfact = config.layout.scroller.mfact,
+        .scroller_mfact = (if (output) |o| o.layout else config.layout).scroller.mfact,
     };
     window.link.init();
     window.flink.init();

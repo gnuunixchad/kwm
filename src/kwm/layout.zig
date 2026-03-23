@@ -1,3 +1,5 @@
+const Self = @This();
+
 const Config = @import("config");
 
 const Output = @import("output.zig");
@@ -11,22 +13,27 @@ pub const Type = enum {
     float,
 };
 
-pub const tile = @import("layout/tile.zig");
-pub const grid = @import("layout/grid.zig");
-pub const monocle = @import("layout/monocle.zig");
-pub const deck = @import("layout/deck.zig");
-pub const scroller = @import("layout/scroller.zig");
+pub const Tile = @import("layout/tile.zig");
+pub const Grid = @import("layout/grid.zig");
+pub const Monocle = @import("layout/monocle.zig");
+pub const Deck = @import("layout/deck.zig");
+pub const Scroller = @import("layout/scroller.zig");
 
 
-pub fn arrange(layout: Type, output: *Output) void {
-    const config = Config.get();
+tile: Tile,
+grid: Grid,
+monocle: Monocle,
+deck: Deck,
+scroller: Scroller,
 
+
+pub fn arrange(self: *Self, layout: Type, output: *Output) void {
     switch (layout) {
         .float => return,
-        .tile => config.layout.tile.arrange(output),
-        .grid => config.layout.grid.arrange(output),
-        .monocle => config.layout.monocle.arrange(output),
-        .deck => config.layout.deck.arrange(output),
-        .scroller => config.layout.scroller.arrange(output),
+        .tile => self.tile.arrange(output),
+        .grid => self.grid.arrange(output),
+        .monocle => self.monocle.arrange(output),
+        .deck => self.deck.arrange(output),
+        .scroller => self.scroller.arrange(output),
     }
 }

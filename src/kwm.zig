@@ -21,7 +21,7 @@ const FDType = enum {
     key_repeat,
 };
 
-pub const layout = @import("kwm/layout.zig");
+pub const Layout = @import("kwm/layout.zig");
 pub const BarArea = types.BarArea;
 pub const WindowAttachMode = types.WindowAttachMode;
 pub const BindingAction = binding.Action;
