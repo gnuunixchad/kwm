@@ -546,12 +546,12 @@ fn handle_actions(self: *Self) void {
             },
             .set_output_tag => |data| {
                 if (context.current_output) |output| {
-                    output.set_tag(data.tag);
+                    output.set_tag(data.tag.of(.{ .output = output }));
                 }
             },
             .set_window_tag => |data| {
                 if (context.focused_window()) |window| {
-                    window.set_tag(data.tag);
+                    window.set_tag(data.tag.of(.{ .window = window }));
                 }
             },
             .toggle_output_tag => |data| {
@@ -567,11 +567,6 @@ fn handle_actions(self: *Self) void {
             .switch_to_previous_tag => {
                 if (context.current_output) |output| {
                     output.switch_to_previous_tag();
-                }
-            },
-            .shift_tag => |data| {
-                if (context.current_output) |output| {
-                    output.shift_tag(data.direction);
                 }
             },
             .toggle_floating => {

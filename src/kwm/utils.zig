@@ -10,6 +10,8 @@ const mvzr = @import("mvzr");
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 
+const types = @import("types.zig");
+
 pub var allocator: std.mem.Allocator = undefined;
 const env_pattern = mvzr.compile("\\$\\{.*\\}").?;
 
@@ -49,6 +51,46 @@ pub fn cycle_list(
     }
 
     return @fieldParentPtr("link", next_node.?);
+}
+
+
+// if shift failed, return 0
+pub fn shift_tag(base: u32, mask: u32, len: usize, direction: types.Direction) u32 {
+    if (base == 0) return 0;
+
+    if (mask == 0) {
+        var new = base << @as(
+            u5,
+            @intCast(
+                switch (direction) {
+                    .forward => 1,
+                    .reverse => len-1,
+                }
+            )
+        );
+        new |= new >> @as(u5, @intCast(len));
+        new &= (@as(u32, 1) << @as(u5, @intCast(len))) - 1;
+        return new;
+    }
+
+    var new: u32 = 0;
+    var i: i6, const step: i2 = switch (direction) {
+        .forward => .{ 0, 1 },
+        .reverse => .{ @intCast(len-1), -1 },
+    };
+    while (i >= 0 and i < len) : (i += step) {
+        if (base & (@as(u32, 1) << @as(u5, @intCast(i))) == 0) continue;
+
+        var j: i6 = @mod(i+step, @as(i6, @intCast(len)));
+        while (j != i) : (j = @mod(j+step, @as(i6, @intCast(len)))) {
+            const bit = (@as(u32, 1) << @as(u5, @intCast(j)));
+            if (mask & bit != 0 and new & bit == 0) {
+                new |= bit;
+                break;
+            }
+        }
+    }
+    return new;
 }
 
 

@@ -146,9 +146,9 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
                     .action => |a| a,
                 };
                 action = switch (callback_action) {
-                    .set_window_tag => .{ .set_window_tag = .{ .tag = tag } },
+                    .set_window_tag => .{ .set_window_tag = .{ .tag = .{ .tag = tag } } },
                     .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
-                    .set_output_tag => .{ .set_output_tag = .{ .tag = tag } },
+                    .set_output_tag => .{ .set_output_tag = .{ .tag = .{ .tag = tag } } },
                     .toggle_output_tag => .{ .toggle_output_tag = .{ .mask = tag } },
                     else => callback_action,
                 };

@@ -1002,7 +1002,7 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
 
             if (focused) |window| {
                 // move focus to head of focus_stack
-                context.focus(window);
+                if (!window.sticky) context.focus(window);
 
                 (
                     if (window.floating) top_windows.insert(utils.allocator, 0, window)

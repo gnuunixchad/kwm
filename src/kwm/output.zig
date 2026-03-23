@@ -237,68 +237,16 @@ pub fn switch_to_previous_tag(self: *Self) void {
 }
 
 
-pub fn shift_tag(self: *Self, direction: types.Direction) void {
-    const config = Config.get();
+pub fn occupied_tags(self: *const Self) u32 {
     const context = Context.get();
-    const total_tags = config.tags.len;
-
-    log.debug("<{*}> shift tag: {}", .{ self, direction });
-
-    const current_tags = self.tag;
-    if (current_tags == 0) {
-        log.warn("<{*}> no tags selected", .{ self });
-        return;
-    }
-
-    var occupied_tags: u32 = 0;
-    var it = context.windows.safeIterator(.forward);
-    while (it.next()) |window| {
-        if (window.output == self) occupied_tags |= window.tag;
-    }
-
-    if (occupied_tags == 0) {
-        var new_tags = current_tags;
-        if (direction == .forward) {
-            new_tags = (new_tags << 1) | (new_tags >> @as(u5, @intCast(total_tags - 1)));
-        } else {
-            new_tags = (new_tags >> 1) | (new_tags << @as(u5, @intCast(total_tags - 1)));
+    var mask: u32 = 0;
+    {
+        var it = context.windows.safeIterator(.forward);
+        while (it.next()) |window| {
+            if (window.output == self) mask |= window.tag;
         }
-        new_tags &= (@as(u32, 1) << @as(u5, @intCast(total_tags))) - 1;
-        if (new_tags != 0) self.set_tag(new_tags);
-        return;
     }
-
-    var new_tags: u32 = 0;
-    var tag_mask: u32 = 1;
-
-    for (0..total_tags) |i| {
-        if (current_tags & tag_mask != 0) {
-            var found = false;
-            var test_index = i;
-
-            for (0..total_tags) |_| {
-                test_index = if (direction == .forward)
-                    (test_index + 1) % total_tags
-                else if (test_index == 0)
-                    total_tags - 1
-                else
-                    test_index - 1;
-
-                const test_mask = @as(u32, 1) << @as(u5, @intCast(test_index));
-                if (occupied_tags & test_mask != 0) {
-                    new_tags |= test_mask;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found and (occupied_tags & tag_mask != 0)) new_tags |= tag_mask;
-        }
-        tag_mask <<= 1;
-    }
-
-    if (new_tags != 0) self.set_tag(new_tags)
-    else log.warn("<{*}> no valid tags found after shifting", .{ self });
+    return mask;
 }
 
 

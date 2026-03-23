@@ -2,13 +2,52 @@ const types = @import("types.zig");
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
 const Window = @import("window.zig");
+const Output = @import("output.zig");
 
+const Config = @import("config");
+
+const utils = @import("utils.zig");
 pub const XkbBinding = @import("binding/xkb_binding.zig");
 pub const PointerBinding = @import("binding/pointer_binding.zig");
 
 const MoveResizeStep = union(enum) {
     horizontal: i32,
     vertical: i32,
+};
+const Tag = union(enum) {
+    tag: u32,
+    direction: types.Direction,
+    occupied: types.Direction,
+    unoccupied: types.Direction,
+
+    pub fn of(self: *const @This(), base: union(enum) { output: *const Output, window: *const Window }) u32 {
+        const config = Config.get();
+        const output, const base_tag = switch (base) {
+            .output => |o| .{ o, o.tag },
+            .window => |w| .{ w.output orelse return 0, w.tag },
+        };
+        return switch (self.*) {
+            .tag => |tag| tag,
+            .direction => |direction| utils.shift_tag(
+                base_tag,
+                ((@as(u32, 1) << @as(u5, @intCast(config.tags.len))) - 1),
+                config.tags.len,
+                direction,
+            ),
+            .occupied => |direction| utils.shift_tag(
+                base_tag,
+                output.occupied_tags(),
+                config.tags.len,
+                direction,
+            ),
+            .unoccupied => |direction| utils.shift_tag(
+                base_tag,
+                ~output.occupied_tags() & ((@as(u32, 1) << @as(u5, @intCast(config.tags.len))) - 1),
+                config.tags.len,
+                direction,
+            ),
+        };
+    }
 };
 
 
@@ -57,12 +96,11 @@ pub const Action = union(enum) {
     toggle_fullscreen: struct {
         in_window: bool = false,
     },
-    set_output_tag: struct { tag: u32 },
-    set_window_tag: struct { tag: u32 },
+    set_output_tag: struct { tag: Tag },
+    set_window_tag: struct { tag: Tag },
     toggle_output_tag: struct { mask: u32 },
     toggle_window_tag: struct { mask: u32 },
     switch_to_previous_tag,
-    shift_tag: struct { direction: types.Direction },
     toggle_floating,
     toggle_sticky,
     toggle_swallow,
