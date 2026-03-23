@@ -420,6 +420,7 @@ fn render_static_component(self: *Self) void {
             }
         }
     }
+    const focused_window = context.focused_window();
 
     const select_fg = color(config.bar.color.select.fg);
     const select_bg = color(config.bar.color.select.bg);
@@ -482,17 +483,23 @@ fn render_static_component(self: *Self) void {
                 &box,
             );
 
-            if (!is_focused) {
+            if (focused_window == null or focused_window.?.tag & tag == 0) {
                 const border = 1;
                 const inner = [_]pixman.Rectangle16 {
                     .{
-                        .x = box[0].x + 1,
-                        .y = box[0].y + 1,
+                        .x = box[0].x + border,
+                        .y = box[0].y + border,
                         .width = box[0].width - 2*border,
                         .height = box[0].height - 2*border,
                     }
                 };
-                _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &inner);
+                _ = pixman.Image.fillRectangles(
+                    .src,
+                    buffer.image,
+                    if (is_focused) &select_bg else &transparent,
+                    1,
+                    &inner,
+                );
             }
         }
 
