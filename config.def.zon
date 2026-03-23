@@ -1424,7 +1424,7 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .shift_tag = .{ .direction = .forward, .skip_unoccupied = true },
+                            .shift_tag = .{ .direction = .forward },
                         },
                     },
                 },
@@ -1435,51 +1435,7 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .shift_tag = .{ .direction = .reverse, .skip_unoccupied = true },
-                        },
-                    },
-                },
-            },
-            .{
-                .keysym = "apostrophe",
-                .modifiers = .{ .mod4 = true, .shift = true },
-                .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .shift_tag = .{ .direction = .forward },
-                        },
-                    },
-                },
-            },
-            .{
-                .keysym = "semicolon",
-                .modifiers = .{ .mod4 = true, .shift = true },
-                .event = .{
-                    .click = .{
-                        .pressed = .{
                             .shift_tag = .{ .direction = .reverse },
-                        },
-                    },
-                },
-            },
-            .{
-                .keysym = "apostrophe",
-                .modifiers = .{ .mod4 = true, .ctrl = true },
-                .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .shift_tag = .{ .direction = .forward, .skip_occupied = true },
-                        },
-                    },
-                },
-            },
-            .{
-                .keysym = "semicolon",
-                .modifiers = .{ .mod4 = true, .ctrl = true },
-                .event = .{
-                    .click = .{
-                        .pressed = .{
-                            .shift_tag = .{ .direction = .reverse, .skip_occupied = true },
                         },
                     },
                 },

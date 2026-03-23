@@ -571,7 +571,7 @@ fn handle_actions(self: *Self) void {
             },
             .shift_tag => |data| {
                 if (context.current_output) |output| {
-                    output.shift_tag(data.direction, data.skip_unoccupied, data.skip_occupied);
+                    output.shift_tag(data.direction);
                 }
             },
             .toggle_floating => {
