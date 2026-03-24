@@ -686,11 +686,14 @@ fn handle_actions(self: *Self) void {
                 }
             },
             .modify_master_location => |data| {
-                if (context.current_output) |output| {
+                if (context.current_output) |output| blk: {
                     switch (output.current_layout()) {
                         .tile => output.layout.tile.master_location = data.location,
                         .deck => output.layout.deck.master_location = data.location,
-                        else => {},
+                        else => break :blk,
+                    }
+                    if (comptime build_options.bar_enabled) {
+                        output.bar.damage(.layout);
                     }
                 }
             },
@@ -701,6 +704,9 @@ fn handle_actions(self: *Self) void {
                             .horizontal => .vertical,
                             .vertical => .horizontal,
                         };
+                        if (comptime build_options.bar_enabled) {
+                            output.bar.damage(.layout);
+                        }
                     }
                 }
             },

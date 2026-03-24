@@ -426,6 +426,12 @@ pub fn toggle_floating(self: *Self) void {
 
     self.floating = !self.floating;
 
+    if (comptime build_options.bar_enabled) {
+        if (self.output) |output| {
+            output.bar.damage(.title);
+        }
+    }
+
     const config = Config.get();
 
     if (!config.remember_floating_geometry) return;

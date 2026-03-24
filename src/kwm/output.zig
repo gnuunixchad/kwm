@@ -389,6 +389,10 @@ fn rwm_layer_shell_output_listener(
             output.height = data.height;
             output.x = data.x;
             output.y = data.y;
+
+            if (comptime build_options.bar_enabled) {
+                output.bar.damage(.all);
+            }
         },
     }
 }
