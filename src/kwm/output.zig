@@ -228,12 +228,13 @@ pub fn set_tag(self: *Self, tag: u32) void {
 
 
 pub fn switch_to_previous_tag(self: *Self) void {
+    const prev_main_tag = self.prev_main_tag;
+
+    self.set_tag(self.prev_tag);
     log.debug("<{*}> switch to previous tag", .{ self });
 
-    mem.swap(u32, &self.tag, &self.prev_tag);
-    mem.swap(u32, &self.main_tag, &self.prev_main_tag);
-
-    if (comptime build_options.bar_enabled) self.bar.damage(.tags);
+    self.main_tag = prev_main_tag;
+    log.debug("<{*}> switch to previous main tag", .{ self });
 }
 
 
@@ -293,9 +294,7 @@ pub fn switch_to_previous_layout(self: *Self) void {
     log.debug("<{*}> tag {b} switch to previous layout", .{ self, self.main_tag });
 
     const i = @ctz(self.main_tag);
-    mem.swap(Layout.Type, &self.layout_tag[i], &self.prev_layout_tag[i]);
-
-    if (comptime build_options.bar_enabled) self.bar.damage(.layout);
+    self.set_current_layout(self.prev_layout_tag[i]);
 }
 
 

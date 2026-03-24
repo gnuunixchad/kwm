@@ -78,9 +78,9 @@
     .sloppy_focus = false,
 
     // .none
-    // .on_focus_changed: wrap cursor to the center of window focused
-    // .on_output_changed: wrap cursor to the center of output focused
-    .cursor_wrap = .none,
+    // .on_focus_changed: warp cursor to the center of window focused
+    // .on_output_changed: warp cursor to the center of output focused
+    .cursor_warp = .none,
 
     // if to remember last floating geometry
     .remember_floating_geometry = true,

@@ -205,7 +205,7 @@ pub fn try_focus(self: *Self) void {
     if (context.focused_window()) |window| {
         defer self.previous_focused = .{ .window = window };
 
-        switch (config.cursor_wrap) {
+        switch (config.cursor_warp) {
             .none => {},
             .on_output_changed => blk: {
                 switch (self.previous_focused) {
@@ -233,7 +233,7 @@ pub fn try_focus(self: *Self) void {
         if (context.current_output) |output| {
             defer self.previous_focused = .{ .output = output };
 
-            if (config.cursor_wrap != .none) blk: {
+            if (config.cursor_warp != .none) blk: {
                 switch (self.previous_focused) {
                     .none => {},
                     .window => |w| if (w.output == output) break :blk,
@@ -634,7 +634,6 @@ fn handle_actions(self: *Self) void {
             .switch_layout => |data| {
                 if (context.current_output) |output| {
                     output.set_current_layout(data.layout);
-                    self.previous_focused = .none;
                 }
             },
             .switch_to_previous_layout => {

@@ -90,7 +90,7 @@ bar: struct {
 
 sloppy_focus: bool,
 
-cursor_wrap: enum {
+cursor_warp: enum {
     none,
     on_output_changed,
     on_focus_changed,
