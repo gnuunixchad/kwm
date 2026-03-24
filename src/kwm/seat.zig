@@ -688,18 +688,8 @@ fn handle_actions(self: *Self) void {
             .modify_master_location => |data| {
                 if (context.current_output) |output| {
                     switch (output.current_layout()) {
-                        .tile => {
-                            output.layout.tile.master_location = data.location;
-                            if (comptime build_options.bar_enabled) {
-                                output.bar.damage(.dynamic);
-                            }
-                        },
-                        .deck => {
-                            output.layout.deck.master_location = data.location;
-                            if (comptime build_options.bar_enabled) {
-                                output.bar.damage(.dynamic);
-                            }
-                        },
+                        .tile => output.layout.tile.master_location = data.location,
+                        .deck => output.layout.deck.master_location = data.location,
                         else => {},
                     }
                 }
@@ -711,9 +701,6 @@ fn handle_actions(self: *Self) void {
                             .horizontal => .vertical,
                             .vertical => .horizontal,
                         };
-                        if (comptime build_options.bar_enabled) {
-                            output.bar.damage(.dynamic);
-                        }
                     }
                 }
             },
