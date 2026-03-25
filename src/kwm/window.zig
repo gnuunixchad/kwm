@@ -980,6 +980,12 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
             log.debug("<{*}> parent: {*} (of {*})", .{ window, parent_rwm_window, parent_window });
 
             window.parent = parent_window;
+
+            if (!window.floating) {
+                log.debug("<{*}> making child window to be floating", .{ window });
+                window.floating = true;
+                window.position_undefined = true;
+            }
         },
         .pointer_move_requested => |data| {
             log.debug("<{*}> pointer move requested: {*}", .{ window, data.seat });
