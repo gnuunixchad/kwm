@@ -67,28 +67,60 @@ pub fn build(b: *std.Build) void {
 
     const default_config_path = b.option([]const u8, "config", "path to config file") orelse "config.zon";
     const backup_default_config_path = "config.def.zon";
+    const config_path = blk: {
+        fs.cwd().access(default_config_path, .{}) catch |err| switch (err) {
+            error.FileNotFound => {
+                std.log.warn(
+                    "Config file `{s}` not found, creating from `{s}`",
+                    .{ default_config_path, backup_default_config_path },
+                );
+
+                fs.cwd().copyFile(backup_default_config_path, fs.cwd(), default_config_path, .{}) catch |copy_err| {
+                    std.log.err(
+                        "Failed to copy `{s}` to `{s}`: {}",
+                        .{ backup_default_config_path, default_config_path, copy_err },
+                    );
+                    break :blk b.path(backup_default_config_path);
+                };
+
+                std.log.info(
+                    "Config file `{s}` created successfully. Please review and customize it.",
+                    .{ default_config_path },
+                );
+            },
+            else => {
+                std.log.err(
+                    "Access config file `{s}` failed: {}, use `{s}`",
+                    .{ default_config_path, err, backup_default_config_path },
+                );
+                break :blk b.path(backup_default_config_path);
+            }
+        };
+        break :blk b.path(default_config_path);
+    };
+    const run_preprocess = b.option(bool, "preprocess", "if preprocess configuration file") orelse false;
     const default_config_mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
-        .root_source_file = blk: {
-            fs.cwd().access(default_config_path, .{}) catch |err| switch (err) {
-                error.FileNotFound => {
-                    std.log.warn("Config file `{s}` not found, creating from `{s}`", .{ default_config_path, backup_default_config_path });
-
-                    fs.cwd().copyFile(backup_default_config_path, fs.cwd(), default_config_path, .{}) catch |copy_err| {
-                        std.log.err("Failed to copy `{s}` to `{s}`: {}", .{ backup_default_config_path, default_config_path, copy_err });
-                        break :blk b.path(backup_default_config_path);
-                    };
-
-                    std.log.info("Config file `{s}` created successfully. Please review and customize it.", .{default_config_path});
-                },
-                else => {
-                    std.log.err("access config file `{s}` failed: {}, use `{s}`", .{ default_config_path, err, backup_default_config_path });
-                    break :blk b.path(backup_default_config_path);
-                }
-            };
-            break :blk b.path(default_config_path);
-        },
+        .root_source_file = if (run_preprocess) blk: {
+            const preprocess = b.addExecutable(.{
+                .name = "preprocess",
+                .root_module = b.createModule(.{
+                    .root_source_file = b.path("src/preprocess_config.zig"),
+                    .target = target,
+                    .optimize = .ReleaseSafe,
+                    .imports = &.{
+                        .{ .name = "mvzr", .module = mvzr_mod },
+                    },
+                    .link_libc = true,
+                })
+            });
+            const preprocess_run = b.addRunArtifact(preprocess);
+            preprocess_run.addArg("-i");
+            preprocess_run.addFileArg(config_path);
+            preprocess_run.addArg("-o");
+            break :blk preprocess_run.addOutputFileArg("config.zon");
+        } else config_path,
     });
     const config_mod = b.createModule(.{
         .target = target,

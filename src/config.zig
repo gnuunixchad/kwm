@@ -13,6 +13,7 @@ const kwm = @import("kwm");
 
 const rule = @import("config/rule.zig");
 const constants = @import("config/constants.zig");
+const preprocess = @import("config/preprocess.zig");
 pub const meta = @import("config/meta.zig");
 
 var allocator: mem.Allocator = undefined;
@@ -230,24 +231,17 @@ fn try_load_user_config() ?meta.make_fields_optional(Self) {
     };
     defer file.close();
 
-    const stat = file.stat() catch |err| {
-        log.err("stat file `{s}` failed: {}", .{ path, err });
+    var buffer = preprocess.preprocess(allocator, file) catch |err| {
+        log.err("preprocess `{s}` failed: {}", .{ path, err });
         return null;
     };
-    const buffer = allocator.alloc(u8, stat.size+1) catch |err| {
-        log.err("alloc {} byte failed: {}", .{ stat.size+1, err });
-        return null;
-    };
-    defer allocator.free(buffer);
-
-    _ = file.readAll(buffer) catch return null;
-    buffer[stat.size] = 0;
+    defer buffer.deinit(allocator);
 
     @setEvalBranchQuota(20000);
     return zon.parse.fromSlice(
         meta.make_fields_optional(Self),
         allocator,
-        buffer[0..stat.size:0],
+        buffer.items[0..buffer.items.len-1:0],
         null,
         .{.ignore_unknown_fields = true},
     ) catch |err| {

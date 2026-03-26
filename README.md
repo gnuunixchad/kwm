@@ -66,6 +66,7 @@ zig build -Doptimize=ReleaseSafe
   copied from `config.def.zon` if missing)
 - `-Dbackground`: enable or disable the solid background (defaults to `false`)
 - `-Dbar`: enable or disable the status bar (defaults to `true`)
+- `-Dpreprocess`: enable or disable config preprocessing (defaults to `false`)
 - `--prefix`: specify the path to install files
 
 ## Configuration

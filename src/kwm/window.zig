@@ -944,6 +944,22 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
 
             window.min_width = @max(window.min_width, data.min_width);
             window.min_height = @max(window.min_height, data.min_height);
+
+            // make small fixed-zise child windows to be floating, for
+            // software doesn't use xdg_toplevel.set_parent
+            const is_fixed = data.max_width > 0 and data.max_height > 0 and
+                             data.max_width == data.min_width and
+                             data.max_height == data.min_height;
+            const is_small = data.max_width > 0 and data.max_height > 0 and
+                             data.max_width < 600 and data.max_height < 400;
+
+            if ((is_fixed or is_small) and !window.floating) {
+                log.debug("<{*}> auto-floating fixed/small window ({}x{}-{}x{})",
+                    .{ window, data.min_width, data.min_height, data.max_width, data.max_height });
+
+                window.toggle_floating(true);
+                window.position_undefined = true;
+            }
         },
         .fullscreen_requested => |data| {
             var output: ?*Output = undefined;
@@ -984,6 +1000,13 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
             log.debug("<{*}> parent: {*} (of {*})", .{ window, parent_rwm_window, parent_window });
 
             window.parent = parent_window;
+
+            if (!window.floating) {
+                log.debug("<{*}> making child window to be floating", .{ window });
+
+                window.toggle_floating(true);
+                window.position_undefined = true;
+            }
         },
         .pointer_move_requested => |data| {
             log.debug("<{*}> pointer move requested: {*}", .{ window, data.seat });
