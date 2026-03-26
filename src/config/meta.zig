@@ -46,10 +46,12 @@ pub fn enum_struct(comptime E: type, comptime T: type) type {
     const Getter = struct {
         pub const instance: @This() = .{};
         pub fn get(self: *const @This(), e: E) T {
-            inline for (@typeInfo(E).@"enum".fields) |field| {
-                if (@intFromEnum(e) == field.value) return @field(@as(*const S, @ptrCast(@alignCast(self))), field.name);
-            }
-            unreachable;
+            return switch (e) {
+                inline else => |v| @field(
+                    @as(*const S, @ptrCast(@alignCast(self))),
+                    @tagName(v)
+                ),
+            };
         }
     };
 

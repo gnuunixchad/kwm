@@ -96,7 +96,7 @@ pub fn reload_font(self: *Self) void {
 }
 
 
-pub inline fn height(self: *Self, logical: bool) i32 {
+pub inline fn height(self: *const Self, logical: bool) i32 {
     return if (logical) utils.physics2logical(
         i32,
         self.font.height,
@@ -242,17 +242,8 @@ inline fn static_component_width(self: *Self) i32 {
 }
 
 
-inline fn get_pad(self: *Self) u16 {
+inline fn get_pad(self: *const Self) u16 {
     return @intCast(@divFloor(self.font.height * 3, 4)); // reduce padding to 3/4
-}
-
-
-fn get_box(self: *Self) struct { u16, i16 } {
-    const h: u16 = @intCast(self.height(false));
-    return .{
-        @intCast(@divFloor(h, 6) + 2),
-        @intCast(@divFloor(h, 9)),
-    };
 }
 
 
@@ -359,6 +350,45 @@ fn render_str(
 }
 
 
+fn draw_box(
+    self: *const Self,
+    buffer: *Buffer,
+    inner: bool,
+    pos: enum { top, bottom },
+    c: *const pixman.Color,
+    x: i16,
+    y: i16,
+) void {
+    const h: u16 = @intCast(self.height(false));
+    const box_size: u16 = @intCast(@divFloor(h, 6) + 2);
+    const box_offset: i16 = @intCast(@divFloor(h, 9));
+    var box = [_]pixman.Rectangle16 {
+        .{
+            .x = x + box_offset,
+            .y = switch (pos) {
+                .top => y + 1,
+                .bottom => @intCast(h - box_size - 1),
+            },
+            .width = box_size,
+            .height = box_size,
+        }
+    };
+    if (inner) {
+        box[0].x += 1;
+        box[0].y += 1;
+        box[0].width -= 2;
+        box[0].height -= 2;
+    }
+    _ = pixman.Image.fillRectangles(
+        .src,
+        buffer.image,
+        c,
+        1,
+        &box,
+    );
+}
+
+
 fn render_static_component(self: *Self) void {
     log.debug("<{*}> rendering static component", .{ self });
 
@@ -439,7 +469,6 @@ fn render_static_component(self: *Self) void {
 
     var x: i16 = 0;
     const y: i16 = 0;
-    const box_size, const box_offset = self.get_box();
     for (0.., texts.items) |i, text| {
         const tag: u32 = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
 
@@ -467,38 +496,23 @@ fn render_static_component(self: *Self) void {
         }
 
         if (windows_tag & tag != 0) {
-            const box = [_]pixman.Rectangle16 {
-                .{
-                    .x = x + box_offset,
-                    .y = y + 1,
-                    .width = box_size,
-                    .height = box_size,
-                }
-            };
-            _ = pixman.Image.fillRectangles(
-                .src,
-                buffer.image,
+            self.draw_box(
+                buffer,
+                false,
+                .top,
                 &select_fg,
-                1,
-                &box,
+                x,
+                y,
             );
 
             if (focused_window == null or focused_window.?.tag & tag == 0) {
-                const border = 1;
-                const inner = [_]pixman.Rectangle16 {
-                    .{
-                        .x = box[0].x + border,
-                        .y = box[0].y + border,
-                        .width = box[0].width - 2*border,
-                        .height = box[0].height - 2*border,
-                    }
-                };
-                _ = pixman.Image.fillRectangles(
-                    .src,
-                    buffer.image,
+                self.draw_box(
+                    buffer,
+                    true,
+                    .top,
                     if (is_focused) &select_bg else &transparent,
-                    1,
-                    &inner,
+                    x,
+                    y,
                 );
             }
         }
@@ -587,63 +601,26 @@ fn render_dynamic_component(self: *Self) void {
         }
 
         if (window.sticky) {
-            const box_size, const box_offset = self.get_box();
-            const box = [_]pixman.Rectangle16 {
-                .{
-                    .x = x + box_offset,
-                    .y = y + 1,
-                    .width = box_size,
-                    .height = box_size,
-                }
-            };
-            _ = pixman.Image.fillRectangles(
-                .src,
-                buffer.image,
-                &select_fg,
-                1,
-                &box,
-            );
+            self.draw_box(buffer, false, .top, &select_fg, x, y);
         }
 
         if (window.floating) {
-            const box_size, const box_offset = self.get_box();
-            const box_y = if (window.sticky)
-                y + @as(i16, @intCast(h)) - @as(i16, @intCast(box_size)) - 1
-            else
-                y + 1;
-
-            const box = [_]pixman.Rectangle16 {
-                .{
-                    .x = x + box_offset,
-                    .y = box_y,
-                    .width = box_size,
-                    .height = box_size,
-                }
-            };
-
-            _ = pixman.Image.fillRectangles(
-                .src,
-                buffer.image,
+            self.draw_box(
+                buffer,
+                false,
+                if (window.sticky) .bottom else .top,
                 &select_fg,
-                1,
-                &box,
+                x,
+                y,
             );
 
-            const border = 1;
-            const inner = [_]pixman.Rectangle16 {
-                .{
-                    .x = box[0].x + border,
-                    .y = box[0].y + border,
-                    .width = box[0].width - 2*border,
-                    .height = box[0].height - 2*border,
-                }
-            };
-            _ = pixman.Image.fillRectangles(
-                .src,
-                buffer.image,
+            self.draw_box(
+                buffer,
+                true,
+                if (window.sticky) .bottom else .top,
                 &select_bg,
-                1,
-                &inner,
+                x,
+                y,
             );
         }
 

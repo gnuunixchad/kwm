@@ -540,9 +540,10 @@ fn handle_actions(self: *Self) void {
                     };
                     self.chorded.quit_mode = switch (data.auto_quit) {
                         .disabled => unreachable,
-                        .once_pressed => .once_pressed,
-                        .once_bound_pressed => .once_bound_pressed,
-                        .once_unbound_pressed => .once_unbound_pressed,
+                        inline else => |mode| @field(
+                            @TypeOf(self.chorded.quit_mode),
+                            @tagName(mode)
+                        ),
                     };
                 }
 
