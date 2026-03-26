@@ -1,22 +1,25 @@
-commit 070e31da3a3c19e103dfe1f2e3c280a0056111f7
-Author: nate zhou <gnuunixchad@outlook.com>
-Date:   Tue Jan 20 13:08:08 2026 +0800
+From 846ba31664193b4c0fcfd7f6a81d1829ad115269 Mon Sep 17 00:00:00 2001
+From: nate zhou <gnuunixchad@outlook.com>
+Date: Thu, 26 Mar 2026 16:25:13 +0800
+Subject: [PATCH] always use select_bg to draw boxes on tags
 
-    Mod(bar.zig): solid box color with select_fg
-
-    This changes the box color on the top-left corner of tags, to always be
-    the select_fg, like the default dwm's bar(or river-classic's dam bar).
+---
+ src/kwm/bar.zig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
-index ce190a8..9a909f9 100644
+index 57ab7ea..17b3674 100644
 --- a/src/kwm/bar.zig
 +++ b/src/kwm/bar.zig
-@@ -379,7 +379,7 @@ fn render_static_component(self: *Self) void {
-             _ = pixman.Image.fillRectangles(
-                 .src,
-                 buffer.image,
+@@ -500,7 +500,7 @@ fn render_static_component(self: *Self) void {
+                 buffer,
+                 false,
+                 .top,
 -                if (is_focused) &transparent else &select_bg,
 +                &select_fg,
-                 1,
-                 &box,
+                 x,
+                 y,
              );
+-- 
+2.53.0
+

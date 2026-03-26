@@ -1,20 +1,20 @@
-From e94983fc31839ab56129d6f285517c53319be359 Mon Sep 17 00:00:00 2001
+From 0a0a1d1482ec3beb319d05f35083a06e0bcc6824 Mon Sep 17 00:00:00 2001
 From: nate zhou <gnuunixchad@outlook.com>
-Date: Sat, 21 Mar 2026 12:53:20 +0800
-Subject: [PATCH] bar: reduce tag labels padding to 3/4
+Date: Thu, 26 Mar 2026 16:23:31 +0800
+Subject: [PATCH] reduce tags padding
 
 ---
  src/kwm/bar.zig | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
-index 30b197e..d8cfbec 100644
+index 57ab7ea..388c4c5 100644
 --- a/src/kwm/bar.zig
 +++ b/src/kwm/bar.zig
-@@ -233,7 +233,7 @@ inline fn static_component_width(self: *Self) i32 {
+@@ -243,7 +243,7 @@ inline fn static_component_width(self: *Self) i32 {
  
  
- inline fn get_pad(self: *Self) u16 {
+ inline fn get_pad(self: *const Self) u16 {
 -    return @intCast(self.font.height);
 +    return @intCast(@divFloor(self.font.height * 3, 4)); // reduce padding to 3/4
  }
