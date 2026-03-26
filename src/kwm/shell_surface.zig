@@ -13,6 +13,7 @@ const types = @import("types.zig");
 const Context = @import("context.zig");
 
 const Type = union(enum) {
+    layer_marker,
     background: if (build_options.background_enabled) *@import("background.zig") else void,
     bar: if (build_options.bar_enabled) *@import("bar.zig") else void,
 };

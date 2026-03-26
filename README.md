@@ -1,6 +1,14 @@
+<div align="center">
+    <img alt="kwm" src="./logo/kwm.svg" width="256">
+</div>
+
 # <img src="./misc/kwm-repo.png" width="24"/> My build of [kwm](https://github.com/kewuaa/kwm) - kewuaa's Window Manager
 
-A window manager based on [river] >= 0.4.x (with river-window-management-v1 protocol), written in Zig
+[River] is a non-monolithic Wayland compositor, it does not combine the compositor and window manager into one program.
+
+kwm is a window manager implementing the river-window-management-v1 protocol.
+
+# Screenshots
 
 ![tile](./misc/tile.png)
 
@@ -142,6 +150,8 @@ The protocols in `protocol/` directory prefixed with river and developed by the
 [River] project are released under the ISC license (as stated in their
 copyright blocks).
 
+kwm's logo is a recreation based on [River's logo] and released under the CC-BY-SA-4.0 license.
+
 ## Contributing
 
 Contributions are welcome! By contributing to kwm, you agree that your
@@ -157,3 +167,4 @@ GPL-3.0-compatible.
 [dwl]: https://codeberg.org/dwl/dwl
 [swallow patch]: https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch
 [mvzr]: https://github.com/mnemnion/mvzr
+[River's logo]: https://codeberg.org/river/river/src/branch/main/logo/logo.svg

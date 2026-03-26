@@ -26,6 +26,7 @@ const KeyRepeat = @import("key_repeat.zig");
 const InputDevice = @import("input_device.zig");
 const LibinputDevice = @import("libinput_device.zig");
 const XkbKeyboard = @import("xkb_keyboard.zig");
+const ShellSurface = @import("shell_surface.zig");
 
 var ctx: ?Self = null;
 var mode_buffer: [16]u8 = undefined;
@@ -45,6 +46,10 @@ rwm_input_manager: ?*river.InputManagerV1,
 rwm_libinput_config: ?*river.LibinputConfigV1,
 rwm_xkb_config: ?*river.XkbConfigV1,
 
+// seperate layer between floating and nonfloating
+wl_surface: *wl.Surface = undefined,
+layer_marker: ShellSurface = undefined,
+
 seats: wl.list.Head(Seat, .link) = undefined,
 current_seat: ?*Seat = null,
 
@@ -55,6 +60,7 @@ input_devices: wl.list.Head(InputDevice, .link) = undefined,
 libinput_devices: wl.list.Head(LibinputDevice, .link) = undefined,
 xkb_keyboards: wl.list.Head(XkbKeyboard, .link) = undefined,
 
+window_to_lift: ?*Window = null,
 windows: wl.list.Head(Window, .link) = undefined,
 focus_stack: wl.list.Head(Window, .flink) = undefined,
 
@@ -84,7 +90,7 @@ pub fn init(
     rwm_input_manager: *river.InputManagerV1,
     rwm_libinput_config: *river.LibinputConfigV1,
     rwm_xkb_config: *river.XkbConfigV1,
-) void {
+) !void {
     // initialize once
     if (ctx != null) return;
 
@@ -110,8 +116,19 @@ pub fn init(
         .rwm_xkb_config = rwm_xkb_config,
         .key_repeat = undefined,
         .terminal_windows = .init(utils.allocator),
-        .mode = fmt.bufPrint(&mode_buffer, "{s}", .{ Config.default_mode }) catch @panic("mode name too long"),
+        .mode = fmt.bufPrint(&mode_buffer, "{s}", .{ Config.default_mode }) catch return error.ModeNameTooLong,
     };
+
+    const wl_surface = try wl_compositor.createSurface();
+    errdefer wl_surface.destroy();
+    const wl_region = try wl_compositor.createRegion();
+    defer wl_region.destroy();
+    wl_surface.setInputRegion(wl_region);
+    wl_surface.setOpaqueRegion(null);
+    try ctx.?.layer_marker.init(wl_surface, .layer_marker);
+    ctx.?.wl_surface = wl_surface;
+    wl_surface.commit();
+
     ctx.?.seats.init();
     ctx.?.outputs.init();
     ctx.?.windows.init();
@@ -157,6 +174,8 @@ pub fn deinit() void {
     if (ctx.?.rwm_input_manager) |rwm_input_manager| rwm_input_manager.destroy();
     if (ctx.?.rwm_libinput_config) |rwm_libinput_config| rwm_libinput_config.destroy();
     if (ctx.?.rwm_xkb_config) |rwm_xkb_config| rwm_xkb_config.destroy();
+    ctx.?.layer_marker.deinit();
+    ctx.?.wl_surface.destroy();
 
     // first destroy windows for it's destroy function may depends on others
     {
@@ -439,15 +458,17 @@ pub fn quit(self: *Self, exit_session: bool) void {
 }
 
 
-pub fn focus(self: *Self, window: *Window) void {
+pub fn focus(self: *Self, window: *Window, lift: bool) void {
     log.debug("<{*}> focus window: {*}", .{ self, window });
 
+    self.set_current_output(window.output);
+    if (lift) self.window_to_lift = window;
     if (self.focus_stack.first() == window) return;
 
-    if (window.output) |output| {
-        self.set_current_output(output);
-
-        if (comptime build_options.bar_enabled) output.bar.damage(.tags);
+    if (comptime build_options.bar_enabled) {
+        if (window.output) |output| {
+            output.bar.damage(.tags);
+        }
     }
 
     window.flink.remove();
@@ -486,7 +507,7 @@ pub fn focus_iter(self: *Self, direction: types.Direction, skip: types.WindowIte
                     .floating => if (new_window.floating) continue,
                     .nonfloating => if (!new_window.floating) continue,
                 }
-                self.focus(new_window);
+                self.focus(new_window, true);
                 break;
             }
         }
@@ -580,7 +601,7 @@ pub fn swap(self: *Self, direction: types.Direction) void {
             if (new_window == window) break;
             if (new_window.is_visible_in(window.output.?) and !new_window.floating) {
                 window.link.swapWith(&new_window.link);
-                self.focus(window);
+                self.focus(window, true);
                 break;
             }
         }
@@ -923,6 +944,64 @@ fn prepare_manage(self: *Self) void {
 }
 
 
+fn prepare_render_windows(self: *Self) void {
+    const config = Config.get();
+
+    const focused = self.focused_window();
+
+    var it = self.windows.safeIterator(.forward);
+    while (it.next()) |window| {
+        if (!window.is_visible()) {
+            window.hide();
+        } else {
+            window.set_border(
+                if (window.fullscreen == .output) 0
+                else config.border.width,
+                if (!self.focus_exclusive() and window == focused)
+                    config.border.color.focus
+                else config.border.color.unfocus
+            );
+        }
+    }
+
+    if (focused) |window| {
+        // move focus to head of focus_stack
+        if (!window.sticky) self.focus(window, false);
+    }
+}
+
+fn render_windows(self: *Self) void {
+    {
+        var it = self.windows.safeIterator(.forward);
+        while (it.next()) |window| {
+            window.render();
+
+            if (!window.layer_managed) {
+                window.layer_managed = true;
+                if (window.floating) {
+                    window.place(.top);
+                } else {
+                    window.place(.{
+                        .below = self.layer_marker.rwm_shell_surface_node,
+                    });
+                }
+            }
+        }
+    }
+
+    if (self.window_to_lift) |window| {
+        self.window_to_lift = null;
+        if (window.floating) {
+            window.place(.top);
+        } else {
+            window.place(.{
+                .below = self.layer_marker.rwm_shell_surface_node,
+            });
+        }
+    }
+}
+
+
 fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event, context: *Self) void {
     std.debug.assert(rwm == context.rwm);
 
@@ -977,52 +1056,8 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
         .render_start => {
             log.debug("render start", .{});
 
-            const focused = context.focused_window();
-            var top_windows: std.ArrayList(*Window) = .empty;
-            defer top_windows.deinit(utils.allocator);
-
-            {
-                var it = context.focus_stack.safeIterator(.forward);
-                while (it.next()) |window| {
-                    if (!window.is_visible()) {
-                        window.hide();
-                    } else {
-                        window.set_border(
-                            if (window.fullscreen == .output) 0 else config.border.width,
-                            if (!context.focus_exclusive() and window == focused)
-                                config.border.color.focus
-                            else config.border.color.unfocus
-                        );
-                        if (window.floating) {
-                            top_windows.append(utils.allocator, window) catch |err| {
-                                log.warn("append floating window failed: {}", .{ err });
-                            };
-                        }
-                    }
-
-                    window.render();
-                }
-            }
-
-            if (focused) |window| {
-                // move focus to head of focus_stack
-                if (!window.sticky) context.focus(window);
-
-                (
-                    if (window.floating) top_windows.insert(utils.allocator, 0, window)
-                    else top_windows.append(utils.allocator, window)
-                ) catch |err| {
-                    log.warn("insert or append focused window failed: {}", .{ err });
-                    window.place(.top);
-                };
-            }
-
-            {
-                var i: i32 = @as(i32, @intCast(top_windows.items.len)) - 1;
-                while (i >= 0) : (i -= 1) {
-                    top_windows.items[@intCast(i)].place(.top);
-                }
-            }
+            context.prepare_render_windows();
+            context.render_windows();
 
             if (comptime build_options.background_enabled) {
                 var it = context.outputs.safeIterator(.forward);
@@ -1055,7 +1090,7 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
                     else config.default_layout,
                 ),
             );
-            context.focus(window);
+            context.focus(window, true);
         },
         .output => |data| {
             log.debug("new output {*}", .{ data.id });

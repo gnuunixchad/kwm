@@ -123,7 +123,7 @@ pub fn main() !void {
         const rwm_libinput_config = globals.rwm_libinput_config orelse return error.MissingRiverLibinputConfig;
         const rwm_xkb_config = globals.rwm_xkb_config orelse return error.MissingRiverXkbConfig;
 
-        kwm.init(
+        try kwm.init(
             registry,
             wl_compositor,
             wl_subcompositor,

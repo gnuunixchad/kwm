@@ -50,6 +50,7 @@ former_output: ?[]const u8 = null,
 
 unhandled_events: std.ArrayList(Event) = undefined,
 
+layer_managed: bool = false,
 fullscreen: union(enum) {
     none,
     window,
@@ -155,6 +156,10 @@ pub fn destroy(self: *Self) void {
                     seat.previous_focused = if (self.output) |output| .{ .output = output } else .none;
                 },
                 else => {}
+            }
+
+            if (seat.window_below_pointer.window == self) {
+                seat.window_below_pointer = .{};
             }
         }
     }
@@ -413,18 +418,17 @@ pub fn ensure_floating(self: *Self) void {
     if (self.output) |output| {
         if (output.current_layout() == .float) return;
     }
-    if (!self.floating) {
-        log.debug("<{*}> turning floating", .{ self });
-
-        self.floating = true;
-    }
+    self.toggle_floating(true);
 }
 
 
-pub fn toggle_floating(self: *Self) void {
-    log.debug("<{*}> toggle floating: {}", .{ self, !self.floating });
+pub fn toggle_floating(self: *Self, flag: ?bool) void {
+    self.floating =
+        if (flag) |floating| (if (self.floating != floating) floating else return)
+        else !self.floating;
+    self.layer_managed = false;
 
-    self.floating = !self.floating;
+    log.debug("<{*}> toggle floating: {}", .{ self, self.floating });
 
     if (comptime build_options.bar_enabled) {
         if (self.output) |output| {
@@ -821,7 +825,7 @@ fn swallow(self: *Self, window: *Self) void {
 
     self.swallowing = window;
 
-    self.floating = window.floating;
+    self.toggle_floating(window.floating);
     self.tag = window.tag;
     self.x = window.x;
     self.y = window.y;
@@ -878,7 +882,7 @@ fn apply_rule(self: *Self, rule: *const Config.WindowRule) void {
             }
         }
     }
-    if (rule.floating) |floating| self.floating = floating;
+    if (rule.floating) |floating| self.toggle_floating(floating);
     if (rule.dimension) |dimension| self.resize(dimension.width, dimension.height);
     if (rule.decoration) |decoration| self.decoration = decoration;
     if (rule.is_terminal) |is_terminal| self.is_terminal = is_terminal;
@@ -888,7 +892,7 @@ fn apply_rule(self: *Self, rule: *const Config.WindowRule) void {
         self.link.remove(); self.link.init();
         self.flink.remove(); self.flink.init();
         context.attach_window(self, mode);
-        context.focus(self);
+        context.focus(self, true);
     }
 }
 
