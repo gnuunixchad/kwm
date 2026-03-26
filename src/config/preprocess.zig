@@ -116,18 +116,17 @@ fn match(line: []const u8, target: *const Target) !bool {
     if (parse(line, "env_contains:")) |str| {
         found_condition = true;
 
+        log.debug("finding environment variable {s}", .{ str });
         if (posix.getenv(str) == null) return false;
     }
     if (parse(line, "env:")) |str| blk: {
         found_condition = true;
-        log.debug("{s}", .{ str });
 
         var it = mem.splitAny(u8, str, "=");
         const key = mem.trim(u8, it.next() orelse break :blk, " ");
         const value = mem.trim(u8, it.next() orelse break :blk, " ");
-        log.debug("key: {s}, value: {s}", .{ key, value });
+        log.debug("matching environment variable {s}={s}", .{ key, value });
         if (posix.getenv(key)) |v| {
-            log.debug("v: {s}", .{ v });
             if (mem.eql(u8, v, value)) break :blk;
         }
         return false;

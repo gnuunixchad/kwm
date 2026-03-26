@@ -65,7 +65,7 @@ clip_state: enum {
     normal,
     cliped,
 } = .unknow,
-position_undefined: bool = false,
+geometry_undefined: bool = false,
 
 tag: u32 = 1,
 pid: i32 = 0,
@@ -527,6 +527,10 @@ pub fn handle_events(self: *Self) void {
                     .minimize = false,
                 });
 
+                if (self.parent != null) {
+                    self.toggle_floating(true);
+                }
+
                 self.apply_rules();
 
                 switch (self.decoration_hint) {
@@ -542,7 +546,7 @@ pub fn handle_events(self: *Self) void {
                 }
 
                 if (self.floating or self.output == null or self.output.?.current_layout() == .float) {
-                    self.position_undefined = true;
+                    self.geometry_undefined = true;
                 }
 
                 const context = Context.get();
@@ -699,23 +703,18 @@ pub fn render(self: *Self) void {
 
     if (
         self.hidden
+        or self.geometry_undefined
         or self.x - config.border.width >= self.output.?.width
         or self.x + self.width + config.border.width <= 0
         or self.y - config.border.width >= self.output.?.height
         or self.y + self.height + config.border.width <= 0
     ) {
-        if (!self.hidden) log.debug("<{*}> out of range, hide", .{ self });
+        if (!self.hidden and !self.geometry_undefined)
+            log.debug("<{*}> out of range, hide", .{ self });
+        if (self.geometry_undefined)
+            log.debug("<{*}> geometry undefined, hidden", .{ self });
         self.rwm_window.hide();
         return;
-    }
-
-    if (self.position_undefined) {
-        defer self.position_undefined = false;
-        log.debug("<{*}> center to output {*}", .{ self, self.output });
-
-        if (self.width == 0) self.width = @divFloor(self.output.?.width, 2);
-        if (self.height == 0) self.height = @divFloor(self.output.?.height, 2);
-        self.center();
     }
 
     log.debug("<{*}> rendering to (x: {}, y: {})", .{ self, self.x, self.y });
@@ -928,11 +927,15 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
         .dimensions => |data| {
             log.debug("<{*}> dimensions: ({}, {})", .{ window, data.width, data.height });
 
-            if (window.floating and window.fullscreen != .output) {
+            if (window.geometry_undefined or (window.floating and window.fullscreen != .output)) {
                 if (window.output == null) {
                     window.unbound_resize(data.width, data.height);
                 } else {
                     window.resize(data.width, data.height);
+                }
+                if (window.geometry_undefined) {
+                    window.geometry_undefined = false;
+                    window.center();
                 }
             }
         },
@@ -958,7 +961,8 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
                     .{ window, data.min_width, data.min_height, data.max_width, data.max_height });
 
                 window.toggle_floating(true);
-                window.position_undefined = true;
+                window.unbound_resize(0, 0);
+                window.geometry_undefined = true;
             }
         },
         .fullscreen_requested => |data| {
@@ -1000,13 +1004,6 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
             log.debug("<{*}> parent: {*} (of {*})", .{ window, parent_rwm_window, parent_window });
 
             window.parent = parent_window;
-
-            if (!window.floating) {
-                log.debug("<{*}> making child window to be floating", .{ window });
-
-                window.toggle_floating(true);
-                window.position_undefined = true;
-            }
         },
         .pointer_move_requested => |data| {
             log.debug("<{*}> pointer move requested: {*}", .{ window, data.seat });
