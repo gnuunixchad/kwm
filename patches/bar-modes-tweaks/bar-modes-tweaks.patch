@@ -1,0 +1,117 @@
+From d4bd5a3ab2e72114a4fc4eb3328b7007fc4cccf0 Mon Sep 17 00:00:00 2001
+From: nate zhou <gnuunixchad@outlook.com>
+Date: Thu, 26 Mar 2026 17:48:57 +0800
+Subject: [PATCH 1/2] Mod: render mode before layout
+
+---
+ src/kwm/bar.zig | 26 +++++++++++++-------------
+ 1 file changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
+index 57ab7ea..be1a355 100644
+--- a/src/kwm/bar.zig
++++ b/src/kwm/bar.zig
+@@ -159,7 +159,7 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
+     }
+ 
+     x -= self.static_component_width();
+-    for (&[_]types.BarArea { .layout, .mode, .title }, self.dynamic_splits.items) |area, split| {
++    for (&[_]types.BarArea { .mode, .layout, .title }, self.dynamic_splits.items) |area, split| {
+         if (x <= split) {
+             action = switch (config.bar.click.getter.get(area).getter.get(seat.button)) {
+                 .none => return,
+@@ -564,6 +564,18 @@ fn render_dynamic_component(self: *Self) void {
+     var x: i16 = 0;
+     const y: i16 = 0;
+ 
++    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
++    if (mode_tag.len > 0) {
++        x += self.render_str(
++            buffer,
++            mode_tag,
++            &normal_fg,
++            x+@as(i16, @intCast(@divFloor(pad, 2))),
++            y,
++        ) + @as(i16, @intCast(pad));
++    }
++    self.dynamic_splits.appendBounded(x) catch unreachable;
++
+     x += self.render_str(
+         buffer,
+         switch (self.output.current_layout()) {
+@@ -580,18 +592,6 @@ fn render_dynamic_component(self: *Self) void {
+     ) + @as(i16, @intCast(pad));
+     self.dynamic_splits.appendBounded(x) catch unreachable;
+ 
+-    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
+-    if (mode_tag.len > 0) {
+-        x += self.render_str(
+-            buffer,
+-            mode_tag,
+-            &normal_fg,
+-            x+@as(i16, @intCast(@divFloor(pad, 2))),
+-            y,
+-        ) + @as(i16, @intCast(pad));
+-    }
+-    self.dynamic_splits.appendBounded(x) catch unreachable;
+-
+     const title_start = x;
+     if (context.focus_top_in(self.output, false)) |window| {
+         if (self.output == context.current_output) {
+-- 
+2.53.0
+
+
+From aaf009cefa25bf6390be744c6553339a99ecefa5 Mon Sep 17 00:00:00 2001
+From: nate zhou <gnuunixchad@outlook.com>
+Date: Thu, 26 Mar 2026 18:24:01 +0800
+Subject: [PATCH 2/2] bar: change mode colors
+
+---
+ src/kwm/bar.zig | 27 ++++++++++++++++++++++++++-
+ 1 file changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/src/kwm/bar.zig b/src/kwm/bar.zig
+index be1a355..a91207e 100644
+--- a/src/kwm/bar.zig
++++ b/src/kwm/bar.zig
+@@ -566,10 +566,35 @@ fn render_dynamic_component(self: *Self) void {
+ 
+     const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
+     if (mode_tag.len > 0) {
++        var mode_width: i16 = 0;
++
++    if (to_utf8(mode_tag)) |utf8| {
++        defer utils.allocator.free(utf8);
++        if (self.font.rasterizeTextRunUtf32(utf8, .default)) |text| {
++            defer text.destroy();
++            mode_width = @intCast(text_width(text));
++        } else |err| {
++            log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
++        }
++    }
++    mode_width += @as(i16, @intCast(pad));
++
++        if (mode_width > 0) {
++            const mode_rect = [_]pixman.Rectangle16 {
++                .{
++                    .x = x,
++                    .y = y,
++                    .width = @intCast(mode_width),
++                    .height = h,
++                }
++            };
++            _ = pixman.Image.fillRectangles(.src, buffer.image, &select_bg, 1, &mode_rect);
++        }
++
+         x += self.render_str(
+             buffer,
+             mode_tag,
+-            &normal_fg,
++            &select_fg,
+             x+@as(i16, @intCast(@divFloor(pad, 2))),
+             y,
+         ) + @as(i16, @intCast(pad));
+-- 
+2.53.0
+
