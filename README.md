@@ -88,6 +88,27 @@ configuration.
 User configuration can be reloaded on the fly with
 <kbd>mod4</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>.
 
+## Configuration preprocessing
+
+Before loading config, `kwm` will make preprocessing for the configuration.
+
+support syntax below in `config.zon`:
+
+```zon
+// @if(condition)
+// @elif(condition)
+// @else
+// @endif
+```
+
+Support `condition` are be below, seperate by `,`.
+
+- hostname=HOSTNAME
+- env:KEY=VALUE
+- env_contains:KEY
+
+By this, you could implement Per-Host configuration.
+
 ## Usage
 
 Run `kwm` in your river init file, or start it with `river -c kwm`.
