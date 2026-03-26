@@ -566,10 +566,35 @@ fn render_dynamic_component(self: *Self) void {
 
     const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
     if (mode_tag.len > 0) {
+        var mode_width: i16 = 0;
+
+    if (to_utf8(mode_tag)) |utf8| {
+        defer utils.allocator.free(utf8);
+        if (self.font.rasterizeTextRunUtf32(utf8, .default)) |text| {
+            defer text.destroy();
+            mode_width = @intCast(text_width(text));
+        } else |err| {
+            log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
+        }
+    }
+    mode_width += @as(i16, @intCast(pad));
+
+        if (mode_width > 0) {
+            const mode_rect = [_]pixman.Rectangle16 {
+                .{
+                    .x = x,
+                    .y = y,
+                    .width = @intCast(mode_width),
+                    .height = h,
+                }
+            };
+            _ = pixman.Image.fillRectangles(.src, buffer.image, &select_bg, 1, &mode_rect);
+        }
+
         x += self.render_str(
             buffer,
             mode_tag,
-            &normal_fg,
+            &select_fg,
             x+@as(i16, @intCast(@divFloor(pad, 2))),
             y,
         ) + @as(i16, @intCast(pad));
