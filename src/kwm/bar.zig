@@ -580,16 +580,46 @@ fn render_dynamic_component(self: *Self) void {
     bg_rect[0].width = w - @as(u16, @intCast(x));
     _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
 
-    x += self.render_str(
-        buffer,
-        switch (self.output.current_layout()) {
+    var layout_tag_buffer: [32]u8 = undefined;
+    const layout_tag = blk: {
+        const tag = switch (self.output.current_layout()) {
             .tile => config.layout_tag.tile.getter.get(self.output.layout.tile.master_location),
             .grid => config.layout_tag.grid.getter.get(self.output.layout.grid.direction),
             .monocle => config.layout_tag.monocle,
             .deck => config.layout_tag.deck.getter.get(self.output.layout.deck.master_location),
             .scroller => config.layout_tag.scroller,
             .float => config.layout_tag.float,
-        },
+        };
+        const left = mem.indexOf(u8, tag, "{{") orelse break :blk tag;
+        const right = mem.lastIndexOf(u8, tag, "}}") orelse break :blk tag;
+
+        if (left < right) {
+            var num: usize = 0;
+            var it = context.windows.safeIterator(.forward);
+            while (it.next()) |window| {
+                if (window.is_visible_in(self.output) and !window.floating) {
+                    num += 1;
+                }
+            }
+
+            var buf: [8]u8 = undefined;
+            const str =
+                if (right-left == 2 or num > 0) fmt.bufPrint(&buf, "{}", .{ num }) catch break :blk tag
+                else tag[left+2..right];
+
+            const n = mem.replace(
+                u8,
+                tag,
+                tag[left..right+2],
+                str,
+                &layout_tag_buffer,
+            );
+            break :blk layout_tag_buffer[0..tag.len + str.len*n - (right-left+2)*n];
+        } else break :blk tag;
+    };
+    x += self.render_str(
+        buffer,
+        layout_tag,
         &normal_fg,
         x+@as(i16, @intCast(@divFloor(pad, 2))),
         y,
