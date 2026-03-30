@@ -37,12 +37,12 @@
             .hash = "xkbcommon-0.3.0-VDqIe3K9AQB2fG5ZeRcMC9i7kfrp5m2rWgLrmdNn9azr",
         },
         .wayland = .{
-            .url = "git+https://codeberg.org/ifreund/zig-wayland?ref=main#f2480d25764a50ed2fe29f49e4209c074a557f46",
-            .hash = "wayland-0.5.0-dev-lQa1kvTUAQCsD8AobfOXJA_-TVG-WTYXju68OZ8L85RM",
+            .url = "https://codeberg.org/ifreund/zig-wayland/archive/v0.5.0.tar.gz",
+            .hash = "wayland-0.5.0-lQa1knz8AQCh08NA8BeQrwJB9U3CfqcVAdHZYGRKIGuu",
         },
         .mvzr = .{
-            .url = "https://github.com/mnemnion/mvzr/archive/refs/tags/v0.3.7.tar.gz",
-            .hash = "mvzr-0.3.7-ZSOky5FtAQB2VrFQPNbXHQCFJxWTMAYEK7ljYEaMR6jt",
+            .url = "https://github.com/mnemnion/mvzr/archive/refs/tags/v0.3.8.tar.gz",
+            .hash = "mvzr-0.3.7-ZSOky1dvAQDTEE_8S0pvpasmoEWQHVA29tMBdxL_hwra",
         },
         .fcft = .{
             .path = "./zig-fcft-v2.0.0",

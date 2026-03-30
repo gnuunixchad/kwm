@@ -16,14 +16,6 @@ const kwm = @import("kwm");
 const flags = @import("flags");
 const Config = @import("config");
 
-var stderr_buffer: [1024]u8 = undefined;
-var stderr_writer = fs.File.stderr().writer(&stderr_buffer);
-const stderr = &stderr_writer.interface;
-
-var stdout_buffer: [1024]u8 = undefined;
-var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
-const stdout = &stdout_writer.interface;
-
 const usage =
     \\usage: kwm [options]
     \\  -h,-help               Print this help message and exit.
@@ -60,24 +52,20 @@ pub fn main() !void {
             .{ .name = "version", .kind = .boolean },
         },
     ).parse(os.argv[1..]) catch {
-        try stderr.writeAll(usage);
-        try stderr.flush();
+        try print(.stderr, usage);
         posix.exit(1);
     };
     if (options.flags.h or options.flags.help) {
-        try stdout.writeAll(usage);
-        try stdout.flush();
+        try print(.stdout, usage);
         posix.exit(0);
     }
     if (options.flags.v or options.flags.version) {
-        try stdout.writeAll(build_options.version++"\n");
-        try stdout.flush();
+        try print(.stdout, build_options.version++"\n");
         posix.exit(0);
     }
     if (options.args.len != 0) {
         log.err("unknown option '{s}'", .{options.args[0]});
-        try stderr.writeAll(usage);
-        try stderr.flush();
+        try print(.stderr, usage);
         posix.exit(1);
     }
 
@@ -87,8 +75,10 @@ pub fn main() !void {
 
     var path_buffer: [256]u8 = undefined;
     const config_path = options.flags.c orelse options.flags.config orelse (
-        if (posix.getenv("XDG_CONFIG_HOME")) |config_home| fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
-        else if (posix.getenv("HOME")) |home| fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
+        if (posix.getenv("XDG_CONFIG_HOME")) |config_home|
+            fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
+        else if (posix.getenv("HOME")) |home|
+            fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
         else return error.GetConfigHomeFailed
     ) catch |err| {
         log.err("format config path failed: {}", .{ err });
@@ -175,4 +165,16 @@ fn registry_listener(registry: *wl.Registry, event: wl.Registry.Event, globals: 
         },
         .global_remove => {},
     }
+}
+
+
+fn print(dest: enum { stdout, stderr }, bytes: []const u8) !void {
+    var buffer: [1024]u8 = undefined;
+    var writer = switch (dest) {
+        .stdout => fs.File.stdout(),
+        .stderr => fs.File.stderr(),
+    }.writer(&buffer);
+    const interface = &writer.interface;
+    try interface.writeAll(bytes);
+    try interface.flush();
 }

@@ -291,6 +291,12 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
+    const config_tests = b.addTest(.{ .root_module = config_mod });
+    const run_config_tests = b.addRunArtifact(config_tests);
+
+    const kwm_tests = b.addTest(.{ .root_module = kwm_mod });
+    const run_kwm_tests = b.addRunArtifact(kwm_tests);
+
     // Creates an executable that will run `test` blocks from the executable's
     // root module. Note that test executables only test one module at a time,
     // hence why we have to create two separate ones.
@@ -305,6 +311,8 @@ pub fn build(b: *std.Build) void {
     // times and since the two run steps do not depend on one another, this will
     // make the two of them run in parallel.
     const test_step = b.step("test", "Run tests");
+    test_step.dependOn(&run_config_tests.step);
+    test_step.dependOn(&run_kwm_tests.step);
     test_step.dependOn(&run_exe_tests.step);
 
     // Just like flags, top level steps are also listed in the `--help` menu.

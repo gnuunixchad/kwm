@@ -947,6 +947,21 @@ fn wl_seat_listener(wl_seat: *wl.Seat, event: wl.Seat.Event, seat: *Self) void {
             log.debug("<{*}> name: {s}", .{ seat, data.name });
         },
         .capabilities => |data| {
+            log.debug(
+                "<{*}> wl_seat {*}, capabilities: (pointer: {}, keyboard: {}, touch: {})",
+                .{
+                    seat,
+                    wl_seat,
+                    data.capabilities.pointer,
+                    data.capabilities.keyboard,
+                    data.capabilities.touch,
+                },
+            );
+
+            if (seat.wl_pointer) |wl_pointer| {
+                wl_pointer.destroy();
+                seat.wl_pointer = null;
+            }
             if (data.capabilities.pointer) {
                 const wl_pointer = wl_seat.getPointer() catch return;
                 seat.wl_pointer = wl_pointer;
