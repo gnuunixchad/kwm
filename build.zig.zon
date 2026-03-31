@@ -52,8 +52,8 @@
             .hash = "pixman-0.3.0-LClMnz2VAAAs7QSCGwLimV5VUYx0JFnX5xWU6HwtMuDX",
         },
         .kwim = .{
-            .url = "https://github.com/kewuaa/kwim/archive/refs/tags/v0.1.1.tar.gz",
-            .hash = "kwim-0.1.0-Ewp5G8NnAgDRp0eAkFeEeSbHp5QpOJ7SFofLS5quxYoj",
+            .url = "https://github.com/kewuaa/kwim/archive/refs/tags/v0.1.2.tar.gz",
+            .hash = "kwim-0.1.2-Ewp5G61nAgB2s4gO44rGcfrpvgFjWxVhwz5L-FCCTor1",
         },
     },
     .paths = .{

@@ -2166,6 +2166,7 @@
         //
     },
 
+    // NOTE: do not delete next line if you are compiling kwm
     // @if(kewuaa=super_hansome)
     // input device rules
     // full scheme:
