@@ -2165,6 +2165,7 @@
         //
     },
 
+    // @if(kewuaa=super_hansome)
     // input device rules
     // full scheme:
     //      name: rule pattern
@@ -2249,4 +2250,5 @@
     .xkb_keyboard_rules = .{
         //
     },
+    // @endif
 }

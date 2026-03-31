@@ -18,18 +18,15 @@ pub const meta = @import("config/meta.zig");
 
 var allocator: mem.Allocator = undefined;
 
-var path: []const u8 = undefined;
 var config: ?Self = null;
 var user_config: ?meta.make_fields_optional(Self) = null;
 const default_config: Self = @import("default_config");
 
+pub var path: []const u8 = undefined;
 pub const lock_mode = constants.lock_mode;
 pub const default_mode = constants.default_mode;
 pub const WindowRule = rule.Window;
 pub const OutputRule = rule.Output;
-pub const InputDeviceRule = rule.InputDevice;
-pub const LibinputDeviceRule = rule.LibinputDevice;
-pub const XkbKeyboardRule = rule.XkbKeyboard;
 
 
 env: []const struct { []const u8, []const u8 },
@@ -127,7 +124,10 @@ layout_tag: struct {
 },
 
 bindings: struct {
-    repeat_info: kwm.KeyboardRepeatInfo,
+    repeat_info: struct {
+        rate: i32,
+        delay: i32,
+    },
     mode_tag: []const struct { []const u8, []const u8 },
     key: []const struct {
         mode: []const u8 = default_mode,
@@ -145,9 +145,6 @@ bindings: struct {
 
 window_rules: []const rule.Window,
 output_rules: []const rule.Output,
-input_device_rules: []const rule.InputDevice,
-libinput_device_rules: []const rule.LibinputDevice,
-xkb_keyboard_rules: []const rule.XkbKeyboard,
 
 
 pub fn init(al: *const mem.Allocator, config_path: []const u8) void {

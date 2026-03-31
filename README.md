@@ -58,7 +58,7 @@ See the default [configuration](./config.def.zon) file for detailed features.
 
 Requires zig 0.15.x.
 
-```zig
+```
 zig build -Doptimize=ReleaseSafe
 ```
 
@@ -66,8 +66,31 @@ zig build -Doptimize=ReleaseSafe
   copied from `config.def.zon` if missing)
 - `-Dbackground`: enable or disable the solid background (defaults to `false`)
 - `-Dbar`: enable or disable the status bar (defaults to `true`)
-- `-Dpreprocess`: enable or disable config preprocessing (defaults to `false`)
+- `-Dinstall_kwim`: if to install [kwim] (defaults to `true`).
+
+## Install
+
+```
+zig build install -Doptimize=ReleaseSafe
+```
+
 - `--prefix`: specify the path to install files
+
+### ArchLinux
+
+`kwm` is available in [AUR](https://aur.archlinux.org/packages/kwm).
+
+```
+yay -S kwm
+```
+
+Thanks @ParadiseOfMagic for making the AUR package.
+
+### NixOS
+
+There is a [kwm module](https://github.com/rowsred/river_kwm_modules_nixos).
+
+Thanks @rowsred for making the module.
 
 ## Configuration
 
@@ -154,6 +177,12 @@ To restart the bar script
 nohup damblocks --fifo >/dev/null 2>&1 &
 ```
 
+### Input Manager
+
+If `kwm` built with `-Dinstall_kwim` option, the [kwim] will be also be installed
+as a tool to manage input devices, and `kwm` will automatically run `kwim` at startup.
+You could use `kwim` to list input devices or apply single rule for devices.
+
 ## Acknowledgments
 Thanks to the following reference projects:
 
@@ -190,3 +219,4 @@ GPL-3.0-compatible.
 [swallow patch]: https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch
 [mvzr]: https://github.com/mnemnion/mvzr
 [River's logo]: https://codeberg.org/river/river/src/branch/main/logo/logo.svg
+[kwim]: https://github.com/kewuaa/kwim

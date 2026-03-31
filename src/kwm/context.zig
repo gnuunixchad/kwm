@@ -3,6 +3,7 @@ const Self = @This();
 const build_options = @import("build_options");
 const builtins = @import("builtin");
 const std = @import("std");
+const fs = std.fs;
 const fmt = std.fmt;
 const mem = std.mem;
 const posix = std.posix;
@@ -23,9 +24,6 @@ const Seat = @import("seat.zig");
 const Output = @import("output.zig");
 const Window = @import("window.zig");
 const KeyRepeat = @import("key_repeat.zig");
-const InputDevice = @import("input_device.zig");
-const LibinputDevice = @import("libinput_device.zig");
-const XkbKeyboard = @import("xkb_keyboard.zig");
 const ShellSurface = @import("shell_surface.zig");
 
 var ctx: ?Self = null;
@@ -42,9 +40,6 @@ wp_single_pixel_buffer_manager: *wp.SinglePixelBufferManagerV1,
 rwm: *river.WindowManagerV1,
 rwm_xkb_bindings: *river.XkbBindingsV1,
 rwm_layer_shell: *river.LayerShellV1,
-rwm_input_manager: ?*river.InputManagerV1,
-rwm_libinput_config: ?*river.LibinputConfigV1,
-rwm_xkb_config: ?*river.XkbConfigV1,
 
 // seperate layer between floating and nonfloating
 wl_surface: *wl.Surface = undefined,
@@ -55,10 +50,6 @@ current_seat: ?*Seat = null,
 
 outputs: wl.list.Head(Output, .link) = undefined,
 current_output: ?*Output = null,
-
-input_devices: wl.list.Head(InputDevice, .link) = undefined,
-libinput_devices: wl.list.Head(LibinputDevice, .link) = undefined,
-xkb_keyboards: wl.list.Head(XkbKeyboard, .link) = undefined,
 
 window_to_lift: ?*Window = null,
 windows: wl.list.Head(Window, .link) = undefined,
@@ -87,9 +78,6 @@ pub fn init(
     rwm: *river.WindowManagerV1,
     rwm_xkb_bindings: *river.XkbBindingsV1,
     rwm_layer_shell: *river.LayerShellV1,
-    rwm_input_manager: *river.InputManagerV1,
-    rwm_libinput_config: *river.LibinputConfigV1,
-    rwm_xkb_config: *river.XkbConfigV1,
 ) !void {
     // initialize once
     if (ctx != null) return;
@@ -111,9 +99,6 @@ pub fn init(
         .rwm = rwm,
         .rwm_xkb_bindings = rwm_xkb_bindings,
         .rwm_layer_shell = rwm_layer_shell,
-        .rwm_input_manager = rwm_input_manager,
-        .rwm_libinput_config = rwm_libinput_config,
-        .rwm_xkb_config = rwm_xkb_config,
         .key_repeat = undefined,
         .terminal_windows = .init(utils.allocator),
         .mode = fmt.bufPrint(&mode_buffer, "{s}", .{ Config.default_mode }) catch return error.ModeNameTooLong,
@@ -132,9 +117,6 @@ pub fn init(
     ctx.?.seats.init();
     ctx.?.outputs.init();
     ctx.?.windows.init();
-    ctx.?.input_devices.init();
-    ctx.?.libinput_devices.init();
-    ctx.?.xkb_keyboards.init();
     ctx.?.focus_stack.init();
     ctx.?.key_repeat.?.init() catch {
         ctx.?.key_repeat = null;
@@ -144,9 +126,6 @@ pub fn init(
     ctx.?.run_startup_cmds();
 
     rwm.setListener(*Self, rwm_listener, &ctx.?);
-    rwm_input_manager.setListener(*Self, rwm_input_manager_listener, &ctx.?);
-    rwm_libinput_config.setListener(*Self, rwm_libinput_config_listener, &ctx.?);
-    rwm_xkb_config.setListener(*Self, rwm_xkb_config_listener, &ctx.?);
 }
 
 
@@ -171,9 +150,6 @@ pub fn deinit() void {
     ctx.?.rwm.destroy();
     ctx.?.rwm_xkb_bindings.destroy();
     ctx.?.rwm_layer_shell.destroy();
-    if (ctx.?.rwm_input_manager) |rwm_input_manager| rwm_input_manager.destroy();
-    if (ctx.?.rwm_libinput_config) |rwm_libinput_config| rwm_libinput_config.destroy();
-    if (ctx.?.rwm_xkb_config) |rwm_xkb_config| rwm_xkb_config.destroy();
     ctx.?.layer_marker.deinit();
     ctx.?.wl_surface.destroy();
 
@@ -204,30 +180,6 @@ pub fn deinit() void {
         ctx.?.outputs.init();
     }
     ctx.?.current_output = null;
-
-    {
-        var it = ctx.?.input_devices.safeIterator(.forward);
-        while (it.next()) |input_device| {
-            input_device.destroy();
-        }
-        ctx.?.input_devices.init();
-    }
-
-    {
-        var it = ctx.?.libinput_devices.safeIterator(.forward);
-        while (it.next()) |libinput_device| {
-            libinput_device.destroy();
-        }
-        ctx.?.libinput_devices.init();
-    }
-
-    {
-        var it = ctx.?.xkb_keyboards.safeIterator(.forward);
-        while (it.next()) |xkb_config| {
-            xkb_config.destroy();
-        }
-        ctx.?.xkb_keyboards.init();
-    }
 
     if (ctx.?.key_repeat) |*key_repeat| key_repeat.deinit();
 
@@ -279,27 +231,6 @@ pub fn reload_config(self: *Self) void {
                 seat.create_bindings();
                 seat.mode = null;
             }
-        }
-    }
-
-    if (mask.input_device_rules) {
-        var it = self.input_devices.safeIterator(.forward);
-        while (it.next()) |input_device| {
-            input_device.apply_rules();
-        }
-    }
-
-    if (mask.libinput_device_rules) {
-        var it = self.libinput_devices.safeIterator(.forward);
-        while (it.next()) |libinput_device| {
-            libinput_device.apply_rules();
-        }
-    }
-
-    if (mask.xkb_keyboard_rules) {
-        var it = self.xkb_keyboards.safeIterator(.forward);
-        while (it.next()) |xkb_keyboard| {
-            xkb_keyboard.apply_rules();
         }
     }
 
@@ -852,6 +783,17 @@ fn init_env_map(self: *Self) void {
 fn run_startup_cmds(self: *Self) void {
     const config = Config.get();
 
+    if (comptime build_options.install_kwim) {
+        const config_path = fs.cwd().realpathAlloc(utils.allocator, Config.path) catch null;
+        defer if (config_path) |ptr| utils.allocator.free(ptr);
+
+        _ = self.spawn(&.{
+            "kwim",
+            "-c",
+            config_path orelse Config.path,
+        });
+    }
+
     self.startup_processes.ensureTotalCapacity(utils.allocator, config.startup_cmds.len) catch |err| {
         log.err("initCapacity for startup_processes failed: {}", .{ err });
         return;
@@ -914,27 +856,6 @@ fn promote_new_seat(self: *Self) void {
 
 fn prepare_manage(self: *Self) void {
     log.debug("prepare to manage", .{});
-
-    {
-        var it = self.input_devices.safeIterator(.forward);
-        while (it.next()) |input_device| {
-            input_device.manage();
-        }
-    }
-
-    {
-        var it = self.libinput_devices.safeIterator(.forward);
-        while (it.next()) |libinput_device| {
-            libinput_device.manage();
-        }
-    }
-
-    {
-        var it = self.xkb_keyboards.safeIterator(.forward);
-        while (it.next()) |xkb_keyboard| {
-            xkb_keyboard.manage();
-        }
-    }
 
     {
         var it = self.seats.safeIterator(.forward);
@@ -1146,76 +1067,6 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
             log.debug("session unlocked", .{});
 
             context.switch_mode(mem.span(@as([*:0]const u8, @ptrCast(&cache.mode))));
-        }
-    }
-}
-
-
-fn rwm_input_manager_listener(rwm_input_manager: *river.InputManagerV1, event: river.InputManagerV1.Event, context: *Self) void {
-    std.debug.assert(rwm_input_manager == context.rwm_input_manager.?);
-
-    switch (event) {
-        .input_device => |data| {
-            log.debug("new input_device {*}", .{ data.id });
-
-            const input_device = InputDevice.create(data.id) catch |err| {
-                log.err("create input device failed: {}", .{ err });
-                return;
-            };
-
-            context.input_devices.append(input_device);
-        },
-        .finished => {
-            log.debug("{*} finished", .{ rwm_input_manager });
-
-            rwm_input_manager.destroy();
-            context.rwm_input_manager = null;
-        }
-    }
-}
-
-
-fn rwm_libinput_config_listener(rwm_libinput_config: *river.LibinputConfigV1, event: river.LibinputConfigV1.Event, context: *Self) void {
-    std.debug.assert(rwm_libinput_config == context.rwm_libinput_config);
-
-    switch (event) {
-        .libinput_device => |data| {
-            log.debug("new libinput_device {*}", .{ data.id });
-
-            const libinput_device = LibinputDevice.create(data.id) catch |err| {
-                log.err("create libinput device failed: {}", .{ err });
-                return;
-            };
-
-            context.libinput_devices.append(libinput_device);
-        },
-        .finished => {
-            log.debug("{*} finished", .{ rwm_libinput_config });
-
-            rwm_libinput_config.destroy();
-            context.rwm_libinput_config = null;
-        }
-    }
-}
-
-
-fn rwm_xkb_config_listener(rwm_xkb_config: *river.XkbConfigV1, event: river.XkbConfigV1.Event, context: *Self) void {
-    std.debug.assert(rwm_xkb_config == context.rwm_xkb_config);
-
-    switch (event) {
-        .xkb_keyboard => |data| {
-            const xkb_keyboard = XkbKeyboard.create(data.id) catch |err| {
-                log.err("create xkb_keyboard failed: {}", .{ err });
-                return;
-            };
-
-            context.xkb_keyboards.append(xkb_keyboard);
-        },
-        .finished => {
-            log.debug("{*} finished", .{ rwm_xkb_config });
-
-            rwm_xkb_config.destroy();
-            context.rwm_xkb_config = null;
         }
     }
 }
