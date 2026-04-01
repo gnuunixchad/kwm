@@ -11,10 +11,11 @@ kwm - kewuaa's window manager for River Wayland compositor
 
 # DESCRIPTION
 
-River is a non-monolithic Wayland compositor, it does not combine the compositor
+_River_ is a non-monolithic Wayland compositor, it does not combine the compositor
 and window manager into one program.
 
-kwm is a window manager implementing the river-window-management-v1 protocol.
+kwm is a DWM-like dynamic tiling window manager implementing the
+river-window-management-v1 protocol.
 
 See the default configuration file for detailed features.
 
@@ -121,6 +122,9 @@ Mod4-\[';\]
 Mod4-Shift-\[';\]
 	Shift window's each tag to the next/previous unoccupied output tag.
 
+Mod4-0
+	Set all output tags as active.
+
 Mod4-[1-9]
 	Set the output tag.
 
@@ -152,10 +156,10 @@ Mod4-Shift-g
 	Toggle grid layout's direction.
 
 Mod4-p
-	Spawn _wmenu(1)_.
+	Spawn _wmenu-run_.
 
 Mod4-Shift-Return
-	Spawn _foot(1)_.
+	Spawn _foot_.
 
 ## passthrough mode
 

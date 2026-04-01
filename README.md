@@ -4,9 +4,11 @@
 
 # <img src="./misc/kwm-repo.png" width="24"/> My build of [kwm](https://github.com/kewuaa/kwm) - kewuaa's Window Manager
 
-[River] is a non-monolithic Wayland compositor, it does not combine the compositor and window manager into one program.
+[River] is a non-monolithic Wayland compositor, it does not combine the
+compositor and window manager into one program.
 
-kwm is a window manager implementing the river-window-management-v1 protocol.
+kwm is a DWM-like dynamic tiling window manager implementing the
+river-window-management-v1 protocol.
 
 # Screenshots
 
@@ -66,31 +68,17 @@ zig build -Doptimize=ReleaseSafe
   copied from `config.def.zon` if missing)
 - `-Dbackground`: enable or disable the solid background (defaults to `false`)
 - `-Dbar`: enable or disable the status bar (defaults to `true`)
-- `-Dinstall_kwim`: if to install [kwim] (defaults to `true`).
+- `-Dinstall_kwim`: if to install [kwim] to manage input devices (defaults to
+  `true`)
 
-## Install
+## Installation
+See [packages.md] for community maintained packages.
 
-```
+```sh
 zig build install -Doptimize=ReleaseSafe
 ```
 
 - `--prefix`: specify the path to install files
-
-### ArchLinux
-
-`kwm` is available in [AUR](https://aur.archlinux.org/packages/kwm).
-
-```
-yay -S kwm
-```
-
-Thanks @ParadiseOfMagic for making the AUR package.
-
-### NixOS
-
-There is a [kwm module](https://github.com/rowsred/river_kwm_modules_nixos).
-
-Thanks @rowsred for making the module.
 
 ## Configuration
 
@@ -111,26 +99,25 @@ configuration.
 User configuration can be reloaded on the fly with
 <kbd>mod4</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>.
 
-## Configuration preprocessing
+## Configuration Preprocessing
 
-Before loading config, `kwm` will make preprocessing for the configuration.
+Before loading the configuration, `kwm` can pre-process it by evaluating the
+conditions, which allows per-host configuration.
 
-support syntax below in `config.zon`:
+Syntax:
 
-```zon
+```zig
 // @if(condition)
 // @elif(condition)
 // @else
 // @endif
 ```
 
-Support `condition` are be below, seperate by `,`.
+*Conditions* (separated by `,`):
 
 - hostname=HOSTNAME
 - env:KEY=VALUE
 - env_contains:KEY
-
-By this, you could implement Per-Host configuration.
 
 ## Usage
 
@@ -142,27 +129,39 @@ See [Useful Software] in river wiki for compatible software.
 
 ### Keybindings
 
-See `KEYBINDINGS` section in `kwm(1)` for default keybindings.
+See [keybindings] or `KEYBINDINGS` section in `kwm(1)` man page for default
+keybindings.
 
 ### Keymaps
 
 Keyboard mapping can be customized by setting XKB layout rules before launching
-river. For example, to swap <kbd>CapsLock</kbd> with <kbd>Escape</kbd>, and <kbd>Mod1</kbd> with <kbd>Mod4</kbd>:
+river. For example, to swap <kbd>CapsLock</kbd> with <kbd>Escape</kbd>, and
+<kbd>Mod1</kbd> with <kbd>Mod4</kbd>:
 
 ```sh
 export XKB_DEFAULT_OPTIONS=caps:swapescape,altwin:swap_alt_win
 ```
 
+See `xkeyboard-config(7)` man page for all options.
+
+### Input Manager
+
+When built with the `-Dinstall_kwim` option, a separate tool called [kwim] will
+also be installed as an input device management tool.
+
+`kwm` automatically runs `kwim` at startup. By default, `kwim` reads input
+rules from the same configuration file used by `kwm`. You can also run `kwim`
+to list input devices or apply a single rule on demand.
+
 ### How I run kwm with river
 Read status from a fifo(to restart the status command without restarting kwm)
 ```zig
 // config.zon
-.status = .{ .fifo = "/run/user/1000/damblocks.fifo" },
+.status = .{ .fifo = "${XDG_RUNTIME_DIR}/damblocks.fifo" },
 ```
 Add below in  `~/.config/river/init`
 ```sh
 /usr/local/bin/kwm &
-# Start kwm with damblocks, a line generator with signaling support I wrote
 # https://codeberg.org/unixchad/damblocks
 ${HOME}/.local/bin/damblocks --fifo &
 ```
@@ -176,12 +175,6 @@ To restart the bar script
 ```sh
 nohup damblocks --fifo >/dev/null 2>&1 &
 ```
-
-### Input Manager
-
-If `kwm` built with `-Dinstall_kwim` option, the [kwim] will be also be installed
-as a tool to manage input devices, and `kwm` will automatically run `kwim` at startup.
-You could use `kwim` to list input devices or apply single rule for devices.
 
 ## Acknowledgments
 Thanks to the following reference projects:
@@ -201,7 +194,8 @@ The protocols in `protocol/` directory prefixed with river and developed by the
 [River] project are released under the ISC license (as stated in their
 copyright blocks).
 
-kwm's logo is a recreation based on [River's logo] and released under the CC-BY-SA-4.0 license.
+kwm's logo is a recreation based on [River's logo] and released under the
+CC-BY-SA-4.0 license.
 
 ## Contributing
 
@@ -212,7 +206,9 @@ GPL-3.0-compatible.
 
 [GPL-3.0]: ./LICENSE
 [river]: https://codeberg.org/river/river
+[packages.md]: ./doc/packages.md
 [Useful Software]: 	https://codeberg.org/river/wiki/src/branch/main/pages/useful-software.md
+[keybindings]: ./doc/keybindings.md
 [river-pwm]: https://github.com/pinpox/river-pwm
 [machi]: https://codeberg.org/machi/machi
 [dwl]: https://codeberg.org/dwl/dwl

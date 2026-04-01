@@ -5,7 +5,7 @@
 .nh
 .ad l
 .\" Begin generated content:
-.TH "KWM" "1" "2026-03-23" "kwm" "kewuaa's window manager"
+.TH "KWM" "1" "2026-03-31" "kwm" "kewuaa's window manager"
 .PP
 .SH NAME
 .PP
@@ -19,10 +19,11 @@ kwm - kewuaa'\&s window manager for River Wayland compositor
 .PP
 .SH DESCRIPTION
 .PP
-River is a non-monolithic Wayland compositor, it does not combine the compositor
+\fIRiver\fR is a non-monolithic Wayland compositor, it does not combine the compositor
 and window manager into one program.\&
 .PP
-kwm is a window manager implementing the river-window-management-v1 protocol.\&
+kwm is a DWM-like dynamic tiling window manager implementing the
+river-window-management-v1 protocol.\&
 .PP
 See the default configuration file for detailed features.\&
 .PP
@@ -191,6 +192,11 @@ Mod4-Shift-['\&;]
 Shift window'\&s each tag to the next/previous unoccupied output tag.\&
 .PP
 .RE
+Mod4-0
+.RS 4
+Set all output tags as active.\&
+.PP
+.RE
 Mod4-[1-9]
 .RS 4
 Set the output tag.\&
@@ -243,12 +249,12 @@ Toggle grid layout'\&s direction.\&
 .RE
 Mod4-p
 .RS 4
-Spawn \fIwmenu(1)\fR.\&
+Spawn \fIwmenu-run\fR.\&
 .PP
 .RE
 Mod4-Shift-Return
 .RS 4
-Spawn \fIfoot(1)\fR.\&
+Spawn \fIfoot\fR.\&
 .PP
 .RE
 .SS passthrough mode
