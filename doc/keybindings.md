@@ -22,6 +22,7 @@ configuration file.
 | Mod4-Shift-\[.,\] | Send window to the next/previous output |
 | Mod4-Shift-m | Toggle fake fullscreen on the window |
 | Mod4-Shift-f | Toggle fullscreen on the window |
+| Mod4-Shift-e | Toggle maximize on the window |
 | Mod4-space | Switch to the previous layout |
 | Mod4-f | Toggle floating on the window |
 | Mod4-Ctrl-s | Toggle sticky on the window |

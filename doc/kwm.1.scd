@@ -83,6 +83,9 @@ Mod4-Shift-m
 Mod4-Shift-f
 	Toggle fullscreen on the window.
 
+Mod4-Shift-e
+	Toggle maximize on the window.
+
 Mod4-space
 	Switch to the previous layout.
 

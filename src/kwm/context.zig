@@ -441,8 +441,16 @@ pub fn focus_iter(self: *Self, direction: types.Direction, skip: types.WindowIte
         var win = window;
         while (true) {
             const new_window = switch (direction) {
-                .forward => utils.cycle_list(Window, wrap_around, &self.windows.link, &win.link, .next),
-                .reverse => utils.cycle_list(Window, wrap_around, &self.windows.link, &win.link, .prev),
+                inline else => |d| utils.cycle_list(
+                    Window,
+                    wrap_around,
+                    &self.windows.link,
+                    &win.link,
+                    switch (comptime d) {
+                        .forward => .next,
+                        .reverse => .prev,
+                    },
+                ),
             } orelse break;
             defer win = new_window;
             if (new_window == window) break;
@@ -498,8 +506,16 @@ pub fn focus_output_iter(self: *Self, direction: types.Direction) void {
 
     if (self.current_output) |output| {
         const new_output = switch (direction) {
-            .forward => utils.cycle_list(Output, true, &self.outputs.link, &output.link, .next).?,
-            .reverse => utils.cycle_list(Output, true, &self.outputs.link, &output.link, .prev).?,
+            inline else => |d| utils.cycle_list(
+                Output,
+                true,
+                &self.outputs.link,
+                &output.link,
+                switch (comptime d) {
+                    .forward => .next,
+                    .reverse => .prev,
+                },
+            ).?
         };
         if (new_output != output) {
             self.set_current_output(new_output);
@@ -513,8 +529,16 @@ pub fn send_to_output(self: *Self, window: *Window, direction: types.Direction) 
 
     if (window.output) |output| {
         const new_output = switch (direction) {
-            .forward => utils.cycle_list(Output, true, &self.outputs.link, &output.link, .next).?,
-            .reverse => utils.cycle_list(Output, true, &self.outputs.link, &output.link, .prev).?,
+            inline else => |d| utils.cycle_list(
+                Output,
+                true,
+                &self.outputs.link,
+                &output.link,
+                switch (comptime d) {
+                    .forward => .next,
+                    .reverse => .prev,
+                },
+            ).?
         };
         if (new_output != output) {
             window.set_output(new_output, true);
@@ -549,8 +573,16 @@ pub fn swap(self: *Self, direction: types.Direction) void {
         var win = window;
         while (true) {
             const new_window = switch (direction) {
-                .forward => utils.cycle_list(Window, wrap_around, &self.windows.link, &win.link, .next),
-                .reverse => utils.cycle_list(Window, wrap_around, &self.windows.link, &win.link, .prev),
+                inline else => |d| utils.cycle_list(
+                    Window,
+                    wrap_around,
+                    &self.windows.link,
+                    &win.link,
+                    switch (comptime d) {
+                        .forward => .next,
+                        .reverse => .prev,
+                    },
+                )
             } orelse break;
             defer win = new_window;
             if (new_window == window) break;
