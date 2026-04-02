@@ -1,5 +1,3 @@
 .zig-cache/
 zig-out/
-/config.zig
-zig-fcft*
 /config.zon
