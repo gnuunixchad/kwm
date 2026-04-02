@@ -431,13 +431,19 @@ pub fn focused_window(self: *Self) ?*Window {
 pub fn focus_iter(self: *Self, direction: types.Direction, skip: types.WindowIterSkip) void {
     log.debug("focus iter: {s}", .{ @tagName(direction) });
 
+    const config = Config.get();
+
     if (self.focused_window()) |window| {
+        if (window.fullscreen == .output) return;
+
+        const wrap_around = !config.disable_wrap_around_for_scroller or window.output.?.current_layout() != .scroller;
+
         var win = window;
         while (true) {
             const new_window = switch (direction) {
-                .forward => utils.cycle_list(Window, &self.windows.link, &win.link, .next),
-                .reverse => utils.cycle_list(Window, &self.windows.link, &win.link, .prev),
-            };
+                .forward => utils.cycle_list(Window, wrap_around, &self.windows.link, &win.link, .next),
+                .reverse => utils.cycle_list(Window, wrap_around, &self.windows.link, &win.link, .prev),
+            } orelse break;
             defer win = new_window;
             if (new_window == window) break;
             if (new_window.is_visible_in(window.output.?)) {
@@ -446,6 +452,11 @@ pub fn focus_iter(self: *Self, direction: types.Direction, skip: types.WindowIte
                     .floating => if (new_window.floating) continue,
                     .nonfloating => if (!new_window.floating) continue,
                 }
+
+                if (window.maximize) {
+                    window.toggle_maximize();
+                }
+
                 self.focus(new_window, true);
                 break;
             }
@@ -487,8 +498,8 @@ pub fn focus_output_iter(self: *Self, direction: types.Direction) void {
 
     if (self.current_output) |output| {
         const new_output = switch (direction) {
-            .forward => utils.cycle_list(Output, &self.outputs.link, &output.link, .next),
-            .reverse => utils.cycle_list(Output, &self.outputs.link, &output.link, .prev),
+            .forward => utils.cycle_list(Output, true, &self.outputs.link, &output.link, .next).?,
+            .reverse => utils.cycle_list(Output, true, &self.outputs.link, &output.link, .prev).?,
         };
         if (new_output != output) {
             self.set_current_output(new_output);
@@ -502,8 +513,8 @@ pub fn send_to_output(self: *Self, window: *Window, direction: types.Direction) 
 
     if (window.output) |output| {
         const new_output = switch (direction) {
-            .forward => utils.cycle_list(Output, &self.outputs.link, &output.link, .next),
-            .reverse => utils.cycle_list(Output, &self.outputs.link, &output.link, .prev),
+            .forward => utils.cycle_list(Output, true, &self.outputs.link, &output.link, .next).?,
+            .reverse => utils.cycle_list(Output, true, &self.outputs.link, &output.link, .prev).?,
         };
         if (new_output != output) {
             window.set_output(new_output, true);
@@ -527,15 +538,20 @@ pub inline fn focus_exclusive(self: *Self) bool {
 pub fn swap(self: *Self, direction: types.Direction) void {
     log.debug("swap window: {s}", .{ @tagName(direction) });
 
+    const config = Config.get();
+
     if (self.focused_window()) |window| {
         if (window.floating) return;
+        if (window.fullscreen == .output) return;
+
+        const wrap_around = !config.disable_wrap_around_for_scroller or window.output.?.current_layout() != .scroller;
 
         var win = window;
         while (true) {
             const new_window = switch (direction) {
-                .forward => utils.cycle_list(Window, &self.windows.link, &win.link, .next),
-                .reverse => utils.cycle_list(Window, &self.windows.link, &win.link, .prev),
-            };
+                .forward => utils.cycle_list(Window, wrap_around, &self.windows.link, &win.link, .next),
+                .reverse => utils.cycle_list(Window, wrap_around, &self.windows.link, &win.link, .prev),
+            } orelse break;
             defer win = new_window;
             if (new_window == window) break;
             if (new_window.is_visible_in(window.output.?) and !new_window.floating) {
@@ -824,6 +840,7 @@ fn promote_new_output(self: *Self) void {
     const former_output = self.current_output.?;
     const current_output = utils.cycle_list(
         Output,
+        true,
         &self.outputs.link,
         &former_output.link,
         .prev,
@@ -842,6 +859,7 @@ fn promote_new_seat(self: *Self) void {
     const former_seat = self.current_seat.?;
     const current_seat = utils.cycle_list(
         Seat,
+        true,
         &self.seats.link,
         &former_seat.link,
         .prev,

@@ -94,6 +94,8 @@ cursor_warp: enum {
     on_focus_changed,
 },
 
+disable_wrap_around_for_scroller: bool,
+
 remember_floating_geometry: bool,
 
 auto_swallow: bool,

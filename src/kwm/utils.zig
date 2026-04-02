@@ -39,14 +39,17 @@ pub inline fn physics2logical(T: type, physics: T, scale: u32) T {
 
 pub fn cycle_list(
     comptime T: type,
+    wrap_around: bool,
     head: *wl.list.Link,
     node: *wl.list.Link,
     tag: @Type(.enum_literal),
-) *T {
+) ?*T {
     var next_node: ?*wl.list.Link = @field(node, @tagName(tag));
     if (next_node) |link| {
         if (link == head) {
-            next_node = @field(head, @tagName(tag));
+            if (wrap_around) {
+                next_node = @field(head, @tagName(tag));
+            } else return null;
         }
     }
 

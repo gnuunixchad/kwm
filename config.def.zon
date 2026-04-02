@@ -83,6 +83,9 @@
     // .on_output_changed: warp cursor to the center of output focused
     .cursor_warp = .none,
 
+    // disable wrap around when iter focus or swap window in scroller layout
+    .disable_wrap_around_for_scroller = false,
+
     // if to remember last floating geometry
     .remember_floating_geometry = true,
 
@@ -1258,6 +1261,15 @@
                 },
             },
             .{
+                .keysym = "f",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .toggle_maximize,
+                    },
+                },
+            },
+            .{
                 .keysym = "space",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
@@ -1535,7 +1547,7 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .modify_mfact = .{ .step = 0.05 },
+                            .modify_mfact = .{ .change = .{ .step = 0.05 } },
                         },
                     },
                 },
@@ -1546,7 +1558,7 @@
                 .event = .{
                     .click = .{
                         .pressed = .{
-                            .modify_mfact = .{ .step = -0.05 },
+                            .modify_mfact = .{ .change = .{ .step = -0.05 } },
                         },
                     },
                 },

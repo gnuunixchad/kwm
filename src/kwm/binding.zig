@@ -10,6 +10,10 @@ const utils = @import("utils.zig");
 pub const XkbBinding = @import("binding/xkb_binding.zig");
 pub const PointerBinding = @import("binding/pointer_binding.zig");
 
+const SetStep = union(enum) {
+    set: f32,
+    step: f32,
+};
 const MoveResizeStep = union(enum) {
     horizontal: i32,
     vertical: i32,
@@ -93,6 +97,7 @@ pub const Action = union(enum) {
             once_unbound_pressed,
         } = .disabled,
     },
+    toggle_maximize,
     toggle_fullscreen: struct {
         in_window: bool = false,
     },
@@ -111,7 +116,7 @@ pub const Action = union(enum) {
     toggle_bar,
 
     modify_nmaster: struct { change: enum { increase, decrease } },
-    modify_mfact: struct { step: f32 },
+    modify_mfact: struct { change: SetStep },
     modify_gap: struct { step: i32 },
     modify_master_location: struct { location: types.LayoutMasterLocation },
     toggle_grid_direction,

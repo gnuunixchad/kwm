@@ -51,6 +51,7 @@ former_output: ?[]const u8 = null,
 unhandled_events: std.ArrayList(Event) = undefined,
 
 layer_managed: bool = false,
+floating_changed: bool = true,
 fullscreen: union(enum) {
     none,
     window,
@@ -427,6 +428,7 @@ pub fn toggle_floating(self: *Self, flag: ?bool) void {
         if (flag) |floating| (if (self.floating != floating) floating else return)
         else !self.floating;
     self.layer_managed = false;
+    self.floating_changed = true;
 
     log.debug("<{*}> toggle floating: {}", .{ self, self.floating });
 
@@ -453,6 +455,14 @@ pub fn toggle_floating(self: *Self, flag: ?bool) void {
             .height = self.height,
         };
     }
+}
+
+
+pub fn toggle_maximize(self: *Self) void {
+    log.debug("<{*}> toggle maximize: {}", .{ self, !self.maximize });
+
+    self.maximize = !self.maximize;
+    self.prepare_maximize(self.maximize);
 }
 
 
@@ -512,13 +522,6 @@ pub fn handle_events(self: *Self) void {
         switch (event) {
             .init => {
                 log.debug("<{*}> managing new window", .{ self });
-
-                self.rwm_window.setTiled(.{
-                    .top = true,
-                    .bottom = true,
-                    .left = true,
-                    .right = true,
-                });
 
                 self.rwm_window.setCapabilities(.{
                     .window_menu = false,
@@ -672,6 +675,20 @@ pub fn handle_events(self: *Self) void {
             },
         }
     }
+
+    if (self.floating_changed) {
+        self.floating_changed = false;
+        if (self.floating) {
+            self.rwm_window.setTiled(.{});
+        } else {
+            self.rwm_window.setTiled(.{
+                .top = true,
+                .bottom = true,
+                .left = true,
+                .right = true,
+            });
+        }
+    }
 }
 
 
@@ -692,7 +709,18 @@ pub fn apply_rules(self: *Self) void {
 pub fn manage(self: *Self) void {
     log.debug("<{*}> managing, propose dimensions: (width: {}, height: {})", .{ self, self.width, self.height });
 
-    self.rwm_window.proposeDimensions(self.width, self.height);
+    if (self.maximize) {
+        const config = Config.get();
+
+        if (self.output) |output| {
+            self.rwm_window.proposeDimensions(
+                output.exclusive_width() - 2*config.border.width,
+                output.exclusive_height() - 2*config.border.width,
+            );
+        }
+    } else {
+        self.rwm_window.proposeDimensions(self.width, self.height);
+    }
 }
 
 
@@ -703,6 +731,7 @@ pub fn render(self: *Self) void {
 
     if (
         self.hidden
+        or self.output == null
         or self.geometry_undefined
         or self.x - config.border.width >= self.output.?.width
         or self.x + self.width + config.border.width <= 0
@@ -713,13 +742,23 @@ pub fn render(self: *Self) void {
             log.debug("<{*}> out of range, hide", .{ self });
         if (self.geometry_undefined)
             log.debug("<{*}> geometry undefined, hidden", .{ self });
+        if (self.output == null)
+            log.debug("<{*}> has no output, hide", .{ self });
         self.rwm_window.hide();
+        return;
+    }
+
+    const x, const y = .{ self.output.?.exclusive_x(), self.output.?.exclusive_y() };
+
+    if (self.maximize) {
+        log.debug("<{*}> rendering maximize", .{ self });
+        self.rwm_window_node.setPosition(x + config.border.width, y + config.border.width);
+        self.rwm_window.show();
         return;
     }
 
     log.debug("<{*}> rendering to (x: {}, y: {})", .{ self, self.x, self.y });
 
-    const x, const y = .{ self.output.?.exclusive_x(), self.output.?.exclusive_y() };
     self.rwm_window_node.setPosition(x + self.x, y + self.y);
 
     var left = self.x - config.border.width;
@@ -927,7 +966,10 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
         .dimensions => |data| {
             log.debug("<{*}> dimensions: ({}, {})", .{ window, data.width, data.height });
 
-            if (window.geometry_undefined or (window.floating and window.fullscreen != .output)) {
+            if (
+                window.geometry_undefined
+                or (window.floating and window.fullscreen != .output and !window.maximize)
+            ) {
                 if (window.output == null) {
                     window.unbound_resize(data.width, data.height);
                 } else {
