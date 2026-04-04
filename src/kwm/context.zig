@@ -402,7 +402,13 @@ pub fn focus(self: *Self, window: *Window, lift: bool) void {
 
     self.set_current_output(window.output);
     if (lift) self.window_to_lift = window;
-    if (self.focus_stack.first() == window) return;
+
+    if (self.focused_window()) |w| {
+        // unmaximize window if focus changed
+        if (w != window and w.maximize) {
+            w.toggle_maximize();
+        }
+    }
 
     if (comptime build_options.bar_enabled) {
         if (window.output) |output| {
@@ -434,8 +440,6 @@ pub fn focus_iter(self: *Self, direction: types.Direction, skip: types.WindowIte
     const config = Config.get();
 
     if (self.focused_window()) |window| {
-        if (window.fullscreen == .output) return;
-
         const wrap_around = !config.disable_wrap_around_for_scroller or window.output.?.current_layout() != .scroller;
 
         var win = window;
@@ -459,10 +463,6 @@ pub fn focus_iter(self: *Self, direction: types.Direction, skip: types.WindowIte
                     .none => {},
                     .floating => if (new_window.floating) continue,
                     .nonfloating => if (!new_window.floating) continue,
-                }
-
-                if (window.maximize) {
-                    window.toggle_maximize();
                 }
 
                 self.focus(new_window, true);
@@ -695,12 +695,16 @@ pub fn toggle_fullscreen(self: *Self, in_window: bool) void {
     if (self.current_output) |output| {
         if (output.fullscreen_window()) |window| {
             window.prepare_unfullscreen();
+            self.focus(window, true);
         } else if (self.focused_window()) |window| {
             switch (window.fullscreen) {
                 .none => window.prepare_fullscreen(if (in_window) null else window.output.?),
                 .window => if (in_window) window.prepare_unfullscreen()
                     else window.prepare_fullscreen(window.output.?),
-                .output => window.prepare_unfullscreen(),
+                .output => {
+                    window.prepare_unfullscreen();
+                    self.focus(window, true);
+                },
             }
         }
     }

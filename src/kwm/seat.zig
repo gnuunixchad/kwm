@@ -176,7 +176,13 @@ pub fn manage(self: *Self) void {
         // avoid cursor wrapping
         self.previous_focused = .{ .window = window };
 
-        context.focus(window, false);
+        context.focus(
+            window,
+            !window.floating
+            and if (window.output) |output|
+                output.current_layout() != .float
+                else false,
+        );
     }
 
     self.handle_actions();
@@ -249,7 +255,14 @@ pub fn try_focus(self: *Self) void {
             }
         }
 
-        self.rwm_seat.focusWindow(window.rwm_window);
+        // if there are any window fullscreen on output, focus it first
+        self.rwm_seat.focusWindow((
+            (
+                if (window.output) |output|
+                    output.fullscreen_window()
+                else null
+            ) orelse window
+        ).rwm_window);
     } else {
         if (context.current_output) |output| {
             defer self.previous_focused = .{ .output = output };
