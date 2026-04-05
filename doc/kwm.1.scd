@@ -223,22 +223,25 @@ Default configuration is usually installed to one of the following paths:
 Below are some examples on configurable settings:
 
 - *Startup commands*++
-	Commands to run when starting kwm.
+Commands to run when starting kwm.
 
 - *Bar*++
-	Change bar position and fonts.++
-	Choose status among static text, stdin, and fifo.
+Change bar position and fonts.++
+Choose status among static text, stdin, and fifo.
 
-- *Input devices*++
-	Configure touchpad and keyboard such as repeat delay and rate.++
-	Change cursor theme and keyboard layout.
+- *Input devices* ++
+When built with the `-Dinstall_kwim` option, a separate tool called _kwim_
+will also be installed as an input device management tool. *kwm*
+automatically runs _kwim_ at startup. By default, _kwim_ reads input rules
+from the same configuration file used by *kwm*. You can also run _kwim_ to
+list input devices or apply a single rule on demand.
 
 - *Keybindings*++
-	Change keybindings in each mode, and add custom modes.
+Change keybindings in each mode, and add custom modes.
 
 - *Rules*++
-	Match windows by app_id or title with regex support.++
-	Set tag, floating, dimension, decoration, swallow and scroller behaviors.
+Match windows by app_id or title with regex support.++
+Set tag, floating, dimension, decoration, swallow and scroller behaviors.
 
 ## Compile Time
 
@@ -276,7 +279,12 @@ river -c 'while :; do date; sleep 1; done | kwm'
 
 # SEE ALSO
 
-_river_(1)
+_river_(1), _kwim(1)_, _kwim(5)_
+
+kwim:
+```
+https://github.com/kewuaa/kwim
+```
 
 Useful software:
 ```
