@@ -2,6 +2,7 @@ const Self = @This();
 
 const build_options = @import("build_options");
 const std = @import("std");
+const fs = std.fs;
 const fmt = std.fmt;
 const mem = std.mem;
 const log = std.log.scoped(.seat);
@@ -972,6 +973,7 @@ fn rwm_xkb_binding_seat_listener(rwm_xkb_binding_seat: *river.XkbBindingsSeatV1,
 fn wl_seat_listener(wl_seat: *wl.Seat, event: wl.Seat.Event, seat: *Self) void {
     std.debug.assert(wl_seat == seat.wl_seat);
 
+    const context = Context.get();
     switch (event) {
         .name => |data| {
             log.debug("<{*}> name: {s}", .{ seat, data.name });
@@ -996,6 +998,19 @@ fn wl_seat_listener(wl_seat: *wl.Seat, event: wl.Seat.Event, seat: *Self) void {
                 const wl_pointer = wl_seat.getPointer() catch return;
                 seat.wl_pointer = wl_pointer;
                 wl_pointer.setListener(*Self, wl_pointer_listener, seat);
+            }
+
+            // automatically run `kwim` when receive `capabilities` event
+            // since if tty switched, the `capabilities` event will be resent
+            if (comptime build_options.install_kwim) {
+                const config_path = fs.cwd().realpathAlloc(utils.allocator, Config.path) catch null;
+                defer if (config_path) |ptr| utils.allocator.free(ptr);
+
+                _ = context.spawn(&.{
+                    "kwim",
+                    "-c",
+                    config_path orelse Config.path,
+                });
             }
         }
     }

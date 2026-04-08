@@ -835,17 +835,6 @@ fn init_env_map(self: *Self) void {
 fn run_startup_cmds(self: *Self) void {
     const config = Config.get();
 
-    if (comptime build_options.install_kwim) {
-        const config_path = fs.cwd().realpathAlloc(utils.allocator, Config.path) catch null;
-        defer if (config_path) |ptr| utils.allocator.free(ptr);
-
-        _ = self.spawn(&.{
-            "kwim",
-            "-c",
-            config_path orelse Config.path,
-        });
-    }
-
     self.startup_processes.ensureTotalCapacity(utils.allocator, config.startup_cmds.len) catch |err| {
         log.err("initCapacity for startup_processes failed: {}", .{ err });
         return;
