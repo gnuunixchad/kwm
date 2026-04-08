@@ -255,42 +255,14 @@ pub fn build(b: *std.Build) void {
         };
         defer b.allocator.free(path);
 
-        const kwim_dep = b.dependency(
+        const kwim = b.dependency(
             "kwim",
             .{
                 .optimize = optimize,
                 .kwm_config = path,
             },
-        );
-
-        const kwim_art = kwim_dep.artifact("kwim");
-        b.installArtifact(kwim_art);
-
-        const bash_path = kwim_dep.path("completions/kwim.bash");
-        const zsh_path = kwim_dep.path("completions/kwim.zsh");
-
-        if (fs.accessAbsolute(bash_path.getPath(b), .{})) |_| {
-            const install_bash = b.addInstallFile(bash_path, "share/bash-completion/completions/kwim");
-            b.getInstallStep().dependOn(&install_bash.step);
-        } else |_| {}
-
-        if (fs.accessAbsolute(zsh_path.getPath(b), .{})) |_| {
-            const install_zsh = b.addInstallFile(zsh_path, "share/zsh/site-functions/_kwim");
-            b.getInstallStep().dependOn(&install_zsh.step);
-        } else |_| {}
-
-        const man1_path = kwim_dep.path("doc/kwim.1");
-        const man5_path = kwim_dep.path("doc/kwim.5");
-
-        if (fs.accessAbsolute(man1_path.getPath(b), .{})) |_| {
-            const install_man1 = b.addInstallFile(man1_path, "share/man/man1/kwim.1");
-            b.getInstallStep().dependOn(&install_man1.step);
-        } else |_| {}
-
-        if (fs.accessAbsolute(man5_path.getPath(b), .{})) |_| {
-            const install_man5 = b.addInstallFile(man5_path, "share/man/man5/kwim.5");
-            b.getInstallStep().dependOn(&install_man5.step);
-        } else |_| {}
+        ).artifact("kwim");
+        b.installArtifact(kwim);
     }
 
     const man_page_install = b.addInstallFile(
