@@ -270,6 +270,18 @@ pub fn build(b: *std.Build) void {
                 const install_zsh = b.addInstallFile(zsh_path, "share/zsh/site-functions/_kwim");
                 b.getInstallStep().dependOn(&install_zsh.step);
             } else |_| {}
+
+            const kwim_man_1 = kwim_dep.path("doc/kwim.1");
+            if (fs.accessAbsolute(kwim_man_1.getPath(b), .{})) |_| {
+                const install_kwim_man_1 = b.addInstallFile(kwim_man_1, "share/man/man1/kwim.1");
+                b.getInstallStep().dependOn(&install_kwim_man_1.step);
+            } else |_| {}
+
+            const kwim_man_5 = kwim_dep.path("doc/kwim.5");
+            if (fs.accessAbsolute(kwim_man_5.getPath(b), .{})) |_| {
+                const install_kwim_man_5 = b.addInstallFile(kwim_man_5, "share/man/man5/kwim.5");
+                b.getInstallStep().dependOn(&install_kwim_man_5.step);
+            } else |_| {}
         }
     }
 

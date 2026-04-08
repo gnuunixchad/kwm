@@ -5,7 +5,7 @@
 .nh
 .ad l
 .\" Begin generated content:
-.TH "KWM" "1" "2026-04-02" "kwm" "kewuaa's window manager"
+.TH "KWM" "1" "2026-04-05" "kwm" "kewuaa's window manager"
 .PP
 .SH NAME
 .PP
@@ -364,12 +364,14 @@ Choose status among static text, stdin, and fifo.\&
 .PP
 .PD 0
 .IP \(bu 4
-\fBInput devices\fR
+\fBInput devices\fR 
 .br
-Configure touchpad and keyboard such as repeat delay and rate.\&
-.br
-Change cursor theme and keyboard layout.\&
+When built with the `-Dinstall_kwim` option, a separate tool called \fIkwim\fR
 .PD
+will also be installed as an input device management tool.\& \fBkwm\fR
+automatically runs \fIkwim\fR at startup.\& By default, \fIkwim\fR reads input rules
+from the same configuration file used by \fBkwm\fR.\& You can also run \fIkwim\fR to
+list input devices or apply a single rule on demand.\&
 .PP
 .PD 0
 .IP \(bu 4
@@ -431,7 +433,14 @@ river -c \&'while :; do date; sleep 1; done | kwm\&'
 .PP
 .SH SEE ALSO
 .PP
-\fIriver\fR(1)
+\fIriver\fR(1), \fIkwim(1)\fR, \fIkwim(5)\fR
+.PP
+kwim:
+.nf
+.RS 4
+https://github\&.com/kewuaa/kwim
+.fi
+.RE
 .PP
 Useful software:
 .nf
