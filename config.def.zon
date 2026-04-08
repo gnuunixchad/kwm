@@ -11,11 +11,7 @@
     .startup_cmds = .{
         // .{ "swaybg", "-i", "/path/to/wallpaper" },
         .{ "gammastep", "-O", "5000" },
-        // @if(hostname=fx507)
-        .{ "sh", "-c", "kanshi -c ${HOME}/.config/kanshi/config-HiDPI" },
-        // @else
         .{ "kanshi" },
-        // @endif
         .{ "fcitx5", "-d", "--verbose", "'*=0'" },
         .{ "swayidle" },
         .{ "wl-paste", "--watch", "cliphist", "store" },
