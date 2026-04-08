@@ -132,13 +132,13 @@ bindings: struct {
     },
     mode_tag: []const struct { []const u8, []const u8 },
     key: []const struct {
-        mode: []const u8 = default_mode,
+        mode: ?[]const u8 = null,
         keysym: []const u8,
         modifiers: river.SeatV1.Modifiers,
         event: kwm.XkbBindingEvent,
     },
     pointer: []const struct {
-        mode: []const u8 = default_mode,
+        mode: ?[]const u8 = null,
         button: kwm.Button,
         modifiers: river.SeatV1.Modifiers,
         event: kwm.PointerBindingEvent,
@@ -166,7 +166,7 @@ pub inline fn deinit() void {
     if (user_config) |cfg| {
         log.debug("free user config", .{});
 
-        meta.zon_free(allocator, cfg);
+        zon.parse.free(allocator, cfg);
     }
 }
 
@@ -177,7 +177,7 @@ pub fn reload() meta.field_mask(Self) {
     var mask: meta.field_mask(Self) = .{};
     var new_cfg = try_load_user_config();
     if (new_cfg) |*cfg| {
-        defer meta.zon_free(allocator, cfg.*);
+        defer zon.parse.free(allocator, cfg.*);
         const struct_info = @typeInfo(Self).@"struct";
         if (user_config) |*old_cfg| {
             inline for (struct_info.fields) |field| {

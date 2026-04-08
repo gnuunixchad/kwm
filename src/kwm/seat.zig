@@ -324,13 +324,14 @@ pub fn create_bindings(self: *Self) void {
     const config = Config.get();
 
     for (config.bindings.key) |key_binding| {
-        if (!self.xkb_bindings.contains(key_binding.mode)) {
-            self.xkb_bindings.put(key_binding.mode, .empty) catch |err| {
+        const mode = key_binding.mode orelse Config.default_mode;
+        if (!self.xkb_bindings.contains(mode)) {
+            self.xkb_bindings.put(mode, .empty) catch |err| {
                 log.err("<{*}> put a new xkb binding list failed: {}", .{ self, err });
                 continue;
             };
         }
-        const list = self.xkb_bindings.getPtr(key_binding.mode).?;
+        const list = self.xkb_bindings.getPtr(mode).?;
 
         list.append(
             utils.allocator,
@@ -355,7 +356,7 @@ pub fn create_bindings(self: *Self) void {
             "<{*}> append key binding: (mode: {s}, keysym: {s}, modifiers: (shift: {}, ctrl: {}, mod1: {}, mod3: {}, mod4: {}, mod5: {}), event: {any})",
             .{
                 self,
-                key_binding.mode,
+                mode,
                 key_binding.keysym,
                 key_binding.modifiers.shift,
                 key_binding.modifiers.ctrl,
@@ -369,13 +370,14 @@ pub fn create_bindings(self: *Self) void {
     }
 
     for (config.bindings.pointer) |pointer_binding| {
-        if (!self.pointer_bindings.contains(pointer_binding.mode)) {
-            self.pointer_bindings.put(pointer_binding.mode, .empty) catch |err| {
+        const mode = pointer_binding.mode orelse Config.default_mode;
+        if (!self.pointer_bindings.contains(mode)) {
+            self.pointer_bindings.put(mode, .empty) catch |err| {
                 log.err("<{*}> put a new pointer binding list failed: {}", .{ self, err });
                 continue;
             };
         }
-        const list = self.pointer_bindings.getPtr(pointer_binding.mode).?;
+        const list = self.pointer_bindings.getPtr(mode).?;
 
         list.append(
             utils.allocator,
@@ -397,7 +399,7 @@ pub fn create_bindings(self: *Self) void {
             "<{*}> append pointer binding: (mode: {s}, button: {s}, modifiers: (shift: {}, ctrl: {}, mod1: {}, mod3: {}, mod4: {}, mod5: {}), event: {any})",
             .{
                 self,
-                pointer_binding.mode,
+                mode,
                 @tagName(pointer_binding.button),
                 pointer_binding.modifiers.shift,
                 pointer_binding.modifiers.ctrl,
