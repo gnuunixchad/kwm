@@ -1,0 +1,70 @@
+name: Bug Report
+description: File a bug/issue
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Note: Before opening a new issue, please search for existing issues and reproduce the bug with a build of kwm from the latest commit.
+
+        Note: A river crash is always a river bug. No Wayland client (including the window manager) should be able to make river crash.
+
+  - type: input
+    id: river-version
+    attributes:
+      label: River Version
+      description: The output of `river -version`.
+    validations:
+      required: true
+
+  - type: input
+    id: kwm-version
+    attributes:
+      label: KWM version
+      description: The output of `kwm -version`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of Bug and Steps to Reproduce
+      description: Exactly what steps can someone else take to see the bug themselves? What happens?
+      placeholder: |
+        1. With this kwm configuration...
+        2. Start river with kwm this way...
+        3. Do this...
+        4. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs, Stacktraces, etc.
+      description: |
+        Please provide as many details as possible, we must be able to understand the bug in order to fix it.
+
+        Use a debug build of kwm if possible to get a better quality stacktrace
+
+        ```
+        zig build -Doptimize=Debug <other desired options>
+        ```
+
+        Redirect logs to a file:
+
+        ```
+        river -c 'kwm' 1>kwm.log 2>&1
+        ```
+
+        Reproduce your problem and exit kwm.
+
+        If the issue is with a specific Wayland client (e.g. firefox) a log of the Wayland protocol messages between the client and river is often very helpful. Obtain one by setting WAYLAND_DEBUG=1 and redirecting stderr to a file.
+
+        ```
+        WAYLAND_DEBUG=1 firefox 2> firefox.log
+        ```
+      render: shell
+    validations:
+      required: false
