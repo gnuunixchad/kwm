@@ -15,33 +15,34 @@ const pixman = @import("pixman");
 const fcft = @import("fcft");
 const mvzr = @import("mvzr");
 
-const types = @import("types.zig");
 const Config = @import("config");
 
 const utils = @import("utils.zig");
+const types = @import("types.zig");
+const render_ = @import("render.zig");
 const binding = @import("binding.zig");
 const Context = @import("context.zig");
 const Seat = @import("seat.zig");
 const Output = @import("output.zig");
 const ShellSurface = @import("shell_surface.zig");
-const Buffer = @import("bar/buffer.zig");
-const Component = @import("bar/component.zig");
 
 const color_pattern = mvzr.compile("\\^#([0-9a-zA-Z]{8}|!)").?;
 pub var status_buffer = [1]u8 { 0 } ** 256;
 
-font: *fcft.Font,
+font: render_.Font = undefined,
 
 wl_surface: *wl.Surface = undefined,
 shell_surface: ShellSurface = undefined,
 wp_viewport: *wp.Viewport = undefined,
 wp_fractional_scale: *wp.FractionalScaleV1 = undefined,
-static_component: Component = undefined,
-dynamic_component: Component = undefined,
+static_component: render_.Component = undefined,
+dynamic_component: render_.Component = undefined,
 
 output: *Output,
 
 scale: u32,
+static_component_damaged: bool = true,
+dynamic_component_damaged: bool = true,
 background_damaged: bool = true,
 hidden: bool,
 
@@ -53,18 +54,17 @@ dynamic_splits: std.ArrayList(i32) = undefined,
 pub fn init(self: *Self, output: *Output) !void {
     log.debug("<{*}> init", .{ self });
 
+    const scale = 120;
     const config = Config.get();
 
-    const scale = 120;
-    const font = load_font(scale) catch unreachable;
-    errdefer font.destroy();
-
     self.* = .{
-        .font = font,
         .output = output,
         .scale = scale,
         .hidden = !config.bar.show_default,
     };
+
+    try self.font.init(config.bar.font, scale);
+    errdefer self.font.deinit();
 
     self.dynamic_splits = .initBuffer(&self.dynamic_splits_buffer);
 
@@ -81,27 +81,27 @@ pub fn deinit(self: *Self) void {
         self.hidden = true;
         self.hide();
     }
-    self.font.destroy();
+    self.font.deinit();
 
     self.static_splits.deinit(utils.allocator);
 }
 
 
-pub fn reload_font(self: *Self) void {
+pub inline fn reload_font(self: *Self) void {
     log.debug("<{*}> reload font", .{ self });
 
-    const font = load_font(self.scale) catch return;
-    self.font.destroy();
-    self.font = font;
+    const config = Config.get();
+
+    self.font.reload(config.bar.font, self.scale);
 }
 
 
 pub inline fn height(self: *const Self, logical: bool) i32 {
     return if (logical) utils.physics2logical(
         i32,
-        self.font.height,
+        self.font.height(),
         self.scale,
-    ) else self.font.height;
+    ) else self.font.height();
 }
 
 
@@ -200,10 +200,10 @@ pub fn damage(self: *Self, @"type": enum { all, tags, dynamic, layout, mode, tit
             self.background_damaged = true;
         },
         .tags => {
-            self.static_component.damaged = true;
-            self.dynamic_component.damaged = true;
+            self.static_component_damaged = true;
+            self.dynamic_component_damaged = true;
         },
-        else => self.dynamic_component.damaged = true,
+        else => self.dynamic_component_damaged = true,
     }
 }
 
@@ -213,14 +213,14 @@ pub fn render(self: *Self) void {
 
     log.debug("<{*}> rendering", .{ self });
 
-    if (self.static_component.damaged or self.background_damaged) {
-        defer self.static_component.damaged = false;
+    if (self.static_component_damaged or self.background_damaged) {
+        defer self.static_component_damaged = false;
 
         self.render_static_component();
     }
 
-    if (self.dynamic_component.damaged or self.background_damaged) {
-        defer self.dynamic_component.damaged = false;
+    if (self.dynamic_component_damaged or self.background_damaged) {
+        defer self.dynamic_component_damaged = false;
 
         self.render_dynamic_component();
     }
@@ -243,7 +243,7 @@ inline fn static_component_width(self: *Self) i32 {
 
 
 inline fn get_pad(self: *const Self) u16 {
-    return @intCast(@divFloor(self.font.height * 3, 4)); // reduce padding to 3/4
+    return @intCast(@divFloor(self.font.height() * 3, 4)); // reduce padding to 3/4
 }
 
 
@@ -289,70 +289,9 @@ fn render_background(self: *Self) void {
 }
 
 
-fn render_text(
-    self: *const Self,
-    buffer: *Buffer,
-    text: *const fcft.TextRun,
-    c: *const pixman.Color,
-    x: i32,
-    y: i32,
-) i16 {
-    const image = pixman.Image.createSolidFill(c) orelse {
-        log.err("createSolidFill failed", .{});
-        return 0;
-    };
-    defer _ = image.unref();
-
-    var offset: i32 = 0;
-    for (0..text.count) |i| {
-        const glyph = text.glyphs[i];
-        offset += @intCast(glyph.x);
-        pixman.Image.composite32(
-            .over,
-            image,
-            glyph.pix,
-            buffer.image,
-            0,
-            0,
-            0,
-            0,
-            x + offset,
-            y + self.font.ascent - glyph.y,
-            glyph.width,
-            glyph.height,
-        );
-        offset += @intCast(glyph.advance.x - glyph.x);
-        if (offset >= buffer.width) break;
-    }
-    return @intCast(offset);
-}
-
-
-fn render_str(
-    self: *const Self,
-    buffer: *Buffer,
-    str: []const u8,
-    c: *const pixman.Color,
-    x: i32,
-    y: i32,
-) i16 {
-    if (to_utf8(str)) |utf8| {
-        defer utils.allocator.free(utf8);
-
-        const text = self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
-            log.err("createU32RgbaBuffer failed: {}", .{ err });
-            return 0;
-        };
-        defer text.destroy();
-
-        return self.render_text(buffer, text, c, x, y);
-    } return 0;
-}
-
-
 fn draw_box(
     self: *const Self,
-    buffer: *Buffer,
+    buffer: *render_.Buffer,
     inner: bool,
     pos: enum { top, bottom },
     c: *const pixman.Color,
@@ -408,18 +347,15 @@ fn render_static_component(self: *Self) void {
     defer texts.deinit(utils.allocator);
 
     for (config.tags) |label| {
-        if (to_utf8(label)) |utf8| {
-            texts.appendBounded(
-                self.font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
-                    log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
-                    return;
-                }
-            ) catch unreachable;
-            utils.allocator.free(utf8);
-        } else {
-            log.warn("to_utf8 failed", .{});
+        const utf8 = render_.utils.to_utf8(utils.allocator, label) catch |err| {
+            log.warn("<{*}> to_utf8 failed: {}", .{ self, err });
             return;
-        }
+        };
+        defer utils.allocator.free(utf8);
+
+        texts.appendBounded(
+            self.font.rasterize_text_run(utf8) orelse return
+        ) catch unreachable;
     }
 
     defer {
@@ -432,7 +368,7 @@ fn render_static_component(self: *Self) void {
     const w: u16 = blk: {
         var width: u16 = 0;
         for (texts.items) |text| {
-            width += @intCast(text_width(text)+pad);
+            width += @intCast(render_.utils.text_width(text)+pad);
             self.static_splits.appendBounded(@intCast(width)) catch unreachable;
         }
         break :blk width;
@@ -452,9 +388,9 @@ fn render_static_component(self: *Self) void {
     }
     const focused_window = context.focused_window();
 
-    const select_fg = color(config.bar.color.select.fg);
-    const select_bg = color(config.bar.color.select.bg);
-    const normal_fg = color(config.bar.color.normal.fg);
+    const select_fg = render_.utils.color(config.bar.color.select.fg);
+    const select_bg = render_.utils.color(config.bar.color.select.bg);
+    const normal_fg = render_.utils.color(config.bar.color.normal.fg);
     const transparent = mem.zeroes(pixman.Color);
 
     const bg_rect = [_]pixman.Rectangle16 {
@@ -474,7 +410,7 @@ fn render_static_component(self: *Self) void {
 
         const is_focused = self.output.tag & tag != 0;
 
-        const tag_width: u16 = @intCast(text_width(text)+pad); 
+        const tag_width: u16 = @intCast(render_.utils.text_width(text)+pad); 
         defer x += @intCast(tag_width);
 
         if (is_focused) {
@@ -517,7 +453,7 @@ fn render_static_component(self: *Self) void {
             }
         }
 
-        _ = self.render_text(
+        _ = self.font.render_text(
             buffer,
             text,
             if (is_focused) &select_fg else &normal_fg,
@@ -537,9 +473,9 @@ fn render_dynamic_component(self: *Self) void {
     const context = Context.get();
     self.dynamic_splits.clearRetainingCapacity();
 
-    const normal_fg = color(config.bar.color.normal.fg);
-    const select_bg = color(config.bar.color.select.bg);
-    const select_fg = color(config.bar.color.select.fg);
+    const normal_fg = render_.utils.color(config.bar.color.normal.fg);
+    const select_bg = render_.utils.color(config.bar.color.select.bg);
+    const select_fg = render_.utils.color(config.bar.color.select.fg);
     const transparent = mem.zeroes(pixman.Color);
 
     const pad = self.get_pad();
@@ -566,7 +502,7 @@ fn render_dynamic_component(self: *Self) void {
 
     const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
     if (mode_tag.len > 0) {
-        x += self.render_str(
+        x += self.font.render_str(
             buffer,
             mode_tag,
             &select_fg,
@@ -617,7 +553,7 @@ fn render_dynamic_component(self: *Self) void {
             break :blk layout_tag_buffer[0..tag.len + str.len*n - (right-left+2)*n];
         } else break :blk tag;
     };
-    x += self.render_str(
+    x += self.font.render_str(
         buffer,
         layout_tag,
         &normal_fg,
@@ -659,7 +595,7 @@ fn render_dynamic_component(self: *Self) void {
         }
 
         if (window.title) |title| {
-            x += self.render_str(
+            x += self.font.render_str(
                 buffer,
                 title,
                 &select_fg,
@@ -696,29 +632,22 @@ fn render_dynamic_component(self: *Self) void {
                 const end = if (match) |m| m.start else status_text.len;
                 defer i = end;
 
-                if (to_utf8(status_text[i..end])) |utf8| {
-                    defer utils.allocator.free(utf8);
-
-                    texts.append(
-                        utils.allocator,
-                        .{
-                            fg,
-                            self.font.rasterizeTextRunUtf32(
-                                utf8,
-                                .default,
-                            ) catch |err| {
-                                log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
-                                break :status_block;
-                            },
-                        },
-                    ) catch |err| {
-                        log.err("append failed: {}", .{ err });
-                        break :status_block;
-                    };
-                } else {
-                    log.warn("to_utf8 failed", .{});
+                const utf8 = render_.utils.to_utf8(utils.allocator, status_text[i..end]) catch |err| {
+                    log.warn("<{*}> to_utf8 failed: {}", .{ self, err });
                     break :status_block;
-                }
+                };
+                defer utils.allocator.free(utf8);
+
+                texts.append(
+                    utils.allocator,
+                    .{
+                        fg,
+                        self.font.rasterize_text_run(utf8) orelse break :status_block
+                    },
+                ) catch |err| {
+                    log.err("<{*}> append failed: {}", .{ self, err });
+                    break :status_block;
+                };
             } else if (i == match.?.start) blk: {
                 defer {
                     i += match.?.slice.len;
@@ -729,7 +658,7 @@ fn render_dynamic_component(self: *Self) void {
                     fg = normal_fg;
                 } else {
                     const hex = match.?.slice[2..];
-                    fg = color(fmt.parseInt(u32, hex, 16) catch |err| {
+                    fg = render_.utils.color(fmt.parseInt(u32, hex, 16) catch |err| {
                         log.err("parseInt failed: {}", .{ err });
                         break :blk;
                     });
@@ -740,7 +669,7 @@ fn render_dynamic_component(self: *Self) void {
         var width: u32 = 0;
         for (texts.items) |item| {
             _, const text = item;
-            width += text_width(text);
+            width += render_.utils.text_width(text);
         }
         x = @max(
             title_start,
@@ -756,7 +685,7 @@ fn render_dynamic_component(self: *Self) void {
         x += @as(i16, @intCast(@divFloor(pad, 2)));
         for (texts.items) |item| {
             const c, const text = item;
-            x += self.render_text(buffer, text, &c, x, y);
+            x += self.font.render_text(buffer, text, &c, x, y);
         }
     }
 
@@ -844,7 +773,7 @@ fn wp_fractional_scale_listener(wp_fractional_scale: *wp.FractionalScaleV1, even
 }
 
 
-fn next_buffer(self: *Self, @"type": enum { static, dynamic }, width: i32, height_: i32) ?*Buffer {
+fn next_buffer(self: *Self, @"type": enum { static, dynamic }, width: i32, height_: i32) ?*render_.Buffer {
     log.debug("<{*}> get buffer for {s}", .{ self, @tagName(@"type") });
 
     const component =  &switch (@"type") {
@@ -860,68 +789,4 @@ fn next_buffer(self: *Self, @"type": enum { static, dynamic }, width: i32, heigh
         return null;
     };
     return buffer;
-}
-
-
-fn load_font(scale: u32) !*fcft.Font {
-    const config = Config.get();
-
-    var buffer: [12]u8 = undefined;
-    const backup_font = "monospace:size=10";
-    var fonts = [_][*:0]const u8 { @ptrCast(config.bar.font.ptr), backup_font };
-    const attr = try fmt.bufPrint(&buffer, "dpi={}", .{ @divFloor(scale*96, 120) });
-    const font = fcft.Font.fromName(&fonts, @ptrCast(attr)) catch |err| {
-        log.err("load font `{s}` and backup font `{s}` with attr: {s} failed: {}", .{ config.bar.font, backup_font, attr, err });
-        return err;
-    };
-    return font;
-}
-
-
-fn color(rgba: u32) pixman.Color {
-    const c = utils.rgba(rgba);
-    return .{
-        .red = @truncate(c.r << 8),
-        .green = @truncate(c.g << 8),
-        .blue = @truncate(c.b << 8),
-        .alpha = @truncate(c.a << 8),
-    };
-}
-
-
-fn to_utf8(bytes: []const u8) ?[]u32 {
-    const utf8 = unicode.Utf8View.init(bytes) catch return null;
-    var iter = utf8.iterator();
-
-    var runes = std.ArrayList(u32).initCapacity(utils.allocator, bytes.len) catch return null;
-    var i: usize = 0;
-    while (iter.nextCodepoint()) |rune| : (i += 1) {
-        runes.appendAssumeCapacity(rune);
-    }
-
-    return runes.toOwnedSlice(utils.allocator) catch null;
-}
-
-
-fn text_width(text: *const fcft.TextRun) u32 {
-    var width: u32 = 0;
-    for (0..text.count) |i| {
-        width += @intCast(text.glyphs[i].advance.x);
-    }
-    return width;
-}
-
-fn str_width(font: *fcft.Font, str: []const u8) ?u32 {
-    if (to_utf8(str)) |utf8| {
-        defer utils.allocator.free(utf8);
-
-        const text = font.rasterizeTextRunUtf32(utf8, .default) catch |err| {
-            log.err("rasterizeTextRunUtf32 failed: {}", .{ err });
-            return null;
-        };
-        defer text.destroy();
-
-        return text_width(text);
-    }
-    return null;
 }

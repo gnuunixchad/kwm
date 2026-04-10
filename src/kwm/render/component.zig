@@ -17,8 +17,6 @@ wl_subsurface: *wl.Subsurface,
 wp_viewport: *wp.Viewport,
 buffers: [2]Buffer = undefined,
 
-damaged: bool = true,
-
 
 pub fn init(self: *Self, parent: *wl.Surface) !void {
     log.debug("<{*}> init", .{ self });
