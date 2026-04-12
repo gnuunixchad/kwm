@@ -474,6 +474,7 @@ fn render_dynamic_component(self: *Self) void {
     self.dynamic_splits.clearRetainingCapacity();
 
     const normal_fg = render_.utils.color(config.bar.color.normal.fg);
+    const normal_bg = render_.utils.color(config.bar.color.normal.bg);
     const select_bg = render_.utils.color(config.bar.color.select.bg);
     const select_fg = render_.utils.color(config.bar.color.select.fg);
     const transparent = mem.zeroes(pixman.Color);
@@ -564,7 +565,12 @@ fn render_dynamic_component(self: *Self) void {
 
     const title_start = x;
     if (context.focus_top_in(self.output, false)) |window| {
+        var fg = &normal_fg;
+        var bg = &normal_bg;
         if (self.output == context.current_output) {
+            fg = &select_fg;
+            bg = &select_bg;
+
             bg_rect[0].x = x;
             bg_rect[0].width = w - @as(u16, @intCast(x));
             _ = pixman.Image.fillRectangles(.src, buffer.image, &select_bg, 1, &bg_rect);
@@ -579,7 +585,7 @@ fn render_dynamic_component(self: *Self) void {
                 buffer,
                 false,
                 if (window.sticky) .bottom else .top,
-                &select_fg,
+                fg,
                 x,
                 y,
             );
@@ -588,7 +594,7 @@ fn render_dynamic_component(self: *Self) void {
                 buffer,
                 true,
                 if (window.sticky) .bottom else .top,
-                &select_bg,
+                bg,
                 x,
                 y,
             );
@@ -598,7 +604,7 @@ fn render_dynamic_component(self: *Self) void {
             x += self.font.render_str(
                 buffer,
                 title,
-                &select_fg,
+                fg,
                 x+@as(i16, @intCast(@divFloor(pad, 2))),
                 y,
             ) + @as(i16, @intCast(pad));

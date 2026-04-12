@@ -120,10 +120,14 @@ pub fn render_str(
 
 
 fn load_font(font_name: []const u8, scale: u32) !*fcft.Font {
-    var buffer: [12]u8 = undefined;
     const backup_font = "monospace:size=10";
-    var fonts = [_][*:0]const u8 { @ptrCast(font_name.ptr), backup_font };
-    const attr = try fmt.bufPrint(&buffer, "dpi={}", .{ @divFloor(scale*96, 120) });
+    const name = try utils.allocator.dupeZ(u8, font_name);
+    defer utils.allocator.free(name);
+    var fonts = [_][*:0]const u8 { name.ptr, backup_font };
+
+    var buffer: [12]u8 = undefined;
+    const attr = try fmt.bufPrintZ(&buffer, "dpi={}", .{ @divFloor(scale*96, 120) });
+
     return fcft.Font.fromName(&fonts, @ptrCast(attr)) catch |err| {
         log.err("load font `{s}` and backup font `{s}` with attr: {s} failed: {}", .{ font_name, backup_font, attr, err });
         return err;

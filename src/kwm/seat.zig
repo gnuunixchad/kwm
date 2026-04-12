@@ -561,9 +561,13 @@ fn handle_actions(self: *Self) void {
                             @tagName(mode)
                         ),
                     };
-                }
 
-                context.switch_mode(data.mode);
+                    context.switch_mode(data.mode);
+                } else if (self.chorded.state == .disabled) {
+                    context.switch_mode(data.mode);
+                } else {
+                    self.mode = fmt.bufPrint(&self.mode_buffer, "{s}", .{ data.mode }) catch unreachable;
+                }
             },
             .focus_iter => |data| {
                 context.focus_iter(data.direction, data.skip);
@@ -594,7 +598,13 @@ fn handle_actions(self: *Self) void {
             },
             .set_window_tag => |data| {
                 if (context.focused_window()) |window| {
-                    window.set_tag(data.tag.of(.{ .window = window }));
+                    const new_tag = data.tag.of(.{ .window = window });
+                    window.set_tag(new_tag);
+                    if (data.focus_follow) {
+                        if (window.output) |output| {
+                            output.set_tag(new_tag);
+                        }
+                    }
                 }
             },
             .toggle_output_tag => |data| {

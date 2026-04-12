@@ -102,7 +102,7 @@ pub const Action = union(enum) {
         in_window: bool = false,
     },
     set_output_tag: struct { tag: Tag },
-    set_window_tag: struct { tag: Tag },
+    set_window_tag: struct { tag: Tag, focus_follow: bool = false },
     toggle_output_tag: struct { mask: u32 },
     toggle_window_tag: struct { mask: u32 },
     switch_to_previous_tag,
