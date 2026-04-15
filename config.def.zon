@@ -3,6 +3,7 @@
     // used by processes spawned by kwm
     .env = .{
         // .{ "key", "value" },
+        .{ "WINDOW_MANAGER", "kwm" },
     },
 
     // working direction of processes spawned by kwm
