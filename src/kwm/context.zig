@@ -60,6 +60,7 @@ key_repeat: ?KeyRepeat,
 bar_status_fd: ?posix.fd_t = null,
 
 terminal_windows: std.AutoHashMap(i32, *Window) = undefined,
+output_states: std.StringHashMap(Output.State) = undefined,
 
 mode: []const u8,
 running: bool = true,
@@ -101,6 +102,7 @@ pub fn init(
         .rwm_layer_shell = rwm_layer_shell,
         .key_repeat = undefined,
         .terminal_windows = .init(utils.allocator),
+        .output_states = .init(utils.allocator),
         .mode = fmt.bufPrint(&mode_buffer, "{s}", .{ Config.default_mode }) catch return error.ModeNameTooLong,
     };
 
@@ -188,6 +190,14 @@ pub fn deinit() void {
     }
 
     ctx.?.terminal_windows.deinit();
+
+    {
+        var it = ctx.?.output_states.iterator();
+        while (it.next()) |kv| {
+            utils.allocator.free(kv.key_ptr.*);
+        }
+    }
+    ctx.?.output_states.deinit();
 
     ctx.?.env.deinit();
 
@@ -406,7 +416,7 @@ pub fn focus(self: *Self, window: *Window, lift: bool) void {
     if (self.focused_window()) |w| {
         // unmaximize window if focus changed
         if (w != window and w.maximize) {
-            w.toggle_maximize();
+            w.toggle_maximize(false);
         }
     }
 
@@ -639,6 +649,11 @@ pub fn attach_window(self: *Self, window: *Window, mode: types.WindowAttachMode)
 pub fn prepare_remove_output(self: *Self, output: *Output) void {
     log.debug("prepare to remove output {*}", .{ output });
 
+    // store output state
+    if (self.store_output_state(output)) {
+        log.debug("store state of output `{s}`", .{ output.name orelse "unknown" });
+    } else |err| log.err("store state of output `{s}` failed: {}", .{ output.name orelse "unknown", err });
+
     if (output == self.current_output) {
         self.promote_new_output();
     }
@@ -794,6 +809,16 @@ pub fn spawn(self: *Self, argv: []const []const u8) ?process.Child {
 
 pub inline fn spawn_shell(self: *Self, cmd: []const u8) ?process.Child {
     return self.spawn(&[_][]const u8 { "sh", "-c", cmd });
+}
+
+
+inline fn store_output_state(self: *Self, output: *const Output) !void {
+    if (output.name) |name| {
+        try self.output_states.put(
+            try utils.allocator.dupe(u8, name),
+            output.get_state()
+        );
+    }
 }
 
 

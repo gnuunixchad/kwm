@@ -18,6 +18,17 @@ const Context = @import("context.zig");
 const Window = @import("window.zig");
 const types = @import("types.zig");
 
+pub const State = struct {
+    layout: Layout,
+
+    tag: u32 = 1,
+    main_tag: u32 = 1,
+    prev_tag: u32 = 1,
+    prev_main_tag: u32 = 1,
+    layout_tag: [32]Layout.Type,
+    prev_layout_tag: [32]Layout.Type,
+};
+
 
 link: wl.list.Link = undefined,
 
@@ -114,6 +125,22 @@ pub fn destroy(self: *Self) void {
     if (comptime build_options.bar_enabled) self.bar.deinit();
 
     utils.allocator.destroy(self);
+}
+
+
+pub fn get_state(self: *const Self) State {
+    var state: State = undefined;
+    inline for (@typeInfo(State).@"struct".fields) |field| {
+        @field(state, field.name) = @field(self, field.name);
+    }
+    return state;
+}
+
+
+pub fn sync_state(self: *Self, state: *const State) void {
+    inline for (@typeInfo(State).@"struct".fields) |field| {
+        @field(self, field.name) = @field(state, field.name);
+    }
 }
 
 
@@ -422,6 +449,14 @@ fn wl_output_listener(wl_output: *wl.Output, event: wl.Output.Event, output: *Se
 
             const name = mem.span(data.name);
             output.set_name(name);
+
+            if (context.output_states.fetchRemove(name)) |kv| {
+                log.debug("<{*}> restore state: {any}", .{ output, kv.value });
+                output.sync_state(&kv.value);
+                utils.allocator.free(kv.key);
+
+                context.rwm.manageDirty();
+            }
 
             {
                 var it = context.windows.safeIterator(.forward);

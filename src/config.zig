@@ -109,6 +109,7 @@ border: struct {
     color: struct {
         focus: u32,
         unfocus: u32,
+        swallowing: u32,
     }
 },
 

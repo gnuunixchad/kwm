@@ -114,6 +114,7 @@
         .color = .{
             .focus = 0x427b58ff,
             .unfocus = 0x000000ff,
+            .swallowing = 0x0830e6ff,
         },
     },
 

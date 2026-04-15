@@ -16,6 +16,7 @@ const types = @import("types.zig");
 const Seat = @import("seat.zig");
 const Output = @import("output.zig");
 const Context = @import("context.zig");
+const CustomBorder = @import("custom_border.zig");
 
 pub const Decoration = enum {
     csd,
@@ -80,6 +81,7 @@ is_terminal: bool = false,
 swallowing: ?*Self = null,
 swallowed_by: ?*Self = null,
 disable_swallow: bool = false,
+swallowing_border: ?CustomBorder = null,
 
 x: i32 = 0,
 y: i32 = 0,
@@ -334,6 +336,10 @@ pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
             self.min_height,
         )
     );
+
+    if (self.swallowing_border) |*border| {
+        border.damage();
+    }
 }
 
 
@@ -345,6 +351,10 @@ pub fn unbound_resize(self: *Self, width: ?i32, height: ?i32) void {
 
     if (width) |new_width| self.width = new_width;
     if (height) |new_height| self.height = new_height;
+
+    if (self.swallowing_border) |*border| {
+        border.damage();
+    }
 }
 
 
@@ -385,13 +395,6 @@ pub fn prepare_unfullscreen(self: *Self) void {
     log.debug("<{*}> prepare unfullscreen", .{ self });
 
     self.append_event(.unfullscreen);
-}
-
-
-pub fn prepare_maximize(self: *Self, flag: bool) void {
-    log.debug("<{*}> prepare to maximize: {}", .{ self, flag });
-
-    self.append_event(.{ .maximize = flag });
 }
 
 
@@ -458,11 +461,18 @@ pub fn toggle_floating(self: *Self, flag: ?bool) void {
 }
 
 
-pub fn toggle_maximize(self: *Self) void {
-    log.debug("<{*}> toggle maximize: {}", .{ self, !self.maximize });
+pub fn toggle_maximize(self: *Self, flag: ?bool) void {
+    self.maximize =
+        if (flag) |maximize| (if (self.maximize != maximize) maximize else return)
+        else !self.maximize;
 
-    self.maximize = !self.maximize;
-    self.prepare_maximize(self.maximize);
+    log.debug("<{*}> toggle maximize: {}", .{ self, self.maximize });
+
+    self.append_event(.{ .maximize = self.maximize });
+
+    if (self.swallowing_border) |*border| {
+        border.damage();
+    }
 }
 
 
@@ -709,18 +719,27 @@ pub fn apply_rules(self: *Self) void {
 pub fn manage(self: *Self) void {
     log.debug("<{*}> managing, propose dimensions: (width: {}, height: {})", .{ self, self.width, self.height });
 
-    if (self.maximize) {
+    const width, const height = blk: {
         const config = Config.get();
 
-        if (self.output) |output| {
-            self.rwm_window.proposeDimensions(
-                output.exclusive_width() - 2*config.border.width,
-                output.exclusive_height() - 2*config.border.width,
-            );
+        var width = self.width;
+        var height = self.height;
+        if (self.maximize) {
+            if (self.output) |output| {
+
+                width = output.exclusive_width() - 2*config.border.width;
+                height = output.exclusive_height() - 2*config.border.width;
+            }
         }
-    } else {
-        self.rwm_window.proposeDimensions(self.width, self.height);
-    }
+        if (self.swallowing_border != null) {
+            height -= 2 * config.border.width;
+            width -= 2 * config.border.width;
+        }
+
+        break :blk .{ width, height };
+    };
+
+    self.rwm_window.proposeDimensions(width, height);
 }
 
 
@@ -748,18 +767,32 @@ pub fn render(self: *Self) void {
         return;
     }
 
-    const x, const y = .{ self.output.?.exclusive_x(), self.output.?.exclusive_y() };
+    var offset_x: i32 = 0;
+    var offset_y: i32 = 0;
+    const output_x = self.output.?.exclusive_x();
+    const output_y = self.output.?.exclusive_y();
+
+    if (self.swallowing_border) |*border| {
+        border.render(config.border.color.swallowing);
+        offset_x += config.border.width;
+        offset_y += config.border.width;
+    }
 
     if (self.maximize) {
         log.debug("<{*}> rendering maximize", .{ self });
-        self.rwm_window_node.setPosition(x + config.border.width, y + config.border.width);
+        offset_x += config.border.width;
+        offset_y += config.border.width;
+        self.rwm_window_node.setPosition(output_x + offset_x, output_y + offset_y);
         self.rwm_window.show();
         return;
     }
 
     log.debug("<{*}> rendering to (x: {}, y: {})", .{ self, self.x, self.y });
 
-    self.rwm_window_node.setPosition(x + self.x, y + self.y);
+    self.rwm_window_node.setPosition(
+        output_x + self.x + offset_x,
+        output_y + self.y + offset_y
+    );
 
     var left = self.x - config.border.width;
     var right = self.x + self.width + config.border.width;
@@ -775,7 +808,7 @@ pub fn render(self: *Self) void {
         right = @min(right, self.output.?.width);
         top = @max(top, 0);
         bottom = @min(bottom, self.output.?.height);
-        self.rwm_window.setClipBox(left-self.x, top-self.y, right-left, bottom-top);
+        self.rwm_window.setClipBox(left-self.x-offset_x, top-self.y-offset_y, right-left, bottom-top);
         self.clip_state = .cliped;
     } else if (self.clip_state != .normal){
         self.rwm_window.setClipBox(0, 0, 0, 0);
@@ -859,6 +892,8 @@ fn swallow(self: *Self, window: *Self) void {
 
     if (self.swallowing != null or window.swallowed_by != null) return;
 
+    if (!window.is_visible()) return;
+
     log.debug("<{*}> swallowing {*}", .{ self, window });
 
     self.swallowing = window;
@@ -884,6 +919,13 @@ fn swallow(self: *Self, window: *Self) void {
             window.prepare_unfullscreen();
         }
     }
+
+    self.swallowing_border = undefined;
+    self.swallowing_border.?.init(self) catch |err| {
+        self.swallowing_border = null;
+        log.err("<{*}> init custom decoration failed: {}", .{ self, err });
+        return;
+    };
 }
 
 
@@ -901,6 +943,11 @@ fn unswallow(self: *Self) void {
         self.link.insert(&window.link);
         window.flink.remove();
         self.flink.insert(&window.flink);
+    }
+
+    if (self.swallowing_border) |*border| {
+        border.deinit();
+        self.swallowing_border = null;
     }
 }
 
@@ -1028,12 +1075,12 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
         .maximize_requested => {
             log.debug("<{*}> maximize requested", .{ window });
 
-            window.prepare_maximize(true);
+            window.toggle_maximize(true);
         },
         .unmaximize_requested => {
             log.debug("<{*}> unmaximize requested", .{ window });
 
-            window.prepare_maximize(false);
+            window.toggle_maximize(false);
         },
         .minimize_requested => {
             log.debug("<{*}> minimize requested", .{ window });

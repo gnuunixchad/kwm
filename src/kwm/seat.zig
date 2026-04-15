@@ -585,7 +585,7 @@ fn handle_actions(self: *Self) void {
             },
             .toggle_maximize => {
                 if (context.focused_window()) |window| {
-                    window.toggle_maximize();
+                    window.toggle_maximize(null);
                 }
             },
             .toggle_fullscreen => |data| {
