@@ -1,3 +1,6 @@
+const std = @import("std");
+const math = std.math;
+
 const types = @import("types.zig");
 const layout = @import("layout.zig");
 const Context = @import("context.zig");
@@ -30,27 +33,38 @@ const Tag = union(enum) {
             .output => |o| .{ o, o.tag },
             .window => |w| .{ w.output orelse return 0, w.tag },
         };
-        return switch (self.*) {
-            .tag => |tag| tag,
-            .direction => |direction| utils.shift_tag(
-                base_tag,
-                ((@as(u32, 1) << @as(u5, @intCast(config.tags.len))) - 1),
-                config.tags.len,
-                direction,
-            ),
-            .occupied => |direction| utils.shift_tag(
-                base_tag,
-                output.occupied_tags(),
-                config.tags.len,
-                direction,
-            ),
-            .unoccupied => |direction| utils.shift_tag(
-                base_tag,
-                ~output.occupied_tags() & ((@as(u32, 1) << @as(u5, @intCast(config.tags.len))) - 1),
-                config.tags.len,
-                direction,
-            ),
-        };
+        return
+            if (config.bar.tags) |area|
+                switch (self.*) {
+                    .tag => |tag| tag,
+                    .direction => |direction| utils.shift_tag(
+                        base_tag,
+                        ((@as(u32, 1) << @as(u5, @intCast(area.tags.len))) - 1),
+                        area.tags.len,
+                        direction,
+                    ),
+                    .occupied => |direction| utils.shift_tag(
+                        base_tag,
+                        output.occupied_tags(),
+                        area.tags.len,
+                        direction,
+                    ),
+                    .unoccupied => |direction| utils.shift_tag(
+                        base_tag,
+                        ~output.occupied_tags() & ((@as(u32, 1) << @as(u5, @intCast(area.tags.len))) - 1),
+                        area.tags.len,
+                        direction,
+                    ),
+                }
+            else
+                switch (self.*) {
+                    .tag => |tag| tag,
+                    inline else => |direction|
+                        switch (direction) {
+                            .forward => math.rotl(u32, base_tag, 1),
+                            .reverse => math.rotr(u32, base_tag, 1),
+                        }
+                };
     }
 };
 

@@ -137,42 +137,41 @@ pub fn handle_click(self: *Self, seat: *Seat) void {
     };
 
     var x = utils.logical2physics(i32, pointer_x - self.output.x, self.scale);
-    if (x <= self.static_component_width()) {
-        for (0.., self.static_splits.items) |i, split| {
-            if (x <= split) {
-                const tag = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
-                const callback_action = switch (config.bar.click.getter.get(.tags).getter.get(seat.button)) {
-                    .none => return,
-                    .action => |a| a,
-                };
-                action = switch (callback_action) {
-                    .set_window_tag => .{ .set_window_tag = .{ .tag = .{ .tag = tag } } },
-                    .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
-                    .set_output_tag => .{ .set_output_tag = .{ .tag = .{ .tag = tag } } },
-                    .toggle_output_tag => .{ .toggle_output_tag = .{ .mask = tag } },
-                    else => callback_action,
-                };
-                break;
+    if (config.bar.tags) |area| {
+        if (x <= self.static_component_width()) {
+            for (0.., self.static_splits.items) |i, split| {
+                if (x <= split) {
+                    const tag = @as(u32, @intCast(1)) << @as(u5, @intCast(i));
+                    const callback_action = area.click.getter.get(seat.button) orelse return;
+                    action = switch (callback_action) {
+                        .set_window_tag => .{ .set_window_tag = .{ .tag = .{ .tag = tag } } },
+                        .toggle_window_tag => .{ .toggle_window_tag = .{ .mask = tag } },
+                        .set_output_tag => .{ .set_output_tag = .{ .tag = .{ .tag = tag } } },
+                        .toggle_output_tag => .{ .toggle_output_tag = .{ .mask = tag } },
+                        else => callback_action,
+                    };
+                    break;
+                }
             }
-        }
-        return;
-    }
-
-    x -= self.static_component_width();
-    for (&[_]types.BarArea { .mode, .layout, .title }, self.dynamic_splits.items) |area, split| {
-        if (x <= split) {
-            action = switch (config.bar.click.getter.get(area).getter.get(seat.button)) {
-                .none => return,
-                .action => |a| a,
-            };
             return;
         }
     }
 
-    action = switch (config.bar.click.getter.get(.status).getter.get(seat.button)) {
-        .none => return,
-        .action => |a| a,
-    };
+    x -= self.static_component_width();
+    inline for (0.., &[_]types.BarArea { .mode, .layout, .title }) |i, area_type| {
+        if (config.bar.get(area_type)) |area| {
+            if (x <= self.dynamic_splits.items[i]) {
+                action = area.click.getter.get(seat.button) orelse return;
+                return;
+            }
+        }
+    }
+
+    if (config.bar.status) |area| {
+        if (x > self.dynamic_splits.getLast()) {
+            action = area.click.getter.get(seat.button) orelse return;
+        }
+    }
 }
 
 
@@ -234,11 +233,7 @@ pub fn render(self: *Self) void {
 
 
 inline fn static_component_width(self: *Self) i32 {
-    const config = Config.get();
-
-    std.debug.assert(self.static_splits.items.len == config.tags.len);
-
-    return self.static_splits.getLast();
+    return self.static_splits.getLastOrNull() orelse 0;
 }
 
 
@@ -266,8 +261,18 @@ fn render_background(self: *Self) void {
         .bottom => self.output.height - logical_h,
     });
 
-    const rgba = utils.rgba(config.bar.color.normal.bg);
-    const buffer = context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(rgba.r, rgba.g, rgba.b, rgba.a) catch |err| {
+    const buffer = (
+        if (config.bar.empty()) blk: {
+            const rgba = utils.rgba(config.bar.scheme.normal.bg);
+            break :blk context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(
+                rgba.r,
+                rgba.g,
+                rgba.b,
+                rgba.a
+            );
+        }
+        else context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(0, 0, 0, 0)
+    ) catch |err| {
         log.err("<{*}> create buffer failed: {}", .{ self, err });
         return;
     };
@@ -331,22 +336,30 @@ fn draw_box(
 fn render_static_component(self: *Self) void {
     log.debug("<{*}> rendering static component", .{ self });
 
+    self.static_splits.clearRetainingCapacity();
+
     const config = Config.get();
     const context = Context.get();
-    self.static_splits.clearRetainingCapacity();
-    self.static_splits.ensureTotalCapacity(utils.allocator, config.tags.len) catch |err| {
-        log.err("<{*}> ensure static_splits total capacity to {} failed: {}", .{ self, config.tags.len, err });
+    const area = config.bar.tags orelse {
+        self.static_splits.append(utils.allocator, 0) catch |err| {
+            log.err("<{*}> append failed: {}", .{ self, err });
+        };
+        return;
+    };
+
+    self.static_splits.ensureTotalCapacity(utils.allocator, area.tags.len) catch |err| {
+        log.err("<{*}> ensure static_splits total capacity to {} failed: {}", .{ self, area.tags.len, err });
         return;
     };
 
     var texts: std.ArrayList(*const fcft.TextRun) = .empty;
-    texts.ensureTotalCapacity(utils.allocator, config.tags.len) catch |err| {
+    texts.ensureTotalCapacity(utils.allocator, area.tags.len) catch |err| {
         log.err("<{*}> initCapacity for texts while render_static_component failed: {}", .{ self, err });
         return;
     };
     defer texts.deinit(utils.allocator);
 
-    for (config.tags) |label| {
+    for (area.tags) |label| {
         const utf8 = render_.utils.to_utf8(utils.allocator, label) catch |err| {
             log.warn("<{*}> to_utf8 failed: {}", .{ self, err });
             return;
@@ -388,10 +401,11 @@ fn render_static_component(self: *Self) void {
     }
     const focused_window = context.focused_window();
 
-    const select_fg = render_.utils.color(config.bar.color.select.fg);
-    const select_bg = render_.utils.color(config.bar.color.select.bg);
-    const normal_fg = render_.utils.color(config.bar.color.normal.fg);
-    const transparent = mem.zeroes(pixman.Color);
+    const scheme = config.bar.get_scheme(.tags);
+    const select_fg = render_.utils.color(scheme.select.fg);
+    const select_bg = render_.utils.color(scheme.select.bg);
+    const normal_fg = render_.utils.color(scheme.normal.fg);
+    const normal_bg = render_.utils.color(scheme.normal.bg);
 
     const bg_rect = [_]pixman.Rectangle16 {
         .{
@@ -401,7 +415,7 @@ fn render_static_component(self: *Self) void {
             .height = h,
         },
     };
-    _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
+    _ = pixman.Image.fillRectangles(.src, buffer.image, &normal_bg, 1, &bg_rect);
 
     var x: i16 = 0;
     const y: i16 = 0;
@@ -436,7 +450,7 @@ fn render_static_component(self: *Self) void {
                 buffer,
                 false,
                 .top,
-                &select_fg,
+                if (is_focused) &select_fg else &normal_fg,
                 x,
                 y,
             );
@@ -446,7 +460,7 @@ fn render_static_component(self: *Self) void {
                     buffer,
                     true,
                     .top,
-                    if (is_focused) &select_bg else &transparent,
+                    if (is_focused) &select_bg else &normal_bg,
                     x,
                     y,
                 );
@@ -469,15 +483,10 @@ fn render_static_component(self: *Self) void {
 fn render_dynamic_component(self: *Self) void {
     log.debug("<{*}> rendering dynamic component", .{ self });
 
-    const config = Config.get();
-    const context = Context.get();
     self.dynamic_splits.clearRetainingCapacity();
 
-    const normal_fg = render_.utils.color(config.bar.color.normal.fg);
-    const normal_bg = render_.utils.color(config.bar.color.normal.bg);
-    const select_bg = render_.utils.color(config.bar.color.select.bg);
-    const select_fg = render_.utils.color(config.bar.color.select.fg);
-    const transparent = mem.zeroes(pixman.Color);
+    const config = Config.get();
+    const context = Context.get();
 
     const pad = self.get_pad();
     const w: u16 = @intCast(
@@ -495,18 +504,24 @@ fn render_dynamic_component(self: *Self) void {
             .height = h,
         },
     };
-    _ = pixman.Image.fillRectangles(.src, buffer.image, &select_bg, 1, &bg_rect);
-
 
     var x: i16 = 0;
     const y: i16 = 0;
 
-    const mode_tag = config.get_mode_tag(context.mode) orelse context.mode;
-    if (mode_tag.len > 0) {
+    if (config.bar.mode) |area| draw_mode: {
+        const tag = area.tag(context.mode) orelse context.mode;
+        if (tag.len == 0) break :draw_mode;
+
+        const color = config.bar.get_scheme(.{ .mode = context.mode }).normal;
+        const fg = render_.utils.color(color.fg);
+        const bg = render_.utils.color(color.bg);
+
+        _ = pixman.Image.fillRectangles(.src, buffer.image, &bg, 1, &bg_rect);
+
         x += self.font.render_str(
             buffer,
-            mode_tag,
-            &select_fg,
+            tag,
+            &fg,
             x+@as(i16, @intCast(@divFloor(pad, 2))),
             y,
         ) + @as(i16, @intCast(pad));
@@ -515,69 +530,100 @@ fn render_dynamic_component(self: *Self) void {
 
     bg_rect[0].x = x;
     bg_rect[0].width = w - @as(u16, @intCast(x));
-    _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
 
-    var layout_tag_buffer: [32]u8 = undefined;
-    const layout_tag = blk: {
-        const tag = switch (self.output.current_layout()) {
-            .tile => config.layout_tag.tile.getter.get(self.output.layout.tile.master_location),
-            .grid => config.layout_tag.grid.getter.get(self.output.layout.grid.direction),
-            .monocle => config.layout_tag.monocle,
-            .deck => config.layout_tag.deck.getter.get(self.output.layout.deck.master_location),
-            .scroller => config.layout_tag.scroller,
-            .float => config.layout_tag.float,
-        };
-        const left = mem.indexOf(u8, tag, "{{") orelse break :blk tag;
-        const right = mem.lastIndexOf(u8, tag, "}}") orelse break :blk tag;
+    if (config.bar.layout) |area| draw_layout: {
+        var layout_tag_buffer: [32]u8 = undefined;
+        const layout_tag = blk: {
+            const tag = switch (self.output.current_layout()) {
+                .tile => area.tags.tile.getter.get(self.output.layout.tile.master_location),
+                .grid => area.tags.grid.getter.get(self.output.layout.grid.direction),
+                .monocle => area.tags.monocle,
+                .deck => area.tags.deck.getter.get(self.output.layout.deck.master_location),
+                .scroller => area.tags.scroller,
+                .float => area.tags.float,
+            };
+            const left = mem.indexOf(u8, tag, "{{") orelse break :blk tag;
+            const right = mem.lastIndexOf(u8, tag, "}}") orelse break :blk tag;
 
-        if (left < right) {
-            var num: usize = 0;
-            var it = context.windows.safeIterator(.forward);
-            while (it.next()) |window| {
-                if (window.is_visible_in(self.output) and !window.floating) {
-                    num += 1;
+            if (left < right) {
+                var num: usize = 0;
+                var it = context.windows.safeIterator(.forward);
+                while (it.next()) |window| {
+                    if (window.is_visible_in(self.output) and !window.floating) {
+                        num += 1;
+                    }
                 }
-            }
 
-            var buf: [8]u8 = undefined;
-            const str =
-                if (right-left == 2 or num > 0) fmt.bufPrint(&buf, "{}", .{ num }) catch break :blk tag
-                else tag[left+2..right];
+                var buf: [8]u8 = undefined;
+                const str =
+                    if (right-left == 2 or num > 0) fmt.bufPrint(&buf, "{}", .{ num }) catch break :blk tag
+                    else tag[left+2..right];
 
-            const n = mem.replace(
-                u8,
-                tag,
-                tag[left..right+2],
-                str,
-                &layout_tag_buffer,
-            );
-            break :blk layout_tag_buffer[0..tag.len + str.len*n - (right-left+2)*n];
-        } else break :blk tag;
-    };
-    x += self.font.render_str(
-        buffer,
-        layout_tag,
-        &normal_fg,
-        x+@as(i16, @intCast(@divFloor(pad, 2))),
-        y,
-    ) + @as(i16, @intCast(pad));
+                const n = mem.replace(
+                    u8,
+                    tag,
+                    tag[left..right+2],
+                    str,
+                    &layout_tag_buffer,
+                );
+                break :blk layout_tag_buffer[0..tag.len + str.len*n - (right-left+2)*n];
+            } else break :blk tag;
+        };
+        if (layout_tag.len == 0) break :draw_layout;
+
+        const color = config.bar.get_scheme(.{ .layout = self.output.current_layout() }).normal;
+        const fg = render_.utils.color(color.fg);
+        const bg = render_.utils.color(color.bg);
+
+        _ = pixman.Image.fillRectangles(.src, buffer.image, &bg, 1, &bg_rect);
+
+        x += self.font.render_str(
+            buffer,
+            layout_tag,
+            &fg,
+            x+@as(i16, @intCast(@divFloor(pad, 2))),
+            y,
+        ) + @as(i16, @intCast(pad));
+    }
     self.dynamic_splits.appendBounded(x) catch unreachable;
 
+    bg_rect[0].x = x;
+    bg_rect[0].width = w - @as(u16, @intCast(x));
+
     const title_start = x;
-    if (context.focus_top_in(self.output, false)) |window| {
-        var fg = &normal_fg;
-        var bg = &normal_bg;
+    if (config.bar.title) |_| draw_title: {
+        const scheme = config.bar.get_scheme(.title);
+        const normal_fg = render_.utils.color(scheme.normal.fg);
+        const normal_bg = render_.utils.color(scheme.normal.bg);
+        const select_fg = render_.utils.color(scheme.select.fg);
+        const select_bg = render_.utils.color(scheme.select.bg);
+
+        const top = context.focus_top_in(self.output, false);
+        if (top == null) {
+            _ = pixman.Image.fillRectangles(
+                .src,
+                buffer.image,
+                &normal_bg,
+                1,
+                &bg_rect
+            );
+            break :draw_title;
+        }
+
+        const window = top.?;
+        var fg: *const pixman.Color = undefined;
+        var bg: *const pixman.Color = undefined;
         if (self.output == context.current_output) {
             fg = &select_fg;
             bg = &select_bg;
-
-            bg_rect[0].x = x;
-            bg_rect[0].width = w - @as(u16, @intCast(x));
-            _ = pixman.Image.fillRectangles(.src, buffer.image, &select_bg, 1, &bg_rect);
+        } else {
+            fg = &normal_fg;
+            bg = &normal_bg;
         }
+        _ = pixman.Image.fillRectangles(.src, buffer.image, bg, 1, &bg_rect);
 
         if (window.sticky) {
-            self.draw_box(buffer, false, .top, &select_fg, x, y);
+            self.draw_box(buffer, false, .top, fg, x, y);
         }
 
         if (window.floating) {
@@ -600,98 +646,113 @@ fn render_dynamic_component(self: *Self) void {
             );
         }
 
-        if (window.title) |title| {
-            x += self.font.render_str(
-                buffer,
-                title,
-                fg,
-                x+@as(i16, @intCast(@divFloor(pad, 2))),
-                y,
-            ) + @as(i16, @intCast(pad));
-        }
-    }
-
-    self.dynamic_splits.appendBounded(@intCast(w)) catch unreachable;
-    const status_text: []const u8 = mem.trimEnd(
-        u8,
-        switch (config.bar.status) {
-            .text => |text| text,
-            else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
-        },
-        "\n ",
-    );
-    if (status_text.len > 0) status_block: {
-        var texts: std.ArrayList(struct { pixman.Color, *const fcft.TextRun }) = .empty;
-        defer {
-            for (texts.items) |item| {
-                item[1].destroy();
-            }
-            texts.deinit(utils.allocator);
-        }
-
-        var i: usize = 0;
-        var fg = normal_fg;
-        var it = color_pattern.iterator(status_text);
-        var match = it.next();
-        while (i < status_text.len) {
-            if (match == null or i < match.?.start) {
-                const end = if (match) |m| m.start else status_text.len;
-                defer i = end;
-
-                const utf8 = render_.utils.to_utf8(utils.allocator, status_text[i..end]) catch |err| {
-                    log.warn("<{*}> to_utf8 failed: {}", .{ self, err });
-                    break :status_block;
-                };
-                defer utils.allocator.free(utf8);
-
-                texts.append(
-                    utils.allocator,
-                    .{
-                        fg,
-                        self.font.rasterize_text_run(utf8) orelse break :status_block
-                    },
-                ) catch |err| {
-                    log.err("<{*}> append failed: {}", .{ self, err });
-                    break :status_block;
-                };
-            } else if (i == match.?.start) blk: {
-                defer {
-                    i += match.?.slice.len;
-                    match = it.next();
-                }
-
-                if (match.?.slice.len == 3) {
-                    fg = normal_fg;
-                } else {
-                    const hex = match.?.slice[2..];
-                    fg = render_.utils.color(fmt.parseInt(u32, hex, 16) catch |err| {
-                        log.err("parseInt failed: {}", .{ err });
-                        break :blk;
-                    });
-                }
-            } else unreachable;
-        }
-
-        var width: u32 = 0;
-        for (texts.items) |item| {
-            _, const text = item;
-            width += render_.utils.text_width(text);
-        }
-        x = @max(
-            title_start,
-            @as(i16, @intCast(w -| @as(u16, @intCast(width)) -| pad))
+        x += self.font.render_str(
+            buffer,
+            window.title orelse "???",
+            fg,
+            x+@as(i16, @intCast(@divFloor(pad, 2))),
+            y,
+        ) + @as(i16, @intCast(pad));
+    } else {
+        const bg = render_.utils.color(config.bar.scheme.normal.bg);
+        _ = pixman.Image.fillRectangles(
+            .src,
+            buffer.image,
+            &bg,
+            1,
+            &bg_rect
         );
+    }
+    self.dynamic_splits.appendBounded(@intCast(w)) catch unreachable;
 
-        self.dynamic_splits.items[self.dynamic_splits.items.len-1] = x;
+    if (config.bar.status) |area| draw_status: {
+        const status_text: []const u8 = mem.trimEnd(
+            u8,
+            switch (area.data) {
+                .text => |text| text,
+                else => mem.span(@as([*:0]const u8, @ptrCast(&status_buffer))),
+            },
+            "\n ",
+        );
+        if (status_text.len == 0) break :draw_status;
 
-        bg_rect[0].x = x;
-        bg_rect[0].width = w - @as(u16, @intCast(x));
-        _ = pixman.Image.fillRectangles(.src, buffer.image, &transparent, 1, &bg_rect);
+        const color = config.bar.get_scheme(.status).normal;
+        const fg = render_.utils.color(color.fg);
+        const bg = render_.utils.color(color.bg);
 
-        x += @as(i16, @intCast(@divFloor(pad, 2)));
-        for (texts.items) |item| {
-            const c, const text = item;
-            x += self.font.render_text(buffer, text, &c, x, y);
+        status_block: {
+            var texts: std.ArrayList(struct { pixman.Color, *const fcft.TextRun }) = .empty;
+            defer {
+                for (texts.items) |item| {
+                    item[1].destroy();
+                }
+                texts.deinit(utils.allocator);
+            }
+
+            var i: usize = 0;
+            var c = fg;
+            var it = color_pattern.iterator(status_text);
+            var match = it.next();
+            while (i < status_text.len) {
+                if (match == null or i < match.?.start) {
+                    const end = if (match) |m| m.start else status_text.len;
+                    defer i = end;
+
+                    const utf8 = render_.utils.to_utf8(utils.allocator, status_text[i..end]) catch |err| {
+                        log.warn("<{*}> to_utf8 failed: {}", .{ self, err });
+                        break :status_block;
+                    };
+                    defer utils.allocator.free(utf8);
+
+                    texts.append(
+                        utils.allocator,
+                        .{
+                            c,
+                            self.font.rasterize_text_run(utf8) orelse break :status_block
+                        },
+                    ) catch |err| {
+                        log.err("<{*}> append failed: {}", .{ self, err });
+                        break :status_block;
+                    };
+                } else if (i == match.?.start) blk: {
+                    defer {
+                        i += match.?.slice.len;
+                        match = it.next();
+                    }
+
+                    if (match.?.slice.len == 3) {
+                        c = fg;
+                    } else {
+                        const hex = match.?.slice[2..];
+                        c = render_.utils.color(fmt.parseInt(u32, hex, 16) catch |err| {
+                            log.err("parseInt failed: {}", .{ err });
+                            break :blk;
+                        });
+                    }
+                } else unreachable;
+            }
+
+            var width: u32 = 0;
+            for (texts.items) |item| {
+                _, const text = item;
+                width += render_.utils.text_width(text);
+            }
+            x = @max(
+                title_start,
+                @as(i16, @intCast(w -| @as(u16, @intCast(width)) -| pad))
+            );
+
+            self.dynamic_splits.items[self.dynamic_splits.items.len-1] = x;
+
+            bg_rect[0].x = x;
+            bg_rect[0].width = w - @as(u16, @intCast(x));
+            _ = pixman.Image.fillRectangles(.src, buffer.image, &bg, 1, &bg_rect);
+
+            x += @as(i16, @intCast(@divFloor(pad, 2)));
+            for (texts.items) |item| {
+                const cc, const text = item;
+                x += self.font.render_text(buffer, text, &cc, x, y);
+            }
         }
     }
 
@@ -731,8 +792,10 @@ fn show(self: *Self) !void {
     wp_fractional_scale.setListener(*Self, wp_fractional_scale_listener, self);
     self.damage(.all);
 
-    if (config.bar.status != .text and !context.is_listening_status()) {
-        context.start_listening_status();
+    if (config.bar.status) |area| {
+        if (area.data != .text and !context.is_listening_status()) {
+            context.start_listening_status();
+        }
     }
 }
 

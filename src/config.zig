@@ -15,12 +15,12 @@ const rule = @import("config/rule.zig");
 const constants = @import("config/constants.zig");
 const preprocess = @import("config/preprocess.zig");
 pub const meta = @import("config/meta.zig");
+const Bar = @import("config/bar.zig");
 
 var allocator: mem.Allocator = undefined;
 
-var config: ?Self = null;
-var user_config: ?meta.make_fields_optional(Self) = null;
-const default_config: Self = @import("default_config");
+const Config = meta.add_default(Self, @as(Self, @import("default_config")));
+var config: Config = undefined;
 
 pub var path: []const u8 = undefined;
 pub const lock_mode = constants.lock_mode;
@@ -39,52 +39,14 @@ working_directory: union(enum) {
 
 startup_cmds: []const []const []const u8,
 
-xcursor_theme: union(enum) {
-    none,
-    theme: struct {
-        name: []const u8,
-        size: u32,
-    },
+xcursor_theme: ?struct {
+    name: []const u8,
+    size: u32,
 },
 
-background: union(enum) {
-    none,
-    color: u32,
-},
+background: ?u32,
 
-bar: struct {
-    show_default: bool,
-    position: enum {
-        top,
-        bottom,
-    },
-    font: []const u8,
-    color: struct {
-        normal: struct {
-            fg: u32,
-            bg: u32,
-        },
-        select: struct {
-            fg: u32,
-            bg: u32,
-        },
-    },
-    status: union(enum) {
-        text: []const u8,
-        stdin,
-        fifo: []const u8,
-    },
-    click: meta.enum_struct(
-        kwm.BarArea,
-        meta.enum_struct(
-            kwm.Button,
-            union(enum) {
-                none,
-                action: kwm.BindingAction
-            },
-        ),
-    ),
-},
+bar: Bar,
 
 sloppy_focus: bool,
 
@@ -113,25 +75,14 @@ border: struct {
     }
 },
 
-tags: []const []const u8,
-
 default_layout: kwm.Layout.Type,
 layout: kwm.Layout,
-layout_tag: struct {
-    tile: meta.enum_struct(kwm.Layout.Tile.MasterLocation, []const u8),
-    grid: meta.enum_struct(kwm.Layout.Grid.Direction, []const u8),
-    monocle: []const u8,
-    deck: meta.enum_struct(kwm.Layout.Deck.MasterLocation, []const u8),
-    scroller: []const u8,
-    float: []const u8,
-},
 
 bindings: struct {
     repeat_info: struct {
         rate: i32,
         delay: i32,
     },
-    mode_tag: []const struct { []const u8, []const u8 },
     key: []const struct {
         mode: ?[]const u8 = null,
         keysym: []const u8,
@@ -156,19 +107,14 @@ pub fn init(al: *const mem.Allocator, config_path: []const u8) void {
     allocator = al.*;
     path = config_path;
 
-    user_config = try_load_user_config();
-    refresh_config();
+    config = try_load_user_config() orelse .{};
 }
 
 
 pub inline fn deinit() void {
     log.debug("config deinit", .{});
 
-    if (user_config) |cfg| {
-        log.debug("free user config", .{});
-
-        zon.parse.free(allocator, cfg);
-    }
+    meta.zon_free(allocator, config, null);
 }
 
 
@@ -176,38 +122,22 @@ pub fn reload() meta.field_mask(Self) {
     log.debug("reload user config", .{});
 
     var mask: meta.field_mask(Self) = .{};
-    var new_cfg = try_load_user_config();
-    if (new_cfg) |*cfg| {
-        defer zon.parse.free(allocator, cfg.*);
+    var new_config = try_load_user_config();
+    if (new_config) |*new_cfg| {
+        defer meta.zon_free(allocator, new_cfg.*, null);
         const struct_info = @typeInfo(Self).@"struct";
-        if (user_config) |*old_cfg| {
-            inline for (struct_info.fields) |field| {
-                if (!meta.deep_equal(
-                    @FieldType(@TypeOf(cfg.*), field.name),
-                    &@field(old_cfg.*, field.name),
-                    &@field(cfg.*, field.name),
-                )) {
-                    @field(mask, field.name) = true;
-                    mem.swap(
-                        @FieldType(@TypeOf(cfg.*), field.name),
-                        &@field(old_cfg.*, field.name),
-                        &@field(cfg.*, field.name),
-                    );
-                }
-            }
-        } else {
-            inline for (struct_info.fields) |field| {
+        inline for (struct_info.fields) |field| {
+            if (!meta.deep_equal(
+                @FieldType(@TypeOf(new_cfg.*), field.name),
+                &@field(config, field.name),
+                &@field(new_cfg.*, field.name),
+            )) {
                 @field(mask, field.name) = true;
-            }
-        }
-
-        // if modified, refresh config
-        blk: {
-            inline for (struct_info.fields) |field| {
-                if (@field(mask, field.name)) {
-                    refresh_config();
-                    break :blk;
-                }
+                mem.swap(
+                    @FieldType(@TypeOf(new_cfg.*), field.name),
+                    &@field(config, field.name),
+                    &@field(new_cfg.*, field.name),
+                );
             }
         }
     }
@@ -215,7 +145,7 @@ pub fn reload() meta.field_mask(Self) {
 }
 
 
-fn try_load_user_config() ?meta.make_fields_optional(Self) {
+fn try_load_user_config() ?Config {
     log.info("try load user config from `{s}`", .{ path });
 
     const file = fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
@@ -239,7 +169,7 @@ fn try_load_user_config() ?meta.make_fields_optional(Self) {
 
     @setEvalBranchQuota(20000);
     return zon.parse.fromSlice(
-        meta.make_fields_optional(Self),
+        Config,
         allocator,
         buffer.items[0..buffer.items.len-1:0],
         null,
@@ -251,28 +181,6 @@ fn try_load_user_config() ?meta.make_fields_optional(Self) {
 }
 
 
-fn refresh_config() void {
-    log.debug("refresh config", .{});
-
-    if (user_config) |cfg| {
-        config = meta.override(default_config, cfg);
-        log.debug("config: {any}", .{ config.? });
-    }
-}
-
-
 pub inline fn get() *Self {
-    if (config == null) {
-        config = default_config;
-    }
-    return &config.?;
-}
-
-
-pub fn get_mode_tag(self: *const Self, mode: []const u8) ?[]const u8 {
-    for (self.bindings.mode_tag) |pair| {
-        const m, const t = pair;
-        if (mem.eql(u8, m, mode)) return t;
-    }
-    return null;
+    return @ptrCast(&config);
 }

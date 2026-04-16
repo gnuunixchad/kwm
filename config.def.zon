@@ -26,22 +26,25 @@
         .{ "sh", "-c", "${HOME}/.local/bin/damblocks-mpdd" },
     },
 
-    // .none
+    // null
     // or
-    // .theme = .{ .name = []const u8, .size = u32 }
-    .xcursor_theme = .none,
+    // .{ .name = []const u8, .size = u32 }
+    .xcursor_theme = null,
 
+    // ?u32
     // solid color background
-    // note: set this to .none if you use other wallpaper program like `swaybg`, orelse it will be covered by this and unable to see
-    .background = .none,
+    // note: set this to null if you use other wallpaper program like `swaybg`, orelse it will be covered by this and unable to see
+    .background = null,
 
     .bar = .{
         .show_default = true,
         // .top
         // .bottom
         .position = .top,
+
         .font = "SourceCodePro:size=13:weight=Medium",
-        .color = .{
+
+        .scheme = .{
             .normal = .{
                 .fg = 0xbbbbbbff,
                 .bg = 0x000000ff,
@@ -51,30 +54,122 @@
                 .bg = 0x427b58ff,
             },
         },
-        .status = .{ .fifo = "${XDG_RUNTIME_DIR}/damblocks.fifo" }, // .stdin or .{ .fifo = "fifo file path" }, could use ^#RGBA to switch text color, and use ^#! to switch back to default color
-        // bar clicked callback
-        // each part supports left/right/middle/side/extra/forward/back/task
-        // set .none to disable
-        .click = .{
-            .tags = .{
+
+        // set null to disable tags part
+        .tags = .{
+            // tags show on bar
+            .tags = .{ "1", "2", "3", "4", "5", "6", "7", "8", "9" },
+
+            // click callback
+            // each part supports left/right/middle/side/extra/forward/back/task
+            // set null to disable
+            .click = .{
                 // could use 0 there because it will be replace with the tag clicked
-                .left = .{ .action = .{ .set_output_tag = .{ .tag = .{ .tag = 0 } } } },
-                .right = .{ .action = .{ .toggle_output_tag = .{ .mask = 0 } } },
-                .middle = .{ .action = .{ .toggle_window_tag = .{ .mask = 0 } } },
-            },
-            .layout = .{
-                .left = .{ .action = .switch_to_previous_layout },
-            },
-            .mode = .{
-                .left = .{ .action = .{ .switch_mode = .{ .mode = "default" } } },
-            },
-            .title = .{
-                .left = .{ .action = .{ .zoom = .{ .swap = false } } },
-            },
-            .status = .{
-                .middle = .{ .action = .{ .spawn = .{ .argv = .{ "foot" } } } },
+                .left = .{ .set_output_tag = .{ .tag = .{ .tag = 0 } } },
+                .right = .{ .toggle_output_tag = .{ .mask = 0 } },
+                .middle = .{ .toggle_window_tag = .{ .mask = 0 } },
             },
         },
+        // set null to disable mode part
+        .mode = .{
+            // mode tags show on bar
+            // display full mode string by default
+            .tags = .{
+                .{ "default", "" },         // hide mode tag in default mode
+                .{ "lock", "" },
+                .{ "passthrough", "Passthrough" },
+                .{ "floating", "Floating" },
+                .{ "wmenu", "[w]iki [h]eart [b]ooks bl[u]e [s]peaker [e]moji [j]doc" },
+                .{ "dunst", "clip-w[i]pe [l]supdates [w]ttr d[c]al ls[m]us" },
+                .{ "wlrctl", "[hjkl]cursors [,]left [.]right [m]iddle ^[hjkl]arrows" },
+            },
+
+            .click = .{
+                .left = .{ .switch_mode = .{ .mode = "default" } },
+            },
+        },
+        // set null to disable layout part
+        .layout = .{
+            // layout tags show on bar
+            // {{?}} will be replaced with managed window count, when the count is 0, `?` will be used as replacement.
+            // e.g. [{{{=}}], when managed window count > 0, [N] will be showed, else [=] will be showed
+            .tags = .{
+                .tile = .{
+                    .left = "[]=",
+                    .right = "=[]",
+                    .top = "[^]",
+                    .bottom = "[_]",
+                },
+                .grid = .{
+                    .horizontal = "|+|",
+                    .vertical = "|||",
+                },
+                .monocle = "[{{=}}]",
+                .deck = .{
+                    .left = "[{{D}}]=",
+                    .right = "=[{{D}}]",
+                    .top = "[{{D}}^]",
+                    .bottom = "[{{D}}_]",
+                },
+                .scroller = "[==]",
+                .float = "><>",
+            },
+
+            .click = .{
+                .left = .switch_to_previous_layout,
+            },
+        },
+        // set null to disable title part
+        .title = .{
+            .click = .{
+                .left = .{ .zoom = .{ .swap = false } },
+            },
+        },
+        // set null to disable status part
+        .status = .{
+            .data = .{ .fifo = "${XDG_RUNTIME_DIR}/damblocks.fifo" }, // .stdin or .{ .fifo = "fifo file path" }, could use ^#RGBA to switch text color, and use ^#! to switch back to default color
+
+            .click = .{
+                .middle = .{ .spawn = .{ .argv = .{ "foot" } } },
+            },
+        },
+
+        // override colors
+        .override_colors = .{
+            // areas:
+            //      .tags
+            //      .{ .mode = "floating" or other modes }, null will match all mode
+            //      .{ layout = .tile or other layout }, null will match all layouts
+            //      .title
+            //      .status
+            //
+            // scheme is a struct, no need to specify all fields:
+            //      .{
+            //          .normal = .{
+            //              .fg = u32,
+            //              .bg = u32,
+            //          },
+            //          .select = .{
+            //              .fg = u32,
+            //              .bg = u32,
+            //          }
+            //      }
+            //
+            // mode, layout and status will only use the `normal` color
+            // tags and title will use both `normal` and `select` color
+            //
+
+            // set scheme for mode tag
+            .{
+                .area = .{ .mode = null },
+                .scheme = .{
+                    .normal = .{
+                        .fg = 0xeeeeeeff,
+                        .bg = 0x427b58ff,
+                    }
+                }
+            },
+        }
     },
 
     .sloppy_focus = false,
@@ -119,9 +214,6 @@
             .swallowing = 0x0830e6ff,
         },
     },
-
-    // tags show on bar
-    .tags = .{ "1", "2", "3", "4", "5", "6", "7", "8", "9" },
 
     // .tile
     // .grid
@@ -171,49 +263,12 @@
         },
     },
 
-    // layout tags show on bar
-    // {{?}} will be replaced with managed window count, when the count is 0, `?` will be used as replacement.
-    // e.g. [{{{=}}], when managed window count > 0, [N] will be showed, else [=] will be showed
-    .layout_tag = .{
-        .tile = .{
-            .left = "[]=",
-            .right = "=[]",
-            .top = "[^]",
-            .bottom = "[_]",
-        },
-        .grid = .{
-            .horizontal = "|+|",
-            .vertical = "|||",
-        },
-        .monocle = "[{{=}}]",
-        .deck = .{
-            .left = "[{{D}}]=",
-            .right = "=[{{D}}]",
-            .top = "[{{D}}^]",
-            .bottom = "[{{D}}_]",
-        },
-        .scroller = "[==]",
-        .float = "><>",
-    },
-
     // key/pointer bindings
     .bindings = .{
         // repeat info for key repeat event, different with the repeat_info of input device
         .repeat_info = .{
             .rate = 30,
             .delay = 200,
-        },
-
-        // mode tags show on bar
-        // display full mode string by default
-        .mode_tag = .{
-            .{ "default", "" },         // hide mode tag in default mode
-            .{ "lock", "" },
-            .{ "passthrough", "Passthrough" },
-            .{ "floating", "Floating" },
-            .{ "wmenu", "[w]iki [h]eart [b]ooks bl[u]e [s]peaker [e]moji [j]doc" },
-            .{ "dunst", "clip-w[i]pe [l]supdates [w]ttr d[c]al ls[m]us" },
-            .{ "wlrctl", "[hjkl]cursors [,]left [.]right [m]iddle ^[hjkl]arrows" },
         },
 
         // list of key bindings

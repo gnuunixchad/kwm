@@ -77,18 +77,15 @@ pub fn render(self: *Self) void {
     self.shell_surface.set_position(self.output.x, self.output.y);
 
     const buffer = (
-        switch (config.background) {
-            .none => context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(0, 0, 0, 0),
-            .color => |color| blk: {
-                const rgba = utils.rgba(color);
-                break :blk context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(
-                    rgba.r,
-                    rgba.g,
-                    rgba.b,
-                    rgba.a,
-                );
-            }
-        }
+        if (config.background) |color| blk: {
+            const rgba = utils.rgba(color);
+            break :blk context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(
+                rgba.r,
+                rgba.g,
+                rgba.b,
+                rgba.a,
+            );
+        } else context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(0, 0, 0, 0)
     ) catch |err| {
         log.err("<{*}> create buffer failed: {}", .{ self, err });
         return;

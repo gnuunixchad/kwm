@@ -5,6 +5,30 @@ const meta = std.meta;
 const constants = @import("constants.zig");
 
 
+pub fn add_default(comptime T: type, comptime object: T) type {
+    switch (@typeInfo(T)) {
+        .@"struct" => |info| {
+            var new_info = info;
+            var new_fields: [info.fields.len]std.builtin.Type.StructField = undefined;
+            for (&new_fields, info.fields) |*new_field, field| {
+                const new_T = add_default(field.type, @field(object, field.name));
+                const default: new_T =
+                    if (@typeInfo(new_T) == .@"struct") .{}
+                    else @field(object, field.name);
+
+                new_field.* = field;
+                new_field.type = new_T;
+                new_field.default_value_ptr = @ptrCast(&default);
+            }
+            new_info.fields = &new_fields;
+            new_info.decls = &.{};
+            return @Type(.{ .@"struct" = new_info });
+        },
+        else => return T,
+    }
+}
+
+
 pub fn enum_struct(comptime E: type, comptime T: type) type {
     const info = @typeInfo(E);
     if (info != .@"enum") @compileError("E is needed to be a enum");
@@ -18,11 +42,6 @@ pub fn enum_struct(comptime E: type, comptime T: type) type {
             .default_value_ptr = switch (@typeInfo(T)) {
                 .optional => blk: {
                     const default_value: T = null;
-                    break :blk &default_value;
-                },
-                .@"union" => blk: {
-                    if (!@hasField(T, "none")) break :blk null;
-                    const default_value: T = .none;
                     break :blk &default_value;
                 },
                 else => null,
@@ -224,5 +243,111 @@ pub fn deep_equal(comptime T: type, a: *const T, b: *const T) bool {
         .int, .bool, .@"enum" => a.* == b.*,
         .void => true,
         else => unreachable,
+    };
+}
+
+
+pub fn zon_free(gpa: mem.Allocator, value: anytype, default: ?*const @TypeOf(value)) void {
+    const Value = @TypeOf(value);
+    const info = @typeInfo(Value);
+
+    switch (info) {
+        .bool, .int, .float, .@"enum" => {},
+        .pointer => |pointer| {
+            switch (pointer.size) {
+                .one => {
+                    if (default) |ptr| {
+                        if (value == ptr.*) return;
+                    }
+
+                    zon_free(gpa, value.*);
+                    gpa.destroy(value);
+                },
+                .slice => {
+                    if (default) |ptr| {
+                        if (value.ptr == ptr.ptr) return;
+                    }
+
+                    for (value) |item| {
+                        zon_free(gpa, item, null);
+                    }
+                    gpa.free(value);
+                },
+                .many, .c => comptime unreachable,
+            }
+        },
+        .array => for (0.., value) |i, item| {
+            zon_free(
+                gpa,
+                item,
+                if (default) |ptr| &ptr.*[i] else null
+            );
+        },
+        .@"struct" => |@"struct"| inline for (@"struct".fields) |field| {
+            zon_free(
+                gpa,
+                @field(value, field.name),
+                if (default) |ptr|
+                    @ptrCast(@alignCast(&@field(ptr.*, field.name)))
+                else
+                    if (field.default_value_ptr) |ptr| @ptrCast(@alignCast(ptr))
+                    else null
+            );
+        },
+        .@"union" => |@"union"| if (@"union".tag_type == null) {
+            if (comptime requiresAllocator(Value)) unreachable;
+        } else switch (value) {
+            inline else => |_, tag| {
+                zon_free(
+                    gpa,
+                    @field(value, @tagName(tag)),
+                    if (default) |ptr| (
+                        if (meta.activeTag(ptr.*) == tag)
+                            &@field(ptr.*, @tagName(tag))
+                        else null
+                    )
+                    else null
+                );
+            },
+        },
+        .optional => if (value) |some| {
+            zon_free(
+                gpa,
+                some,
+                if (default) |ptr| (
+                    if (ptr.* != null) &ptr.*.?
+                    else null
+                )
+                else null
+            );
+        },
+        .vector => |vector| for (0..vector.len) |i|
+            zon_free(
+                gpa,
+                value[i],
+                if (default) |ptr| &ptr.*[i] else null
+            ),
+        .void => {},
+        else => comptime unreachable,
+    }
+}
+
+fn requiresAllocator(T: type) bool {
+    return switch (@typeInfo(T)) {
+        .pointer => true,
+        .array => |array| return array.len > 0 and requiresAllocator(array.child),
+        .@"struct" => |@"struct"| inline for (@"struct".fields) |field| {
+            if (requiresAllocator(field.type)) {
+                break true;
+            }
+        } else false,
+        .@"union" => |@"union"| inline for (@"union".fields) |field| {
+            if (requiresAllocator(field.type)) {
+                break true;
+            }
+        } else false,
+        .optional => |optional| requiresAllocator(optional.child),
+        .vector => |vector| return vector.len > 0 and requiresAllocator(vector.child),
+        else => false,
     };
 }

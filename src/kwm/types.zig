@@ -27,8 +27,8 @@ pub const PlacePosition = union(enum) {
 
 pub const BarArea = enum {
     tags,
-    layout,
     mode,
+    layout,
     title,
     status,
 };

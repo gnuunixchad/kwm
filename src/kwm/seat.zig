@@ -301,19 +301,19 @@ pub fn refresh_xursor_theme(self: *Self) void {
 
     const config = Config.get();
 
-    switch (config.xcursor_theme) {
-        .none => {},
-        .theme => |xcursor_theme| {
-            log.debug("<{*}> set xcursor theme: (name: {s}, size: {})", .{ self, xcursor_theme.name, xcursor_theme.size });
+    if (config.xcursor_theme) |xcursor_theme| {
+        log.debug(
+            "<{*}> set xcursor theme: (name: {s}, size: {})",
+            .{ self, xcursor_theme.name, xcursor_theme.size }
+        );
 
-            const name = utils.allocator.dupeZ(u8, xcursor_theme.name) catch |err| {
-                log.err("<{*}> dupeZ failed while set xcursor theme: {}", .{ self, err });
-                return;
-            };
-            defer utils.allocator.free(name);
+        const name = utils.allocator.dupeZ(u8, xcursor_theme.name) catch |err| {
+            log.err("<{*}> dupeZ failed while set xcursor theme: {}", .{ self, err });
+            return;
+        };
+        defer utils.allocator.free(name);
 
-            self.rwm_seat.setXcursorTheme(name, xcursor_theme.size);
-        },
+        self.rwm_seat.setXcursorTheme(name, xcursor_theme.size);
     }
 }
 
