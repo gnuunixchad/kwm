@@ -2235,8 +2235,9 @@
         //
     },
 
-    // NOTE: do not delete next line if you are compiling kwm
-    // @if(kewuaa=super_hansome)
+    // NOTE: configuration below is used for kwim
+    //       without `@if(kwim)` would cause compile error during compile kwm
+    // @if(kwim)
     // input device rules
     // full scheme:
     //      name: rule pattern

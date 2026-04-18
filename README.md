@@ -68,8 +68,7 @@ zig build -Doptimize=ReleaseSafe
   copied from `config.def.zon` if missing)
 - `-Dbackground`: enable or disable the solid background (defaults to `false`)
 - `-Dbar`: enable or disable the status bar (defaults to `true`)
-- `-Dinstall_kwim`: if to install [kwim] to manage input devices (defaults to
-  `true`)
+- `-Dkwim`: if to call [kwim] automatically (defaults to `true`)
 
 ## Installation
 See [packages.md] for community maintained packages.
@@ -146,12 +145,13 @@ See `xkeyboard-config(7)` man page for all options.
 
 ### Input Manager
 
-When built with the `-Dinstall_kwim` option, a separate tool called [kwim] will
-also be installed as an input device management tool.
+There is an input device management tool separated from `kwm` called [kwim].
 
-`kwm` automatically runs `kwim` at startup. By default, `kwim` reads input
-rules from the same configuration file used by `kwm`. You can also run `kwim`
-to list input devices or apply a single rule on demand.
+When built with the `-Dkwim` option, `kwm` automatically runs `kwim` at startup. 
+By default, `kwim` reads input rules from the same configuration file used by `kwm`. 
+You can also run `kwim` to list input devices or apply a single rule on demand.
+
+For user that prefer compile-time configuration, could compile `kwim` with your `config.zon`.
 
 ### How I run kwm with river
 Read status from a fifo(to restart the status command without restarting kwm)

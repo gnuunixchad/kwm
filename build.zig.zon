@@ -54,11 +54,6 @@
             .hash = "pixman-0.3.0-LClMnz2VAAAs7QSCGwLimV5VUYx0JFnX5xWU6HwtMuDX",
             .lazy = true,
         },
-        .kwim = .{
-            .url = "https://github.com/kewuaa/kwim/archive/refs/tags/v0.1.4.tar.gz",
-            .hash = "kwim-0.1.4-Ewp5Gx_UAgD84P2X7z3_sv96iQjX21bxMenSp4wv8GRZ",
-            .lazy = true,
-        },
     },
     .paths = .{
         "build.zig",

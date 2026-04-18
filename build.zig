@@ -49,6 +49,37 @@ pub fn build(b: *std.Build) void {
     scanner.generate("river_xkb_bindings_v1", 2);
     scanner.generate("river_layer_shell_v1", 1);
 
+    const full_version = blk: {
+        if (b.option([]const u8, "version-string", "Override `kwm -version` output.")) |version_override| {
+            break :blk version_override;
+        } else if (mem.endsWith(u8, version, "-dev")) {
+            var ret: u8 = undefined;
+
+            const git_describe_long = b.runAllowFail(
+                &.{ "git", "-C", b.build_root.path orelse ".", "describe", "--long" },
+                &ret,
+                .Ignore,
+            ) catch break :blk version;
+
+            var it = mem.splitSequence(u8, mem.trim(u8, git_describe_long, &std.ascii.whitespace), "-");
+            _ = it.next().?; // previous tag
+            const commit_count = it.next().?;
+            const commit_hash = it.next().?;
+            std.debug.assert(it.next() == null);
+            std.debug.assert(commit_hash[0] == 'g');
+
+            // Follow semantic versioning, e.g. 0.2.0-dev.42+d1cf95b
+            break :blk b.fmt(version ++ ".{s}+{s}", .{ commit_count, commit_hash[1..] });
+        } else {
+            break :blk version;
+        }
+    };
+
+    const default_config_path = b.option([]const u8, "config", "path to config file") orelse "config.zon";
+    const background_enabled = b.option(bool, "background", "if enable background") orelse false;
+    const bar_enabled = b.option(bool, "bar", "if enable bar") orelse true;
+    const kwim_enabled = b.option(bool, "kwim", "if to call `kwim` automatically") orelse true;
+
     const wayland_mod = b.createModule(.{ .root_source_file = scanner.result });
     const xkbcommon_mod = b.dependency("xkbcommon", .{}).module("xkbcommon");
     const mvzr_mod = b.dependency("mvzr", .{}).module("mvzr");
@@ -59,7 +90,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/flags.zig"),
     });
 
-    const default_config_path = b.option([]const u8, "config", "path to config file") orelse "config.zon";
     const backup_default_config_path = "config.def.zon";
     const config_path = blk: {
         fs.cwd().access(default_config_path, .{}) catch |err| switch (err) {
@@ -141,10 +171,6 @@ pub fn build(b: *std.Build) void {
 
     config_mod.addImport("kwm", kwm_mod);
     kwm_mod.addImport("config", config_mod);
-
-    const background_enabled = b.option(bool, "background", "if enable background") orelse false;
-
-    const bar_enabled = b.option(bool, "bar", "if enable bar") orelse true;
     if (bar_enabled) blk: {
         const pixman_mod = (b.lazyDependency("pixman", .{}) orelse break :blk).module("pixman");
         const fcft_mod = (b.lazyDependency("fcft", .{}) orelse break :blk).module("fcft");
@@ -194,10 +220,8 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     });
-
     exe.root_module.linkSystemLibrary("wayland-client", .{});
     exe.root_module.linkSystemLibrary("xkbcommon", .{});
-
     if (bar_enabled) {
         exe.root_module.linkSystemLibrary("pixman-1", .{});
         exe.root_module.linkSystemLibrary("fcft", .{});
@@ -206,33 +230,9 @@ pub fn build(b: *std.Build) void {
     const kwm_options = b.addOptions();
     kwm_options.addOption(bool, "background_enabled", background_enabled);
     kwm_options.addOption(bool, "bar_enabled", bar_enabled);
+    kwm_options.addOption(bool, "kwim_enabled", kwim_enabled);
     kwm_mod.addOptions("build_options", kwm_options);
 
-    const full_version = blk: {
-        if (b.option([]const u8, "version-string", "Override `kwm -version` output.")) |version_override| {
-            break :blk version_override;
-        } else if (mem.endsWith(u8, version, "-dev")) {
-            var ret: u8 = undefined;
-
-            const git_describe_long = b.runAllowFail(
-                &.{ "git", "-C", b.build_root.path orelse ".", "describe", "--long" },
-                &ret,
-                .Ignore,
-            ) catch break :blk version;
-
-            var it = mem.splitSequence(u8, mem.trim(u8, git_describe_long, &std.ascii.whitespace), "-");
-            _ = it.next().?; // previous tag
-            const commit_count = it.next().?;
-            const commit_hash = it.next().?;
-            std.debug.assert(it.next() == null);
-            std.debug.assert(commit_hash[0] == 'g');
-
-            // Follow semantic versioning, e.g. 0.2.0-dev.42+d1cf95b
-            break :blk b.fmt(version ++ ".{s}+{s}", .{ commit_count, commit_hash[1..] });
-        } else {
-            break :blk version;
-        }
-    };
     const root_options = b.addOptions();
     root_options.addOption([]const u8, "version", full_version);
     exe.root_module.addOptions("build_options", root_options);
@@ -243,52 +243,8 @@ pub fn build(b: *std.Build) void {
     // by passing `--prefix` or `-p`.
     b.installArtifact(exe);
 
-    const install_kwim = b.option(bool, "install_kwim", "if to install kwim") orelse true;
-    kwm_options.addOption(bool, "install_kwim", install_kwim);
-    if (install_kwim) {
-        if (b.lazyDependency("kwim", .{ .optimize = optimize, .kwm_config = get_path(b, config_path) })) |kwim_dep| {
-            const kwim = kwim_dep.artifact("kwim");
-            b.installArtifact(kwim);
-
-            const bash_path = kwim_dep.path("completions/kwim.bash");
-            if (fs.accessAbsolute(get_path(b, bash_path), .{})) |_| {
-                const install_bash = b.addInstallFile(bash_path, "share/bash-completion/completions/kwim");
-                b.getInstallStep().dependOn(&install_bash.step);
-            } else |_| {}
-
-            const zsh_path = kwim_dep.path("completions/kwim.zsh");
-            if (fs.accessAbsolute(get_path(b, zsh_path), .{})) |_| {
-                const install_zsh = b.addInstallFile(zsh_path, "share/zsh/site-functions/_kwim");
-                b.getInstallStep().dependOn(&install_zsh.step);
-            } else |_| {}
-
-            const kwim_man_1 = kwim_dep.path("doc/kwim.1");
-            if (fs.accessAbsolute(get_path(b, kwim_man_1), .{})) |_| {
-                const install_kwim_man_1 = b.addInstallFile(kwim_man_1, "share/man/man1/kwim.1");
-                b.getInstallStep().dependOn(&install_kwim_man_1.step);
-            } else |_| {}
-
-            const kwim_man_5 = kwim_dep.path("doc/kwim.5");
-            if (fs.accessAbsolute(get_path(b, kwim_man_5), .{})) |_| {
-                const install_kwim_man_5 = b.addInstallFile(kwim_man_5, "share/man/man5/kwim.5");
-                b.getInstallStep().dependOn(&install_kwim_man_5.step);
-            } else |_| {}
-        }
-    }
-
-    const man_page_install = b.addInstallFile(
-        b.path("doc/kwm.1"),
-        "share/man/man1/kwm.1",
-    );
-
-    b.getInstallStep().dependOn(&man_page_install.step);
-
-    const config_doc_install = b.addInstallFile(
-        b.path("config.def.zon"),
-        "share/doc/kwm/config.zon",
-    );
-
-    b.getInstallStep().dependOn(&config_doc_install.step);
+    b.installFile("doc/kwm.1", "share/man/man1/kwm.1",);
+    b.installFile("config.def.zon", "share/doc/kwm/config.zon",);
 
 
     // This creates a top level step. Top level steps have a name and can be
