@@ -71,6 +71,11 @@ zig build -Doptimize=ReleaseSafe
 - `-Dkwim`: if to call [kwim] automatically (defaults to `true`)
 
 ## Installation
+
+<a href="https://repology.org/project/kwm/versions">
+  <img align="right" width="192" src="https://repology.org/badge/vertical-allrepos/kwm.svg">
+</a>
+
 See [packages.md] for community maintained packages.
 
 ```sh
@@ -145,13 +150,17 @@ See `xkeyboard-config(7)` man page for all options.
 
 ### Input Manager
 
-There is an input device management tool separated from `kwm` called [kwim].
+There is an input device manager for river separated from `kwm` called [kwim],
+implementing the river-input-management-v1 protocol and/or related protocols in
+order to configure input devices independent of window manager.
 
-When built with the `-Dkwim` option, `kwm` automatically runs `kwim` at startup. 
-By default, `kwim` reads input rules from the same configuration file used by `kwm`. 
-You can also run `kwim` to list input devices or apply a single rule on demand.
+When built with the `-Dkwim` option (defaults to `true`), `kwm` will call
+`kwim` at startup and read input rules from the same configuration file used by
+`kwm`. You can also run `kwim` to list input devices or apply a single rule on
+demand.
 
-For user that prefer compile-time configuration, could compile `kwim` with your `config.zon`.
+For users who prefer compile-time configuration, could compile `kwim` with your
+`config.zon`.
 
 ### How I run kwm with river
 Read status from a fifo(to restart the status command without restarting kwm)

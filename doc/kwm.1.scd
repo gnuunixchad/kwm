@@ -230,11 +230,13 @@ Change bar position and fonts.++
 Choose status among static text, stdin, and fifo.
 
 - *Input devices* ++
-When built with the `-Dinstall_kwim` option, a separate tool called _kwim_
-will also be installed as an input device management tool. *kwm*
-automatically runs _kwim_ at startup. By default, _kwim_ reads input rules
-from the same configuration file used by *kwm*. You can also run _kwim_ to
-list input devices or apply a single rule on demand.
+There is an input device manager for _river_ separated from _kwm_ called
+_kwim(1)_, implementing the river-input-management-v1 protocol and/or related
+protocols in order to configure input devices independent of window manager.
+When built with the `-Dkwim` option (defaults to `true`), _kwm_ will call _kwim_
+automatically at startup and read input rules from the same configuration file
+used by *kwm*. You can also run _kwim_ to list input devices or apply a single
+rule on demand.
 
 - *Keybindings*++
 Change keybindings in each mode, and add custom modes.

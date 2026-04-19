@@ -5,7 +5,7 @@
 .nh
 .ad l
 .\" Begin generated content:
-.TH "KWM" "1" "2026-04-05" "kwm" "kewuaa's window manager"
+.TH "KWM" "1" "2026-04-18" "kwm" "kewuaa's window manager"
 .PP
 .SH NAME
 .PP
@@ -366,12 +366,14 @@ Choose status among static text, stdin, and fifo.\&
 .IP \(bu 4
 \fBInput devices\fR 
 .br
-When built with the `-Dinstall_kwim` option, a separate tool called \fIkwim\fR
+There is an input device manager for \fIriver\fR separated from \fIkwm\fR called
 .PD
-will also be installed as an input device management tool.\& \fBkwm\fR
-automatically runs \fIkwim\fR at startup.\& By default, \fIkwim\fR reads input rules
-from the same configuration file used by \fBkwm\fR.\& You can also run \fIkwim\fR to
-list input devices or apply a single rule on demand.\&
+\fIkwim(1)\fR, implementing the river-input-management-v1 protocol and/or related
+protocols in order to configure input devices independent of window manager.\&
+When built with the `-Dkwim` option (defaults to `true`), \fIkwm\fR will call \fIkwim\fR
+automatically at startup and read input rules from the same configuration file
+used by \fBkwm\fR.\& You can also run \fIkwim\fR to list input devices or apply a single
+rule on demand.\&
 .PP
 .PD 0
 .IP \(bu 4
