@@ -125,17 +125,20 @@ Mod4-\[';\]
 Mod4-Shift-\[';\]
 	Shift window's each tag to the next/previous unoccupied output tag.
 
-Mod4-0
-	Set all output tags as active.
-
 Mod4-[1-9]
 	Set the output tag.
+
+Mod4-0
+	Set all output tags as active.
 
 Mod4-Ctrl-[1-9]
 	Toggle the output tag.
 
 Mod4-Shift-[1-9]
 	Set the window tag.
+
+Mod4-Shift-0
+	Set the window with all tags.
 
 Mod4-Ctrl-Shift-[1-9]
 	Toggle the window tag.
