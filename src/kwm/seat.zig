@@ -230,7 +230,9 @@ pub fn try_focus(self: *Self) void {
     const config = Config.get();
     const context = Context.get();
 
-    if (context.focused_window()) |window| {
+    if (context.focused_window()) |window| focus_window: {
+        if (window.geometry_undefined) break :focus_window;
+
         defer self.previous_focused = .{ .window = window };
 
         switch (config.cursor_warp) {
@@ -307,13 +309,7 @@ pub fn refresh_xursor_theme(self: *Self) void {
             .{ self, xcursor_theme.name, xcursor_theme.size }
         );
 
-        const name = utils.allocator.dupeZ(u8, xcursor_theme.name) catch |err| {
-            log.err("<{*}> dupeZ failed while set xcursor theme: {}", .{ self, err });
-            return;
-        };
-        defer utils.allocator.free(name);
-
-        self.rwm_seat.setXcursorTheme(name, xcursor_theme.size);
+        self.rwm_seat.setXcursorTheme(xcursor_theme.name, xcursor_theme.size);
     }
 }
 
