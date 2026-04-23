@@ -72,8 +72,8 @@ zig build -Doptimize=ReleaseSafe
 
 ## Installation
 
-<a href="https://repology.org/project/kwm/versions">
-  <img align="right" width="192" src="https://repology.org/badge/vertical-allrepos/kwm.svg">
+<a href="https://repology.org/project/kwm-window-manager/versions">
+  <img align="right" width="192" src="https://repology.org/badge/vertical-allrepos/kwm-window-manager.svg">
 </a>
 
 See [packages.md] for community maintained packages.

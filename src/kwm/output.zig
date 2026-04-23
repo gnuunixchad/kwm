@@ -271,7 +271,7 @@ pub fn occupied_tags(self: *const Self) u32 {
     {
         var it = context.windows.safeIterator(.forward);
         while (it.next()) |window| {
-            if (window.output == self) mask |= window.tag;
+            if (window.output == self and window.swallowed_by == null) mask |= window.tag;
         }
     }
     return mask;

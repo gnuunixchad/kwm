@@ -390,15 +390,7 @@ fn render_static_component(self: *Self) void {
 
     const buffer = self.next_buffer(.static, w, h) orelse return;
 
-    var windows_tag: u32 = 0;
-    {
-        var it = context.windows.safeIterator(.forward);
-        while (it.next()) |window| {
-            if (window.output == self.output) {
-                windows_tag |= window.tag;
-            }
-        }
-    }
+    const windows_tag: u32 = self.output.occupied_tags();
     const focused_window = context.focused_window();
 
     const scheme = config.bar.get_scheme(.tags);

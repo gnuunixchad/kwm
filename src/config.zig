@@ -169,6 +169,7 @@ fn try_load_user_config() ?Config {
 
     @setEvalBranchQuota(20000);
     var diag: std.zon.parse.Diagnostics = .{};
+    defer diag.deinit(allocator);
     return zon.parse.fromSlice(
         Config,
         allocator,
