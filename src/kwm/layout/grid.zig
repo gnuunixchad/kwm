@@ -23,6 +23,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
     const context = Context.get();
+    const state = output.get_current_per_tag_state();
 
     var windows: std.ArrayList(*Window) = .empty;
     defer windows.deinit(utils.allocator);
@@ -45,9 +46,9 @@ pub fn arrange(self: *const Self, output: *Output) void {
     const col_num: i32 = @intFromFloat(@ceil(@sqrt(@as(f64, @floatFromInt(windows.items.len)))));
     const row_num: i32 = @intFromFloat(@ceil(@as(f32, @floatFromInt(windows.items.len)) / @as(f32, @floatFromInt(col_num))));
     const available_width, const available_height = blk: {
-        const width = @max(0, output.exclusive_width() - 2*self.outer_gap);
-        const height = @max(0, output.exclusive_height() - 2*self.outer_gap);
-        break :blk switch (self.direction) {
+        const width = @max(0, output.exclusive_width() - 2*state.grid_outer_gap);
+        const height = @max(0, output.exclusive_height() - 2*state.grid_outer_gap);
+        break :blk switch (state.grid_direction) {
             .horizontal => .{ width, height },
             .vertical => .{ height, width },
         };
@@ -65,17 +66,17 @@ pub fn arrange(self: *const Self, output: *Output) void {
         const col: i32 = @as(i32, @intCast(i)) - row*col_num;
 
         const x = col * width + (if (col > 0) width_remain else 0) + if (row == row_num-1) last_row_pad else 0;
-        const y = row * height + if (row > 0) self.inner_gap+height_remain else 0;
-        const w = width - (if (col < col_num-1) self.inner_gap else 0) + if (col == 0) width_remain else 0;
-        const h = height - (if (row > 0) self.inner_gap else 0) + if (row == 0) height_remain else 0;
+        const y = row * height + if (row > 0) state.grid_inner_gap+height_remain else 0;
+        const w = width - (if (col < col_num-1) state.grid_inner_gap else 0) + if (col == 0) width_remain else 0;
+        const h = height - (if (row > 0) state.grid_inner_gap else 0) + if (row == 0) height_remain else 0;
 
-        switch (self.direction) {
+        switch (state.grid_direction) {
             .horizontal => {
-                window.unbound_move(x+self.outer_gap, y+self.outer_gap);
+                window.unbound_move(x+state.grid_outer_gap, y+state.grid_outer_gap);
                 window.unbound_resize(w, h);
             },
             .vertical => {
-                window.unbound_move(y+self.outer_gap, x+self.outer_gap);
+                window.unbound_move(y+state.grid_outer_gap, x+state.grid_outer_gap);
                 window.unbound_resize(h, w);
             },
         }
