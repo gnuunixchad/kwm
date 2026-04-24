@@ -780,37 +780,53 @@ pub inline fn set_current_seat(self: *Self, seat: ?*Seat) void {
 }
 
 
-pub fn spawn(self: *Self, argv: []const []const u8) ?process.Child {
+pub fn spawn(self: *Self, argv: []const []const u8) void {
     if (comptime builtins.mode == .Debug) {
-        const cmd = mem.join(utils.allocator, " ", argv) catch |err| {
-            log.err("join failed: {}", .{ err });
-            return null;
-        };
+        const cmd = mem.join(utils.allocator, " ", argv) catch unreachable;
         defer utils.allocator.free(cmd);
-
         log.debug("spawn: `{s}`", .{ cmd });
     }
 
     const config = Config.get();
 
-    var child = process.Child.init(argv, utils.allocator);
-    child.pgid = 0;
-    child.env_map = &self.env;
-    child.cwd = switch (config.working_directory) {
-        .none => null,
-        .home => self.env.get("HOME"),
-        .custom => |dir| dir,
+    const pid1 = posix.fork() catch |err| {
+        log.err("fork failed: {}", .{ err });
+        return;
     };
-    child.spawn() catch |err| {
-        log.err("spawn failed: {}", .{ err });
-        return null;
-    };
-    return child;
+
+    if (pid1 > 0) return;
+
+    _ = posix.setsid() catch unreachable;
+
+    // reset signal mask
+    if (
+        posix.system.sigprocmask(
+            posix.SIG.SETMASK,
+            &posix.sigemptyset(),
+            null
+        ) < 0
+    ) unreachable;
+
+    const pid2 = posix.fork() catch posix.exit(1);
+    if (pid2 == 0) {
+        if (switch (config.working_directory) {
+            .none => null,
+            .home => self.env.get("HOME"),
+            .custom => |dir| dir,
+        }) |dir| {
+            posix.chdir(dir) catch posix.exit(1);
+        }
+
+        const err = process.execve(utils.allocator, argv, &self.env);
+        log.err("execve failed: {}", .{ err });
+    }
+
+    posix.exit(0);
 }
 
 
-pub inline fn spawn_shell(self: *Self, cmd: []const u8) ?process.Child {
-    return self.spawn(&[_][]const u8 { "sh", "-c", cmd });
+pub inline fn spawn_shell(self: *Self, cmd: []const u8) void {
+    self.spawn(&[_][]const u8 { "sh", "-c", cmd });
 }
 
 
@@ -863,8 +879,28 @@ fn run_startup_cmds(self: *Self) void {
         log.err("initCapacity for startup_processes failed: {}", .{ err });
         return;
     };
-    for (config.startup_cmds) |cmd| {
-        ctx.?.startup_processes.appendBounded(ctx.?.spawn(cmd)) catch unreachable;
+    for (config.startup_cmds) |argv| {
+        if (comptime builtins.mode == .Debug) {
+            const cmd = mem.join(utils.allocator, " ", argv) catch unreachable;
+            defer utils.allocator.free(cmd);
+            log.debug("running startup command: {s}", .{ cmd });
+        }
+
+        ctx.?.startup_processes.appendBounded(blk: {
+            var child = process.Child.init(argv, utils.allocator);
+            child.env_map = &self.env;
+            child.cwd = switch (config.working_directory) {
+                .none => null,
+                .home => self.env.get("HOME"),
+                .custom => |dir| dir,
+            };
+            child.spawn() catch |err| {
+                log.err("spawn child process failed: {}", .{ err });
+                break :blk null;
+            };
+            break :blk child;
+
+        }) catch unreachable;
     }
 }
 

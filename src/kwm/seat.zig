@@ -483,10 +483,10 @@ fn handle_actions(self: *Self) void {
                 }
             },
             .spawn => |data| {
-                _ = context.spawn(data.argv);
+                context.spawn(data.argv);
             },
             .spawn_shell => |data| {
-                _ = context.spawn_shell(data.cmd);
+                context.spawn_shell(data.cmd);
             },
             .move => |data| {
                 if (context.focused_window()) |window| {

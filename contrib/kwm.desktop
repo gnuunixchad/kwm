@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=kwm
+Comment=kewuaa's window manager for River Wayland compositor
+Exec=river -c kwm
+Icon=kwm
+Type=Application
+DesktopNames=kwm;wlroots
