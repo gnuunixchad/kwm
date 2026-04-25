@@ -636,13 +636,16 @@ pub fn attach_window(self: *Self, window: *Window, mode: types.WindowAttachMode)
         .top => self.windows.prepend(window),
         .bottom => self.windows.append(window),
         .stack_top => if (self.current_output) |output| {
-            const nmaster = switch (output.current_layout()) {
+            const layout = output.current_layout();
+            const nmaster = switch (layout) {
                 .tile => output.layout.tile.nmaster,
-                .deck => 1,
+                .deck => output.layout.deck.nmaster,
                 else => 0,
             };
 
-            if (nmaster == 0) {
+            if (layout == .deck) {
+                self.windows.prepend(window);
+            } else if (nmaster == 0) {
                 self.windows.prepend(window);
             } else {
                 var link: *wl.list.Link = &self.windows.link;

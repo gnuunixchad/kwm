@@ -706,11 +706,20 @@ fn handle_actions(self: *Self) void {
 
             .modify_nmaster => |data| {
                 if (context.current_output) |output| {
-                    if (output.current_layout() == .tile) {
-                        switch (data.change) {
-                            .increase => output.layout.tile.nmaster += 1,
-                            .decrease => output.layout.tile.nmaster = @max(1, output.layout.tile.nmaster-1),
-                        }
+                    switch (output.current_layout()) {
+                        .tile => {
+                            switch (data.change) {
+                                .increase => output.layout.tile.nmaster += 1,
+                                .decrease => output.layout.tile.nmaster = @max(1, output.layout.tile.nmaster-1),
+                            }
+                        },
+                        .deck => {
+                            switch (data.change) {
+                                .increase => output.layout.deck.nmaster += 1,
+                                .decrease => output.layout.deck.nmaster = @max(1, output.layout.deck.nmaster-1),
+                            }
+                        },
+                        else => {},
                     }
                 }
             },
@@ -723,6 +732,13 @@ fn handle_actions(self: *Self) void {
                                 .step => |step| output.layout.tile.mfact + step,
                             };
                             output.layout.tile.mfact = @min(1, @max(0, val));
+                        },
+                        .deck => {
+                            const val = switch (data.change) {
+                                .set => |set| set,
+                                .step => |step| output.layout.deck.mfact + step,
+                            };
+                            output.layout.deck.mfact = @min(1, @max(0, val));
                         },
                         .scroller => {
                             if (context.focus_top_in(output, false)) |window| {
