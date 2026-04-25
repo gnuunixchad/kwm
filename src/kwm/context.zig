@@ -66,6 +66,10 @@ mode: []const u8,
 running: bool = true,
 env: process.EnvMap = undefined,
 startup_processes: std.ArrayList(?process.Child) = .empty,
+quit_hook: ?struct {
+    pid: i32,
+    exit_session: bool,
+} = null,
 
 
 pub fn init(
@@ -389,10 +393,27 @@ pub fn handle_signal(self: *Self, sig: i32) void {
                 };
                 if (res.pid <= 0) break;
                 log.debug("wait pid {}", .{ res.pid });
+
+                if (self.quit_hook) |hook| if (res.pid == hook.pid) {
+                    self.quit_hook = null;
+                    if (res.status == 0) {
+                        self.quit(hook.exit_session);
+                    }
+                };
             }
         },
         else => {}
     }
+}
+
+
+pub fn register_quit_hook(self: *Self, argv: []const []const u8, exit_session: bool) void {
+    log.debug("register quit hook", .{});
+
+    if (self.quit_hook == null) {
+        const child = self.spawn_child(argv) orelse return;
+        self.quit_hook = .{ .pid = child.id, .exit_session = exit_session };
+    } else log.warn("repeatly register quit hook", .{});
 }
 
 
@@ -780,6 +801,30 @@ pub inline fn set_current_seat(self: *Self, seat: ?*Seat) void {
 }
 
 
+pub fn spawn_child(self: *Self, argv: []const []const u8) ?process.Child {
+    if (comptime builtins.mode == .Debug) {
+        const cmd = mem.join(utils.allocator, " ", argv) catch unreachable;
+        defer utils.allocator.free(cmd);
+        log.debug("spawn child process: {s}", .{ cmd });
+    }
+
+    const config = Config.get();
+
+    var child = process.Child.init(argv, utils.allocator);
+    child.env_map = &self.env;
+    child.cwd = switch (config.working_directory) {
+        .none => null,
+        .home => self.env.get("HOME"),
+        .custom => |dir| dir,
+    };
+    child.spawn() catch |err| {
+        log.err("spawn child process failed: {}", .{ err });
+        return null;
+    };
+    return child;
+}
+
+
 pub fn spawn(self: *Self, argv: []const []const u8) void {
     if (comptime builtins.mode == .Debug) {
         const cmd = mem.join(utils.allocator, " ", argv) catch unreachable;
@@ -880,27 +925,7 @@ fn run_startup_cmds(self: *Self) void {
         return;
     };
     for (config.startup_cmds) |argv| {
-        if (comptime builtins.mode == .Debug) {
-            const cmd = mem.join(utils.allocator, " ", argv) catch unreachable;
-            defer utils.allocator.free(cmd);
-            log.debug("running startup command: {s}", .{ cmd });
-        }
-
-        ctx.?.startup_processes.appendBounded(blk: {
-            var child = process.Child.init(argv, utils.allocator);
-            child.env_map = &self.env;
-            child.cwd = switch (config.working_directory) {
-                .none => null,
-                .home => self.env.get("HOME"),
-                .custom => |dir| dir,
-            };
-            child.spawn() catch |err| {
-                log.err("spawn child process failed: {}", .{ err });
-                break :blk null;
-            };
-            break :blk child;
-
-        }) catch unreachable;
+        ctx.?.startup_processes.appendBounded(self.spawn_child(argv)) catch unreachable;
     }
 }
 

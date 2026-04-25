@@ -174,7 +174,7 @@ pub fn manage(self: *Self) void {
         defer self.window_below_pointer.new = false;
 
         const window = self.window_below_pointer.window.?;
-        // avoid cursor wrapping
+        // avoid cursor warpping
         self.previous_focused = .{ .window = window };
 
         context.focus(
@@ -245,7 +245,7 @@ pub fn try_focus(self: *Self) void {
                 }
 
                 if (window.output) |output| {
-                    self.wrap_cursor(.{ .output = output });
+                    self.warp_cursor(.{ .output = output });
                 }
             },
             .on_focus_changed => blk: {
@@ -254,7 +254,7 @@ pub fn try_focus(self: *Self) void {
                     .window => |w| if (w == window) break :blk,
                 }
 
-                self.wrap_cursor(.{ .window = window });
+                self.warp_cursor(.{ .window = window });
             }
         }
 
@@ -277,7 +277,7 @@ pub fn try_focus(self: *Self) void {
                     .output => |o| if (o == output) break :blk,
                 }
 
-                self.wrap_cursor(.{ .output = output });
+                self.warp_cursor(.{ .output = output });
             }
         } else {
             self.previous_focused = .none;
@@ -437,10 +437,10 @@ pub fn clear_bindings(self: *Self) void {
 }
 
 
-fn wrap_cursor(self: *Self, dest: union(enum) { window: *Window, output: *Output }) void {
+fn warp_cursor(self: *Self, dest: union(enum) { window: *Window, output: *Output }) void {
     switch (dest) {
-        .window => |window| log.debug("<{*}> wrap cursor to {*}", .{ self, window }),
-        .output => |output| log.debug("<{*}> wrap cursor to {*}", .{ self, output }),
+        .window => |window| log.debug("<{*}> warp cursor to {*}", .{ self, window }),
+        .output => |output| log.debug("<{*}> warp cursor to {*}", .{ self, output }),
     }
 
     const x, const y = switch (dest) {
@@ -475,7 +475,8 @@ fn handle_actions(self: *Self) void {
 
         switch (action) {
             .quit => |data| {
-                context.quit(data.exit_session);
+                if (data.hook) |argv| context.register_quit_hook(argv, data.exit_session)
+                else context.quit(data.exit_session);
             },
             .close => {
                 if (context.focused_window()) |window| {
@@ -830,7 +831,7 @@ fn window_interaction(self: *Self, window: *Window) void {
 
     const context = Context.get();
 
-    // avoid cursor wrapping
+    // avoid cursor warpping
     self.previous_focused = .{ .window = window };
 
     context.focus(window, true);
@@ -938,7 +939,7 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
                 .bar => |bar| if (comptime build_options.bar_enabled) {
                     log.debug("<{*}> interaction with {*}", .{ seat, bar });
 
-                    // avoid cursor wrapping
+                    // avoid cursor warpping
                     seat.previous_focused = .{ .output = bar.output };
 
                     context.set_current_output(bar.output);
@@ -948,7 +949,7 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
                 .background => |background| if (comptime build_options.background_enabled) {
                     log.debug("<{*}> interaction with {*}", .{ seat, background });
 
-                    // avoid cursor wrapping
+                    // avoid cursor warpping
                     seat.previous_focused = .{ .output = background.output };
 
                     context.set_current_output(background.output);

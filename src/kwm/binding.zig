@@ -70,7 +70,10 @@ const Tag = union(enum) {
 
 
 pub const Action = union(enum) {
-    quit: struct { exit_session: bool },
+    quit: struct {
+        exit_session: bool,
+        hook: ?[]const[]const u8 = null
+    },
     close,
     spawn: struct {
         argv: []const []const u8,
