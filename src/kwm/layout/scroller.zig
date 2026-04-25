@@ -17,7 +17,6 @@ pub fn arrange(self: *const Self, output: *Output) void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
     const context = Context.get();
-    const state = output.get_current_per_tag_state();
 
     const focus_top = context.focus_top_in(output, true) orelse return;
 
@@ -27,24 +26,24 @@ pub fn arrange(self: *const Self, output: *Output) void {
     const master_width: i32 = @intFromFloat(
         @as(f32, @floatFromInt(available_width)) * focus_top.scroller_mfact
     );
-    const height = available_height - 2*state.scroller_outer_gap;
-    const y = state.scroller_outer_gap;
+    const height = available_height - 2*self.outer_gap;
+    const y = self.outer_gap;
 
-    const left = @max(state.scroller_outer_gap, blk: {
+    const left = @max(self.outer_gap, blk: {
         var link = &focus_top.link;
         while (link.prev.? != &context.windows.link) {
             defer link = link.prev.?;
             const window: *Window = @fieldParentPtr("link", link.prev.?);
             if (window.is_visible_in(output) and !window.floating) {
-                break :blk switch (window.scroller_x orelse break :blk state.scroller_outer_gap) {
+                break :blk switch (window.scroller_x orelse break :blk self.outer_gap) {
                     .x => |x| x,
                     .center => window.x,
-                } + window.width + state.scroller_inner_gap;
+                } + window.width + self.inner_gap;
             }
         }
-        break :blk state.scroller_outer_gap;
+        break :blk self.outer_gap;
     });
-    const right = output.width - state.scroller_outer_gap - master_width;
+    const right = output.width - self.outer_gap - master_width;
     const master_x = blk: {
         const x = if (focus_top.scroller_x) |scroller_x| switch (scroller_x) {
             .x => |x| x,
@@ -67,7 +66,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
             const window: *Window = @fieldParentPtr("link", link.prev.?);
             if (!window.is_visible_in(output) or window.floating) continue;
 
-            x -= state.scroller_inner_gap;
+            x -= self.inner_gap;
 
             const width: i32 = @intFromFloat(
                 @as(f32, @floatFromInt(available_width)) * window.scroller_mfact
@@ -88,7 +87,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
             const window: *Window = @fieldParentPtr("link", link.next.?);
             if (!window.is_visible_in(output) or window.floating) continue;
 
-            x += state.scroller_inner_gap;
+            x += self.inner_gap;
 
             const width: i32 = @intFromFloat(
                 @as(f32, @floatFromInt(available_width)) * window.scroller_mfact

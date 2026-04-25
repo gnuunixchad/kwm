@@ -707,16 +707,9 @@ fn handle_actions(self: *Self) void {
             .modify_nmaster => |data| {
                 if (context.current_output) |output| {
                     if (output.current_layout() == .tile) {
-                        const state = output.get_current_per_tag_state();
                         switch (data.change) {
-                            .increase => {
-                                state.tile_nmaster += 1;
-                                output.layout.tile.nmaster = state.tile_nmaster;
-                            },
-                            .decrease => {
-                                state.tile_nmaster = @max(1, state.tile_nmaster - 1);
-                                output.layout.tile.nmaster = state.tile_nmaster;
-                            },
+                            .increase => output.layout.tile.nmaster += 1,
+                            .decrease => output.layout.tile.nmaster = @max(1, output.layout.tile.nmaster-1),
                         }
                     }
                 }
@@ -725,13 +718,11 @@ fn handle_actions(self: *Self) void {
                 if (context.current_output) |output| {
                     switch (output.current_layout()) {
                         .tile => {
-                            const state = output.get_current_per_tag_state();
                             const val = switch (data.change) {
                                 .set => |set| set,
-                                .step => |step| state.tile_mfact + step,
+                                .step => |step| output.layout.tile.mfact + step,
                             };
-                            state.tile_mfact = @min(1, @max(0, val));
-                            output.layout.tile.mfact = state.tile_mfact;
+                            output.layout.tile.mfact = @min(1, @max(0, val));
                         },
                         .scroller => {
                             if (context.focus_top_in(output, false)) |window| {
@@ -748,45 +739,22 @@ fn handle_actions(self: *Self) void {
             },
             .modify_gap => |data| {
                 if (context.current_output) |output| {
-                    const state = output.get_current_per_tag_state();
                     switch (output.current_layout()) {
-                        .tile => {
-                            state.tile_inner_gap = @max(config.border.width*2, state.tile_inner_gap + data.step);
-                            output.layout.tile.inner_gap = state.tile_inner_gap;
-                        },
-                        .grid => {
-                            state.grid_inner_gap = @max(config.border.width*2, state.grid_inner_gap + data.step);
-                            output.layout.grid.inner_gap = state.grid_inner_gap;
-                        },
-                        .monocle => {
-                            state.monocle_gap = @max(config.border.width*2, state.monocle_gap + data.step);
-                            output.layout.monocle.gap = state.monocle_gap;
-                        },
-                        .deck => {
-                            state.deck_inner_gap = @max(config.border.width*2, state.deck_inner_gap + data.step);
-                            output.layout.deck.inner_gap = state.deck_inner_gap;
-                        },
-                        .scroller => {
-                            state.scroller_inner_gap = @max(config.border.width*2, state.scroller_inner_gap + data.step);
-                            output.layout.scroller.inner_gap = state.scroller_inner_gap;
-                        },
+                        .tile => output.layout.tile.inner_gap = @max(config.border.width*2, output.layout.tile.inner_gap+data.step),
+                        .grid => output.layout.grid.inner_gap = @max(config.border.width*2, output.layout.grid.inner_gap+data.step),
+                        .monocle => output.layout.monocle.gap = @max(config.border.width*2, output.layout.monocle.gap+data.step),
+                        .deck => output.layout.deck.inner_gap = @max(config.border.width*2, output.layout.deck.inner_gap+data.step),
+                        .scroller => output.layout.scroller.inner_gap = @max(config.border.width*2, output.layout.scroller.inner_gap+data.step),
                         .float => {},
                     }
                 }
             },
             .modify_master_location => |data| {
-                if (context.current_output) |output| {
-                    const state = output.get_current_per_tag_state();
+                if (context.current_output) |output| blk: {
                     switch (output.current_layout()) {
-                        .tile => {
-                            state.tile_master_location = data.location;
-                            output.layout.tile.master_location = state.tile_master_location;
-                        },
-                        .deck => {
-                            state.deck_master_location = data.location;
-                            output.layout.deck.master_location = state.deck_master_location;
-                        },
-                        else => {},
+                        .tile => output.layout.tile.master_location = data.location,
+                        .deck => output.layout.deck.master_location = data.location,
+                        else => break :blk,
                     }
                     if (comptime build_options.bar_enabled) {
                         output.bar.damage(.layout);
@@ -796,12 +764,10 @@ fn handle_actions(self: *Self) void {
             .toggle_grid_direction => {
                 if (context.current_output) |output| {
                     if (output.current_layout() == .grid) {
-                        const state = output.get_current_per_tag_state();
-                        state.grid_direction = switch (state.grid_direction) {
+                        output.layout.grid.direction = switch (output.layout.grid.direction) {
                             .horizontal => .vertical,
                             .vertical => .horizontal,
                         };
-                        output.layout.grid.direction = state.grid_direction;
                         if (comptime build_options.bar_enabled) {
                             output.bar.damage(.layout);
                         }

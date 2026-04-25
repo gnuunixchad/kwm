@@ -29,28 +29,6 @@ pub const State = struct {
     prev_layout_tag: [32]Layout.Type,
 };
 
-pub const PerTagState = struct {
-    tile_nmaster: i32,
-    tile_mfact: f32,
-    tile_master_location: types.LayoutMasterLocation,
-    tile_inner_gap: i32,
-    tile_outer_gap: i32,
-
-    grid_direction: Layout.Grid.Direction,
-    grid_inner_gap: i32,
-    grid_outer_gap: i32,
-
-    monocle_gap: i32,
-
-    deck_master_location: types.LayoutMasterLocation,
-    deck_inner_gap: i32,
-    deck_outer_gap: i32,
-
-    // scoller.mfact is per window
-    scroller_inner_gap: i32,
-    scroller_outer_gap: i32,
-};
-
 
 link: wl.list.Link = undefined,
 
@@ -66,7 +44,6 @@ prev_tag: u32 = 1,
 prev_main_tag: u32 = 1,
 layout_tag: [32]Layout.Type,
 prev_layout_tag: [32]Layout.Type,
-per_tag_state: [32]PerTagState,
 
 name: ?[]const u8 = null,
 x: i32 = undefined,
@@ -95,28 +72,6 @@ pub fn create(
         .layout = config.layout,
         .layout_tag = .{ config.default_layout } ** 32,
         .prev_layout_tag = .{ config.default_layout } ** 32,
-        .per_tag_state = blk: {
-            var arr: [32]PerTagState = undefined;
-            for (&arr) |*v| {
-                v.* = .{
-                    .tile_nmaster = config.layout.tile.nmaster,
-                    .tile_mfact = config.layout.tile.mfact,
-                    .tile_master_location = config.layout.tile.master_location,
-                    .tile_inner_gap = config.layout.tile.inner_gap,
-                    .tile_outer_gap = config.layout.tile.outer_gap,
-                    .grid_direction = config.layout.grid.direction,
-                    .grid_inner_gap = config.layout.grid.inner_gap,
-                    .grid_outer_gap = config.layout.grid.outer_gap,
-                    .monocle_gap = config.layout.monocle.gap,
-                    .deck_master_location = config.layout.deck.master_location,
-                    .deck_inner_gap = config.layout.deck.inner_gap,
-                    .deck_outer_gap = config.layout.deck.outer_gap,
-                    .scroller_inner_gap = config.layout.scroller.inner_gap,
-                    .scroller_outer_gap = config.layout.scroller.outer_gap,
-                };
-            }
-            break :blk arr;
-        },
     };
     output.link.init();
 
@@ -284,24 +239,6 @@ pub fn set_tag(self: *Self, tag: u32) void {
 
     log.debug("<{*}> set tag: {b}", .{ self, tag });
 
-    const old_index = @ctz(self.main_tag);
-    self.per_tag_state[old_index] = .{
-        .tile_nmaster = self.layout.tile.nmaster,
-        .tile_mfact = self.layout.tile.mfact,
-        .tile_master_location = self.layout.tile.master_location,
-        .tile_inner_gap = self.layout.tile.inner_gap,
-        .tile_outer_gap = self.layout.tile.outer_gap,
-        .grid_direction = self.layout.grid.direction,
-        .grid_inner_gap = self.layout.grid.inner_gap,
-        .grid_outer_gap = self.layout.grid.outer_gap,
-        .monocle_gap = self.layout.monocle.gap,
-        .deck_master_location = self.layout.deck.master_location,
-        .deck_inner_gap = self.layout.deck.inner_gap,
-        .deck_outer_gap = self.layout.deck.outer_gap,
-        .scroller_inner_gap = self.layout.scroller.inner_gap,
-        .scroller_outer_gap = self.layout.scroller.outer_gap,
-    };
-
     self.prev_tag = self.tag;
     self.prev_main_tag = self.main_tag;
 
@@ -311,23 +248,6 @@ pub fn set_tag(self: *Self, tag: u32) void {
         self.main_tag = tag ^ (tag & (tag-1));
 
         log.debug("<{*}> update main tag to {b}", .{ self, self.main_tag });
-
-        const new_index = @ctz(self.main_tag);
-        const state = &self.per_tag_state[new_index];
-        self.layout.tile.nmaster = state.tile_nmaster;
-        self.layout.tile.mfact = state.tile_mfact;
-        self.layout.tile.master_location = state.tile_master_location;
-        self.layout.tile.inner_gap = state.tile_inner_gap;
-        self.layout.tile.outer_gap = state.tile_outer_gap;
-        self.layout.grid.direction = state.grid_direction;
-        self.layout.grid.inner_gap = state.grid_inner_gap;
-        self.layout.grid.outer_gap = state.grid_outer_gap;
-        self.layout.monocle.gap = state.monocle_gap;
-        self.layout.deck.master_location = state.deck_master_location;
-        self.layout.deck.inner_gap = state.deck_inner_gap;
-        self.layout.deck.outer_gap = state.deck_outer_gap;
-        self.layout.scroller.inner_gap = state.scroller_inner_gap;
-        self.layout.scroller.outer_gap = state.scroller_outer_gap;
     }
 
     if (comptime build_options.bar_enabled) self.bar.damage(.tags);
@@ -409,12 +329,6 @@ pub fn manage(self: *Self) void {
     self.layout.arrange(self.current_layout(), self);
 
     log.debug("<{*}> managed", .{ self });
-}
-
-
-pub fn get_current_per_tag_state(self: *Self) *PerTagState {
-    const i = @ctz(self.main_tag);
-    return &self.per_tag_state[i];
 }
 
 
