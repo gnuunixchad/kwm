@@ -1105,6 +1105,13 @@
                     .click = .{
                         .pressed = .{
                             .spawn_shell = .{ .cmd = "${HOME}/.local/bin/exiland -river" },
+                            //.quit = .{
+                            //    .exit_session = true,
+                            //    // command to run before quit
+                            //    // will quit only when the process exit with zero status
+                            //    // e.g. .{ "sh", "-c", "~/cleanup.sh" }
+                            //    .hook = null,
+                            //},
                         },
                     },
                 },

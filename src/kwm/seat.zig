@@ -517,14 +517,22 @@ fn handle_actions(self: *Self) void {
                 if (self.window_below_pointer.window) |window| {
                     self.window_interaction(window);
                     window.ensure_floating();
-                    window.prepare_move(self);
+                    window.prepare_move(.{ .start = .{ .seat = self } });
                 }
             },
             .pointer_resize => {
                 if (self.window_below_pointer.window) |window| {
                     self.window_interaction(window);
                     window.ensure_floating();
-                    window.prepare_resize(self);
+                    window.prepare_resize(.{
+                        .start = .{
+                            .seat = self,
+                            .direction = .{
+                                .horizontal = .forward,
+                                .vertical = .forward
+                            }
+                        }
+                    });
                 }
             },
             .snap => |data| {
@@ -842,10 +850,37 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
                 },
                 .resize => |op_data| {
                     if (op_data.seat == seat) {
-                        window.resize(
-                            op_data.start_width+data.dx,
-                            op_data.start_height+data.dy,
-                        );
+                        const new_x =
+                            if (op_data.direction.horizontal) |direction|
+                                switch (direction) {
+                                    .forward => null,
+                                    .reverse => op_data.start_x + data.dx,
+                                }
+                            else null;
+                        const new_y =
+                            if (op_data.direction.vertical) |direction|
+                                switch (direction) {
+                                    .forward => null,
+                                    .reverse => op_data.start_y + data.dy,
+                                }
+                            else null;
+                        window.move(new_x, new_y);
+
+                        const new_width =
+                            if (op_data.direction.horizontal) |direction|
+                                op_data.start_width + switch (direction) {
+                                    .forward => data.dx,
+                                    .reverse => -data.dx,
+                                }
+                            else null;
+                        const new_height =
+                            if (op_data.direction.vertical) |direction|
+                                op_data.start_height + switch (direction) {
+                                    .forward => data.dy,
+                                    .reverse => -data.dy,
+                                }
+                            else null;
+                        window.resize(new_width, new_height);
                     }
                 }
             }
@@ -858,12 +893,12 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
                     .none => {},
                     .move => |data| {
                         if (data.seat == seat) {
-                            window.prepare_move(null);
+                            window.prepare_move(.stop);
                         }
                     },
                     .resize => |data| {
                         if (data.seat == seat) {
-                            window.prepare_resize(null);
+                            window.prepare_resize(.stop);
                         }
                     }
                 }
