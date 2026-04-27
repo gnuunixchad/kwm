@@ -11,6 +11,7 @@ const xkbcommon = @import("xkbcommon");
 const Keysym = xkbcommon.Keysym;
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
+const wp = wayland.client.wp;
 const river = wayland.client.river;
 
 const Config = @import("config");
@@ -28,6 +29,7 @@ link: wl.list.Link = undefined,
 
 wl_seat: ?*wl.Seat = null,
 wl_pointer: ?*wl.Pointer = null,
+cursor_shape_device: ?*wp.CursorShapeDeviceV1 = null,
 rwm_seat: *river.SeatV1,
 rwm_layer_shell_seat: *river.LayerShellSeatV1,
 rwm_xkb_binding_seat: *river.XkbBindingsSeatV1,
@@ -63,6 +65,7 @@ window_below_pointer: struct {
     window: ?*Window = null,
     new: bool = false,
 } = .{},
+has_pointer_interaction: bool = false,
 unhandled_actions: std.ArrayList(binding.Action) = undefined,
 xkb_bindings: std.StringHashMap(std.ArrayList(*binding.XkbBinding)) = undefined,
 pointer_bindings: std.StringHashMap(std.ArrayList(*binding.PointerBinding)) = undefined,
@@ -107,6 +110,7 @@ pub fn destroy(self: *Self) void {
     self.link.remove();
     if (self.wl_seat) |wl_seat| wl_seat.destroy();
     if (self.wl_pointer) |wl_pointer| wl_pointer.destroy();
+    if (self.cursor_shape_device) |cursor_shape_device| cursor_shape_device.destroy();
     self.rwm_seat.destroy();
     self.rwm_layer_shell_seat.destroy();
 
@@ -145,15 +149,47 @@ pub fn toggle_bindings(self: *Self, mode: []const u8, flag: bool) void {
 }
 
 
-pub inline fn op_start(self: *Self) void {
+pub fn op_start(self: *Self, @"type": union(enum) { move, resize: Window.ResizeDirection }) void {
     log.debug("<{*}> op begin", .{ self });
+
+    if (self.cursor_shape_device) |cursor_shape_device| {
+        cursor_shape_device.setShape(0, switch (@"type") {
+            .move => .move,
+            .resize => |direction|
+                if (direction.horizontal == null)
+                    switch (direction.vertical.?) {
+                        .forward => .s_resize,
+                        .reverse => .n_resize,
+                    }
+                 else if (direction.vertical == null)
+                    switch (direction.horizontal.?) {
+                        .forward => .e_resize,
+                        .reverse => .w_resize,
+                    }
+                 else
+                     switch (direction.vertical.?) {
+                         .forward => switch (direction.horizontal.?) {
+                             .forward => .se_resize,
+                             .reverse => .sw_resize,
+                         },
+                         .reverse => switch (direction.horizontal.?) {
+                             .forward => .ne_resize,
+                             .reverse => .nw_resize,
+                         },
+                     }
+        });
+    }
 
     self.rwm_seat.opStartPointer();
 }
 
 
-pub inline fn op_end(self: *Self) void {
+pub fn op_end(self: *Self) void {
     log.debug("<{*}> op end", .{ self });
+
+    if (self.cursor_shape_device) |cursor_shape_device| {
+        cursor_shape_device.setShape(0, .default);
+    }
 
     self.rwm_seat.opEnd();
 }
@@ -174,8 +210,6 @@ pub fn manage(self: *Self) void {
         defer self.window_below_pointer.new = false;
 
         const window = self.window_below_pointer.window.?;
-        // avoid cursor warpping
-        self.previous_focused = .{ .window = window };
 
         context.focus(
             window,
@@ -227,6 +261,8 @@ pub fn try_focus(self: *Self) void {
 
     if (self.focus_exclusive) return;
 
+    defer self.has_pointer_interaction = false;
+
     const config = Config.get();
     const context = Context.get();
 
@@ -235,7 +271,7 @@ pub fn try_focus(self: *Self) void {
 
         defer self.previous_focused = .{ .window = window };
 
-        switch (config.cursor_warp) {
+        if (!self.has_pointer_interaction) switch (config.cursor_warp) {
             .none => {},
             .on_output_changed => blk: {
                 switch (self.previous_focused) {
@@ -256,7 +292,7 @@ pub fn try_focus(self: *Self) void {
 
                 self.warp_cursor(.{ .window = window });
             }
-        }
+        };
 
         // if there are any window fullscreen on output, focus it first
         self.rwm_seat.focusWindow((
@@ -270,7 +306,7 @@ pub fn try_focus(self: *Self) void {
         if (context.current_output) |output| {
             defer self.previous_focused = .{ .output = output };
 
-            if (config.cursor_warp != .none) blk: {
+            if (!self.has_pointer_interaction and config.cursor_warp != .none) blk: {
                 switch (self.previous_focused) {
                     .none => {},
                     .window => |w| if (w.output == output) break :blk,
@@ -448,10 +484,19 @@ fn warp_cursor(self: *Self, dest: union(enum) { window: *Window, output: *Output
             if (window.output) |output| {
                 const x = window.x + @divFloor(window.width, 2);
                 const y = window.y + @divFloor(window.height, 2);
-                break :blk .{
-                    output.exclusive_x() + @max(0, @min(output.exclusive_width(), x)),
-                    output.exclusive_y() + @max(0, @min(output.exclusive_height(), y)),
-                };
+                const abs_x = output.exclusive_x() + @max(0, @min(output.exclusive_width(), x));
+                const abs_y = output.exclusive_y() + @max(0, @min(output.exclusive_height(), y));
+                const pointer_x = self.pointer_position.x;
+                const pointer_y = self.pointer_position.y;
+                // if pointer already within the window, skip
+                if (
+                    @abs(pointer_x - abs_x) < @divFloor(window.width, 2)
+                    and
+                    @abs(pointer_y - abs_y) < @divFloor(window.height, 2)
+                ) {
+                    return;
+                }
+                break :blk .{ abs_x, abs_y };
             } else return;
         },
         .output => |output| .{
@@ -821,10 +866,33 @@ fn window_interaction(self: *Self, window: *Window) void {
 
     const context = Context.get();
 
-    // avoid cursor warpping
-    self.previous_focused = .{ .window = window };
-
     context.focus(window, true);
+    self.has_pointer_interaction = true;
+}
+
+
+fn shell_surface_interaction(self: *Self, shell_surface: *ShellSurface) void {
+    log.debug("<{*}> interaction with shell surface: {*}", .{ self, shell_surface });
+
+    const context = Context.get();
+
+    switch (shell_surface.type) {
+        .layer_marker => unreachable,
+        .bar => |bar| if (comptime build_options.bar_enabled) {
+            log.debug("<{*}> interaction with {*}", .{ self, bar });
+
+            context.set_current_output(bar.output);
+
+            bar.handle_click(self);
+        } else unreachable,
+        .background => |background| if (comptime build_options.background_enabled) {
+            log.debug("<{*}> interaction with {*}", .{ self, background });
+
+            context.set_current_output(background.output);
+        } else unreachable,
+    }
+
+    self.has_pointer_interaction = true;
 }
 
 
@@ -949,29 +1017,8 @@ fn rwm_seat_listener(rwm_seat: *river.SeatV1, event: river.SeatV1.Event, seat: *
                 @alignCast((data.shell_surface orelse return).getUserData())
             );
 
-            log.debug("<{*}> interaction with {*}", .{ seat, shell_surface });
+            seat.shell_surface_interaction(shell_surface);
 
-            switch (shell_surface.type) {
-                .layer_marker => unreachable,
-                .bar => |bar| if (comptime build_options.bar_enabled) {
-                    log.debug("<{*}> interaction with {*}", .{ seat, bar });
-
-                    // avoid cursor warpping
-                    seat.previous_focused = .{ .output = bar.output };
-
-                    context.set_current_output(bar.output);
-
-                    bar.handle_click(seat);
-                } else unreachable,
-                .background => |background| if (comptime build_options.background_enabled) {
-                    log.debug("<{*}> interaction with {*}", .{ seat, background });
-
-                    // avoid cursor warpping
-                    seat.previous_focused = .{ .output = background.output };
-
-                    context.set_current_output(background.output);
-                } else unreachable,
-            }
         },
         .window_interaction => |data| {
             log.debug("<{*}> window interaction: {*}", .{ seat, data.window });
@@ -1058,8 +1105,9 @@ fn wl_seat_listener(wl_seat: *wl.Seat, event: wl.Seat.Event, seat: *Self) void {
             }
             if (data.capabilities.pointer) {
                 const wl_pointer = wl_seat.getPointer() catch return;
-                seat.wl_pointer = wl_pointer;
                 wl_pointer.setListener(*Self, wl_pointer_listener, seat);
+                seat.wl_pointer = wl_pointer;
+                seat.cursor_shape_device = context.wp_cursor_shape_manager.getPointer(wl_pointer) catch null;
             }
 
             // automatically run `kwim` when receive `capabilities` event
@@ -1087,6 +1135,13 @@ fn wl_pointer_listener(wl_pointer: *wl.Pointer, event: wl.Pointer.Event, seat: *
             log.debug("<{*}> button: {}, state: {s}", .{ seat, data.button, @tagName(data.state) });
 
             seat.button = @enumFromInt(data.button);
+        },
+        .enter => |data| {
+            log.debug("<{*}> enter: (surface: {*}, x: {}, y: {})", .{ seat, data.surface, data.surface_x.toInt(), data.surface_y.toInt() });
+
+            if (seat.cursor_shape_device) |cursor_shape_device| {
+                cursor_shape_device.setShape(0, .default);
+            }
         },
         else => {}
     }

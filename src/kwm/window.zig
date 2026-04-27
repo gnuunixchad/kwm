@@ -29,6 +29,10 @@ pub const Edge = enum {
     left,
     right,
 };
+pub const ResizeDirection = struct {
+    horizontal: ?types.Direction,
+    vertical: ?types.Direction,
+};
 
 const MoveState = union(enum) {
     const Data = struct {
@@ -37,10 +41,6 @@ const MoveState = union(enum) {
 
     start: Data,
     stop,
-};
-const ResizeDirection = struct {
-    horizontal: ?types.Direction,
-    vertical: ?types.Direction,
 };
 const ResizeState = union(enum) {
     const Data = struct {
@@ -555,6 +555,7 @@ pub fn handle_events(self: *Self) void {
     defer self.unhandled_events.clearRetainingCapacity();
 
     const config = Config.get();
+    const context = Context.get();
 
     for (self.unhandled_events.items) |event| {
         log.debug("<{*}> handle event: {s}", .{ self, @tagName(event) });
@@ -591,8 +592,6 @@ pub fn handle_events(self: *Self) void {
                 if (self.floating or self.output == null or self.output.?.current_layout() == .float) {
                     self.geometry_undefined = true;
                 }
-
-                const context = Context.get();
 
                 if (self.is_terminal) {
                     context.register_terminal(self);
@@ -674,7 +673,7 @@ pub fn handle_events(self: *Self) void {
 
                 switch (state) {
                     .start => |data| {
-                        data.seat.op_start();
+                        data.seat.op_start(.move);
                         self.operator = .{
                             .move = .{
                                 .start_x = self.x,
@@ -699,7 +698,7 @@ pub fn handle_events(self: *Self) void {
 
                 switch (state) {
                     .start => |data| {
-                        data.seat.op_start();
+                        data.seat.op_start(.{ .resize = data.direction });
                         self.operator = .{
                             .resize = .{
                                 .start_x = self.x,

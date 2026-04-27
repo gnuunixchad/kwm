@@ -30,6 +30,7 @@ const Globals = struct {
     wl_subcompositor: ?*wl.Subcompositor = null,
     wl_shm: ?*wl.Shm = null,
     wp_viewporter: ?*wp.Viewporter = null,
+    wp_cursor_shape_manager: ?*wp.CursorShapeManagerV1 = null,
     wp_fractional_scale_manager: ?*wp.FractionalScaleManagerV1 = null,
     wp_single_pixel_buffer_manager: ?*wp.SinglePixelBufferManagerV1 = null,
     rwm: ?*river.WindowManagerV1 = null,
@@ -111,6 +112,7 @@ pub fn main() !void {
         const wl_compositor = globals.wl_compositor orelse return error.MissingCompositor;
         const wl_subcompositor = globals.wl_subcompositor orelse return error.MissingSubcompositor;
         const wl_shm = globals.wl_shm orelse return error.MissingShm;
+        const wp_cursor_shape_manager = globals.wp_cursor_shape_manager orelse return error.MissingCursorShapeManagerV1;
         const wp_fractional_scale_manager = globals.wp_fractional_scale_manager orelse return error.MissingFractionalScaleManagerV1;
         const wp_single_pixel_buffer_manager = globals.wp_single_pixel_buffer_manager orelse return error.MissingSinglePixelBufferManagerV1;
         const wp_viewporter = globals.wp_viewporter orelse return error.MissingViewporter;
@@ -124,6 +126,7 @@ pub fn main() !void {
             wl_subcompositor,
             wl_shm,
             wp_viewporter,
+            wp_cursor_shape_manager,
             wp_fractional_scale_manager,
             wp_single_pixel_buffer_manager,
             rwm,
@@ -147,6 +150,8 @@ fn registry_listener(registry: *wl.Registry, event: wl.Registry.Event, globals: 
                 globals.wl_shm = registry.bind(global.name, wl.Shm, 1) catch return;
             } else if (mem.orderZ(u8, global.interface, wp.Viewporter.interface.name) == .eq) {
                 globals.wp_viewporter = registry.bind(global.name, wp.Viewporter, 1) catch return;
+            } else if (mem.orderZ(u8, global.interface, wp.CursorShapeManagerV1.interface.name) == .eq) {
+                globals.wp_cursor_shape_manager = registry.bind(global.name, wp.CursorShapeManagerV1, 1) catch return;
             } else if (mem.orderZ(u8, global.interface, wp.FractionalScaleManagerV1.interface.name) == .eq) {
                 globals.wp_fractional_scale_manager = registry.bind(global.name, wp.FractionalScaleManagerV1, 1) catch return;
             } else if (mem.orderZ(u8, global.interface, wp.SinglePixelBufferManagerV1.interface.name) == .eq) {
