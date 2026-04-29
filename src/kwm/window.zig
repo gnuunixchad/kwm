@@ -590,7 +590,14 @@ pub fn handle_events(self: *Self) void {
                 }
 
                 if (self.floating or self.output == null or self.output.?.current_layout() == .float) {
-                    self.geometry_undefined = true;
+                    if (self.width > 0 and self.height > 0) {
+                        self.geometry_undefined = false;
+                        if (self.output != null) {
+                            self.center();
+                        }
+                    } else {
+                        self.geometry_undefined = true;
+                    }
                 }
 
                 if (self.is_terminal) {
