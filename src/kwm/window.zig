@@ -774,6 +774,10 @@ pub fn manage(self: *Self) void {
             width -= 2 * config.border.width;
         }
 
+        // river-window-management-v1 doesn't allow negtive value
+        width = @max(width, self.min_width);
+        height = @max(height, self.min_height);
+
         break :blk .{ width, height };
     };
 

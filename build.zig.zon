@@ -45,7 +45,7 @@
             .hash = "mvzr-0.3.7-ZSOky1dvAQDTEE_8S0pvpasmoEWQHVA29tMBdxL_hwra",
         },
         .fcft = .{
-            .url = "https://git.sr.ht/~novakane/zig-fcft/archive/v2.0.0.tar.gz",
+            .url = "https://github.com/kewuaa/zig-fcft/archive/refs/tags/v2.0.0.tar.gz",
             .hash = "fcft-2.0.0-zcx6C5EaAADIEaQzDg5D4UvFFMjSEwDE38vdE9xObeN9",
             .lazy = true,
         },

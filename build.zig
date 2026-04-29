@@ -79,6 +79,7 @@ pub fn build(b: *std.Build) void {
         }
     };
 
+    const pie = b.option(bool, "pie", "if enable pie") orelse false;
     const default_config_path = b.option([]const u8, "config", "path to config file") orelse "config.zon";
     const background_enabled = b.option(bool, "background", "if enable background") orelse false;
     const bar_enabled = b.option(bool, "bar", "if enable bar") orelse true;
@@ -224,6 +225,7 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     });
+    exe.pie = pie;
     exe.root_module.linkSystemLibrary("wayland-client", .{});
     exe.root_module.linkSystemLibrary("xkbcommon", .{});
     if (bar_enabled) {
