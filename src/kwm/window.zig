@@ -757,6 +757,11 @@ pub fn apply_rules(self: *Self) void {
 pub fn manage(self: *Self) void {
     log.debug("<{*}> managing, propose dimensions: (width: {}, height: {})", .{ self, self.width, self.height });
 
+    if (self.geometry_undefined) {
+        self.rwm_window.proposeDimensions(0, 0);
+        return;
+    }
+
     const width, const height = blk: {
         const config = Config.get();
 
