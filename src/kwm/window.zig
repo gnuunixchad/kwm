@@ -591,10 +591,7 @@ pub fn handle_events(self: *Self) void {
 
                 if (self.floating or self.output == null or self.output.?.current_layout() == .float) {
                     if (self.width > 0 and self.height > 0) {
-                        self.geometry_undefined = false;
-                        if (self.output != null) {
-                            self.center();
-                        }
+                        self.center();
                     } else {
                         self.geometry_undefined = true;
                     }
@@ -903,8 +900,10 @@ fn set_title(self: *Self, title: ?[]const u8) void {
 
 
 fn center(self: *Self) void {
-    self.x = @divFloor(self.output.?.exclusive_width()-self.width, 2);
-    self.y = @divFloor(self.output.?.exclusive_height()-self.height, 2);
+    if (self.output) |output| {
+        self.x = @divFloor(output.exclusive_width()-self.width, 2);
+        self.y = @divFloor(output.exclusive_height()-self.height, 2);
+    }
 }
 
 
