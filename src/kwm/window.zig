@@ -951,7 +951,6 @@ fn swallow(self: *Self, window: *Self) void {
 
     self.swallowing = window;
 
-    self.toggle_floating(window.floating);
     self.tag = window.tag;
     self.x = window.x;
     self.y = window.y;
