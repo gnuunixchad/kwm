@@ -952,11 +952,14 @@ fn swallow(self: *Self, window: *Self) void {
     self.swallowing = window;
 
     self.tag = window.tag;
-    self.x = window.x;
-    self.y = window.y;
-    self.width = window.width;
-    self.height = window.height;
     self.scroller_x = window.scroller_x;
+    if (self.floating == window.floating) {
+        self.x = window.x;
+        self.y = window.y;
+        self.width = window.width;
+        self.height = window.height;
+        self.geometry_undefined = false;
+    }
 
     self.link.remove();
     window.link.insert(&self.link);
