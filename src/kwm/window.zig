@@ -517,6 +517,16 @@ pub fn toggle_sticky(self: *Self) void {
 }
 
 
+// if the window is managed by any layout
+pub fn managed_by_layout(self: *const Self) bool {
+    return
+        if (self.output) |output|
+            if (output.current_layout() == .float) false
+            else !self.floating
+        else false;
+}
+
+
 pub fn is_visible(self: *Self) bool {
     if (self.output) |output| {
         return (
@@ -589,7 +599,7 @@ pub fn handle_events(self: *Self) void {
                     .ssd => self.rwm_window.useSsd(),
                 }
 
-                if (self.floating or self.output == null or self.output.?.current_layout() == .float) {
+                if (!self.managed_by_layout()) {
                     if (self.width > 0 and self.height > 0) {
                         self.center();
                     } else {
@@ -779,14 +789,11 @@ pub fn manage(self: *Self) void {
             }
         }
         if (self.swallowing_border != null) {
-            height -= 2 * config.border.width;
-            width -= 2 * config.border.width;
+            if (self.managed_by_layout()) {
+                width = @max(width - 2*config.border.width, self.min_width);
+                height = @max(height - 2*config.border.width, self.min_height);
+            }
         }
-
-        // river-window-management-v1 doesn't allow negtive value
-        width = @max(width, self.min_width);
-        height = @max(height, self.min_height);
-
         break :blk .{ width, height };
     };
 
@@ -825,8 +832,10 @@ pub fn render(self: *Self) void {
 
     if (self.swallowing_border) |*border| {
         border.render(config.border.color.swallowing);
-        offset_x += config.border.width;
-        offset_y += config.border.width;
+        if (self.managed_by_layout()) {
+            offset_x += config.border.width;
+            offset_y += config.border.width;
+        }
     }
 
     if (self.maximize) {
@@ -1070,7 +1079,7 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
 
             if (
                 window.geometry_undefined
-                or (window.floating and window.fullscreen != .output and !window.maximize)
+                or (!window.managed_by_layout() and window.fullscreen != .output and !window.maximize)
             ) {
                 if (window.output == null) {
                     window.unbound_resize(data.width, data.height);
@@ -1153,7 +1162,7 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
         .pointer_move_requested => |data| {
             log.debug("<{*}> pointer move requested: {*}", .{ window, data.seat });
 
-            if (!window.floating and (window.output != null and window.output.?.current_layout() != .float)) return;
+            if (window.managed_by_layout()) return;
 
             if (data.seat) |rwm_seat| {
                 const seat: *Seat = @ptrCast(
@@ -1166,7 +1175,7 @@ fn rwm_window_listener(rwm_window: *river.WindowV1, event: river.WindowV1.Event,
         .pointer_resize_requested => |data| {
             log.debug("<{*}> pointer resize requested: {*}", .{ window, data.seat });
 
-            if (!window.floating and (window.output != null and window.output.?.current_layout() != .float)) return;
+            if (window.managed_by_layout()) return;
 
             if (data.seat) |rwm_seat| {
                 const seat: *Seat = @ptrCast(

@@ -211,13 +211,7 @@ pub fn manage(self: *Self) void {
 
         const window = self.window_below_pointer.window.?;
 
-        context.focus(
-            window,
-            !window.floating
-            and if (window.output) |output|
-                output.current_layout() != .float
-                else false,
-        );
+        context.focus(window, window.managed_by_layout());
     }
 
     self.handle_actions();
