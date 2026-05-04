@@ -247,8 +247,6 @@
             .gap = 2,
         },
         .deck = .{
-            .nmaster = 1,
-            .mfact = 0.50,
             .inner_gap = 0,
             .outer_gap = 2,
 
