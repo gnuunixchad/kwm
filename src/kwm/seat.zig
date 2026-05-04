@@ -753,23 +753,35 @@ fn handle_actions(self: *Self) void {
 
             .modify_nmaster => |data| {
                 if (context.current_output) |output| {
-                    if (output.current_layout() == .tile) {
-                        switch (data.change) {
-                            .increase => output.layout.tile.nmaster += 1,
-                            .decrease => output.layout.tile.nmaster = @max(1, output.layout.tile.nmaster-1),
-                        }
+                    switch (output.current_layout()) {
+                        .tile => |tile| switch (data.change) {
+                            .increase => tile.nmaster += 1,
+                            .decrease => tile.nmaster = @max(1, tile.nmaster-1),
+                        },
+                        .deck => |deck| switch (data.change) {
+                            .increase => deck.nmaster += 1,
+                            .decrease => deck.nmaster = @max(1, deck.nmaster-1),
+                        },
+                        else => {}
                     }
                 }
             },
             .modify_mfact => |data| {
                 if (context.current_output) |output| {
                     switch (output.current_layout()) {
-                        .tile => {
+                        .tile => |tile| {
                             const val = switch (data.change) {
                                 .set => |set| set,
-                                .step => |step| output.layout.tile.mfact + step,
+                                .step => |step| tile.mfact + step,
                             };
-                            output.layout.tile.mfact = @min(1, @max(0, val));
+                            tile.mfact = @min(1, @max(0, val));
+                        },
+                        .deck => |deck| {
+                            const val = switch (data.change) {
+                                .set => |set| set,
+                                .step => |step| deck.mfact + step,
+                            };
+                            deck.mfact = @min(1, @max(0, val));
                         },
                         .scroller => {
                             if (context.focus_top_in(output, false)) |window| {
@@ -787,11 +799,11 @@ fn handle_actions(self: *Self) void {
             .modify_gap => |data| {
                 if (context.current_output) |output| {
                     switch (output.current_layout()) {
-                        .tile => output.layout.tile.inner_gap = @max(config.border.width*2, output.layout.tile.inner_gap+data.step),
-                        .grid => output.layout.grid.inner_gap = @max(config.border.width*2, output.layout.grid.inner_gap+data.step),
-                        .monocle => output.layout.monocle.gap = @max(config.border.width*2, output.layout.monocle.gap+data.step),
-                        .deck => output.layout.deck.inner_gap = @max(config.border.width*2, output.layout.deck.inner_gap+data.step),
-                        .scroller => output.layout.scroller.inner_gap = @max(config.border.width*2, output.layout.scroller.inner_gap+data.step),
+                        .tile => |tile| tile.inner_gap = @max(config.border.width*2, tile.inner_gap+data.step),
+                        .grid => |grid| grid.inner_gap = @max(config.border.width*2, grid.inner_gap+data.step),
+                        .monocle => |monocle| monocle.gap = @max(config.border.width*2, monocle.gap+data.step),
+                        .deck => |deck| deck.inner_gap = @max(config.border.width*2, deck.inner_gap+data.step),
+                        .scroller => |scroller| scroller.inner_gap = @max(config.border.width*2, scroller.inner_gap+data.step),
                         .float => {},
                     }
                 }
@@ -799,8 +811,8 @@ fn handle_actions(self: *Self) void {
             .modify_master_location => |data| {
                 if (context.current_output) |output| blk: {
                     switch (output.current_layout()) {
-                        .tile => output.layout.tile.master_location = data.location,
-                        .deck => output.layout.deck.master_location = data.location,
+                        .tile => |tile| tile.master_location = data.location,
+                        .deck => |deck| deck.master_location = data.location,
                         else => break :blk,
                     }
                     if (comptime build_options.bar_enabled) {
@@ -810,14 +822,17 @@ fn handle_actions(self: *Self) void {
             },
             .toggle_grid_direction => {
                 if (context.current_output) |output| {
-                    if (output.current_layout() == .grid) {
-                        output.layout.grid.direction = switch (output.layout.grid.direction) {
-                            .horizontal => .vertical,
-                            .vertical => .horizontal,
-                        };
-                        if (comptime build_options.bar_enabled) {
-                            output.bar.damage(.layout);
-                        }
+                    switch (output.current_layout()) {
+                        .grid => |grid| {
+                            grid.direction = switch (grid.direction) {
+                                .horizontal => .vertical,
+                                .vertical => .horizontal,
+                            };
+                            if (comptime build_options.bar_enabled) {
+                                output.bar.damage(.layout);
+                            }
+                        },
+                        else => {}
                     }
                 }
             },

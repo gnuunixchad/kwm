@@ -527,10 +527,10 @@ fn render_dynamic_component(self: *Self) void {
         var layout_tag_buffer: [32]u8 = undefined;
         const layout_tag = blk: {
             const tag = switch (self.output.current_layout()) {
-                .tile => area.tags.tile.getter.get(self.output.layout.tile.master_location),
-                .grid => area.tags.grid.getter.get(self.output.layout.grid.direction),
+                .tile => |tile| area.tags.tile.getter.get(tile.master_location),
+                .grid => |grid| area.tags.grid.getter.get(grid.direction),
                 .monocle => area.tags.monocle,
-                .deck => area.tags.deck.getter.get(self.output.layout.deck.master_location),
+                .deck => |deck| area.tags.deck.getter.get(deck.master_location),
                 .scroller => area.tags.scroller,
                 .float => area.tags.float,
             };

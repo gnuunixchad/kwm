@@ -641,8 +641,8 @@ pub fn attach_window(self: *Self, window: *Window, mode: types.WindowAttachMode)
         .bottom => self.windows.append(window),
         .stack_top => if (self.current_output) |output| {
             const nmaster = switch (output.current_layout()) {
-                .tile => output.layout.tile.nmaster,
-                .deck => 1,
+                .tile => |tile| tile.nmaster,
+                .deck => |deck| deck.nmaster,
                 else => 0,
             };
 

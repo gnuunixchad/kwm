@@ -25,15 +25,3 @@ grid: Grid,
 monocle: Monocle,
 deck: Deck,
 scroller: Scroller,
-
-
-pub fn arrange(self: *Self, layout: Type, output: *Output) void {
-    switch (layout) {
-        .float => return,
-        .tile => self.tile.arrange(output),
-        .grid => self.grid.arrange(output),
-        .monocle => self.monocle.arrange(output),
-        .deck => self.deck.arrange(output),
-        .scroller => self.scroller.arrange(output),
-    }
-}

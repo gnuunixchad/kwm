@@ -19,7 +19,7 @@ const Window = @import("window.zig");
 const types = @import("types.zig");
 
 pub const State = struct {
-    layout: Layout,
+    layouts: [32]Layout,
 
     tag: u32 = 1,
     main_tag: u32 = 1,
@@ -36,7 +36,7 @@ wl_output: ?*wl.Output = null,
 rwm_output: *river.OutputV1,
 rwm_layer_shell_output: ?*river.LayerShellOutputV1,
 
-layout: Layout,
+layouts: [32]Layout,
 
 tag: u32 = 1,
 main_tag: u32 = 1,
@@ -69,7 +69,7 @@ pub fn create(
     output.* = .{
         .rwm_output = rwm_output,
         .rwm_layer_shell_output = rwm_layer_shell_output,
-        .layout = config.layout,
+        .layouts = .{ config.layout } ** 32,
         .layout_tag = .{ config.default_layout } ** 32,
         .prev_layout_tag = .{ config.default_layout } ** 32,
     };
@@ -295,10 +295,33 @@ pub fn toggle_tag(self: *Self, mask: u32) void {
 }
 
 
-pub fn current_layout(self: *Self) Layout.Type {
+pub fn current_layout(self: *Self) union(Layout.Type) {
+    tile: *Layout.Tile,
+    grid: *Layout.Grid,
+    monocle: *Layout.Monocle,
+    deck: *Layout.Deck,
+    scroller: *Layout.Scroller,
+    float,
+} {
     std.debug.assert(self.main_tag != 0 and self.main_tag & (self.main_tag-1) == 0);
 
-    return self.layout_tag[@ctz(self.main_tag)];
+    const i = @ctz(self.main_tag);
+    return switch (self.layout_tag[i]) {
+        .float => .float,
+        inline else => |t| @unionInit(
+            @TypeOf(self.current_layout()),
+            @tagName(t),
+            &@field(self.layouts[i], @tagName(t))
+        ),
+    };
+}
+
+
+pub inline fn scroller_mfact(self: *const Self) f32 {
+    std.debug.assert(self.main_tag != 0 and self.main_tag & (self.main_tag-1) == 0);
+
+    const i = @ctz(self.main_tag);
+    return self.layouts[i].scroller.mfact;
 }
 
 
@@ -326,7 +349,10 @@ pub fn switch_to_previous_layout(self: *Self) void {
 
 
 pub fn manage(self: *Self) void {
-    self.layout.arrange(self.current_layout(), self);
+    switch (self.current_layout()) {
+        .float => {},
+        inline else => |layout| layout.arrange(self),
+    }
 
     log.debug("<{*}> managed", .{ self });
 }
@@ -334,7 +360,9 @@ pub fn manage(self: *Self) void {
 
 fn apply_rule(self: *Self, rule: *const Config.OutputRule) void {
     if (rule.presentation_mode) |mode| self.set_presentation(mode);
-    if (rule.layout) |layout| self.layout = Config.meta.override(self.layout, layout);
+    if (rule.layout) |layout| for (&self.layouts) |*l| {
+        l.* = Config.meta.override(l.*, layout);
+    };
     if (rule.default_layout) |default_layout| {
         self.layout_tag = .{ default_layout } ** 32;
         self.prev_layout_tag = .{ default_layout } ** 32;
