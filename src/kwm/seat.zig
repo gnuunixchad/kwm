@@ -473,6 +473,7 @@ fn warp_cursor(self: *Self, dest: union(enum) { window: *Window, output: *Output
         .output => |output| log.debug("<{*}> warp cursor to {*}", .{ self, output }),
     }
 
+    const config = Config.get();
     const x, const y = switch (dest) {
         .window => |window| blk: {
             if (window.output) |output| {
@@ -484,9 +485,9 @@ fn warp_cursor(self: *Self, dest: union(enum) { window: *Window, output: *Output
                 const pointer_y = self.pointer_position.y;
                 // if pointer already within the window, skip
                 if (
-                    @abs(pointer_x - abs_x) < @divFloor(window.width, 2)
+                    @abs(pointer_x - abs_x) < @divFloor(window.width, 2) + config.border.width + 1
                     and
-                    @abs(pointer_y - abs_y) < @divFloor(window.height, 2)
+                    @abs(pointer_y - abs_y) < @divFloor(window.height, 2) + config.border.width + 1
                 ) {
                     return;
                 }
@@ -758,6 +759,10 @@ fn handle_actions(self: *Self) void {
                             .increase => tile.nmaster += 1,
                             .decrease => tile.nmaster = @max(1, tile.nmaster-1),
                         },
+                        .deck => |deck| switch (data.change) {
+                            .increase => deck.nmaster += 1,
+                            .decrease => deck.nmaster = @max(1, deck.nmaster-1),
+                        },
                         else => {}
                     }
                 }
@@ -771,6 +776,13 @@ fn handle_actions(self: *Self) void {
                                 .step => |step| tile.mfact + step,
                             };
                             tile.mfact = @min(1, @max(0, val));
+                        },
+                        .deck => |deck| {
+                            const val = switch (data.change) {
+                                .set => |set| set,
+                                .step => |step| deck.mfact + step,
+                            };
+                            deck.mfact = @min(1, @max(0, val));
                         },
                         .scroller => {
                             if (context.focus_top_in(output, false)) |window| {
