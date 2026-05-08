@@ -758,10 +758,6 @@ fn handle_actions(self: *Self) void {
                             .increase => tile.nmaster += 1,
                             .decrease => tile.nmaster = @max(1, tile.nmaster-1),
                         },
-                        .deck => |deck| switch (data.change) {
-                            .increase => deck.nmaster += 1,
-                            .decrease => deck.nmaster = @max(1, deck.nmaster-1),
-                        },
                         else => {}
                     }
                 }
@@ -775,13 +771,6 @@ fn handle_actions(self: *Self) void {
                                 .step => |step| tile.mfact + step,
                             };
                             tile.mfact = @min(1, @max(0, val));
-                        },
-                        .deck => |deck| {
-                            const val = switch (data.change) {
-                                .set => |set| set,
-                                .step => |step| deck.mfact + step,
-                            };
-                            deck.mfact = @min(1, @max(0, val));
                         },
                         .scroller => {
                             if (context.focus_top_in(output, false)) |window| {
