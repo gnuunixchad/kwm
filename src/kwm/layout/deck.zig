@@ -20,24 +20,21 @@ outer_gap: i32,
 master_location: MasterLocation,
 
 
-pub fn arrange(self: *const Self, output: *Output) void {
+pub fn arrange(self: *const Self, output: *Output) !void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
     const context = Context.get();
 
     var windows = blk: {
         var windows: std.ArrayList(*Window) = .empty;
+        errdefer windows.deinit(utils.allocator);
 
         {
             var it = context.windows.safeIterator(.forward);
             while (windows.items.len < self.nmaster) {
                 const window = it.next() orelse break :blk windows;
                 if (!window.is_visible_in(output) or window.floating) continue;
-                windows.append(utils.allocator, window) catch |err| {
-                    log.err("<{*}> append window failed: {}", .{ self, err });
-                    windows.deinit(utils.allocator);
-                    return;
-                };
+                try windows.append(utils.allocator, window);
             }
         }
 
@@ -47,11 +44,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
                 const masters = windows.items[0..@intCast(self.nmaster)];
                 if (mem.containsAtLeastScalar(*Window, masters, 1, window)) continue;
                 if (!window.is_visible_in(output) or window.floating) continue;
-                windows.append(utils.allocator, window) catch |err| {
-                    log.err("<{*}> append window failed: {}", .{ self, err });
-                    windows.deinit(utils.allocator);
-                    return;
-                };
+                try windows.append(utils.allocator, window);
             }
         }
         break :blk windows;

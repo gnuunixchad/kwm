@@ -351,7 +351,10 @@ pub fn switch_to_previous_layout(self: *Self) void {
 pub fn manage(self: *Self) void {
     switch (self.current_layout()) {
         .float => {},
-        inline else => |layout| layout.arrange(self),
+        inline else => |layout| layout.arrange(self) catch |err| {
+            log.err("<{*}> arrange windows with {*} failed: {}", .{ self, &layout, err });
+            return;
+        },
     }
 
     log.debug("<{*}> managed", .{ self });

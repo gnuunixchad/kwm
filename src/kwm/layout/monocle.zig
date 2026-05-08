@@ -10,7 +10,7 @@ const Output = @import("../output.zig");
 gap: i32,
 
 
-pub fn arrange(self: *const Self, output: *Output) void {
+pub fn arrange(self: *const Self, output: *Output) !void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
     const context = Context.get();
