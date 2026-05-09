@@ -351,7 +351,10 @@ pub fn switch_to_previous_layout(self: *Self) void {
 pub fn manage(self: *Self) void {
     switch (self.current_layout()) {
         .float => {},
-        inline else => |layout| layout.arrange(self),
+        inline else => |layout| layout.arrange(self) catch |err| {
+            log.err("<{*}> arrange windows with {*} failed: {}", .{ self, &layout, err });
+            return;
+        },
     }
 
     log.debug("<{*}> managed", .{ self });
@@ -480,8 +483,9 @@ fn wl_output_listener(wl_output: *wl.Output, event: wl.Output.Event, output: *Se
 
             if (context.output_states.fetchRemove(name)) |kv| {
                 log.debug("<{*}> restore state: {any}", .{ output, kv.value });
-                output.sync_state(&kv.value);
+                output.sync_state(kv.value);
                 utils.allocator.free(kv.key);
+                utils.allocator.destroy(kv.value);
 
                 context.rwm.manageDirty();
             }

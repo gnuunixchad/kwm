@@ -61,7 +61,7 @@ key_repeat: ?KeyRepeat,
 bar_status_fd: ?posix.fd_t = null,
 
 terminal_windows: std.AutoHashMap(i32, *Window) = undefined,
-output_states: std.StringHashMap(Output.State) = undefined,
+output_states: std.StringHashMap(*Output.State) = undefined,
 
 mode: []const u8,
 running: bool = true,
@@ -203,6 +203,7 @@ pub fn deinit() void {
         var it = ctx.?.output_states.iterator();
         while (it.next()) |kv| {
             utils.allocator.free(kv.key_ptr.*);
+            utils.allocator.destroy(kv.value_ptr.*);
         }
     }
     ctx.?.output_states.deinit();
@@ -881,9 +882,12 @@ pub inline fn spawn_shell(self: *Self, cmd: []const u8) void {
 
 inline fn store_output_state(self: *Self, output: *const Output) !void {
     if (output.name) |name| {
+        const state = try utils.allocator.create(Output.State);
+        errdefer utils.allocator.destroy(state);
+        state.* = output.get_state();
         try self.output_states.put(
             try utils.allocator.dupe(u8, name),
-            output.get_state()
+            state,
         );
     }
 }

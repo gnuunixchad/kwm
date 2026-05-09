@@ -21,7 +21,7 @@ outer_gap: i32,
 master_location: MasterLocation,
 
 
-pub fn arrange(self: *const Self, output: *Output) void {
+pub fn arrange(self: *const Self, output: *Output) !void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
     const context = Context.get();
@@ -35,10 +35,7 @@ pub fn arrange(self: *const Self, output: *Output) void {
                 !window.is_visible_in(output)
                 or window.floating
             ) continue;
-            windows.append(utils.allocator, window) catch |err| {
-                log.debug("<{*}> append window failed: {}", .{ self, err });
-                return;
-            };
+            try windows.append(utils.allocator, window);
         }
     }
 

@@ -13,7 +13,7 @@ inner_gap: i32,
 mfact: f32,
 
 
-pub fn arrange(self: *const Self, output: *Output) void {
+pub fn arrange(self: *const Self, output: *Output) !void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
     const context = Context.get();
