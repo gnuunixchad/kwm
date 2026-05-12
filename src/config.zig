@@ -168,5 +168,9 @@ pub fn reload(
 pub fn free(gpa: mem.Allocator, config: Config) void {
     log.debug("free configuration", .{});
 
-    meta.zon_free(gpa, config, null);
+    meta.zon_free(
+        gpa,
+        @as(*const meta.add_default(Config, default), @ptrCast(&config)).*,
+        null
+    );
 }
