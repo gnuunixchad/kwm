@@ -495,8 +495,9 @@ fn wl_output_listener(wl_output: *wl.Output, event: wl.Output.Event, output: *Se
                 while (it.next()) |window| {
                     if (window.former_output) |former| {
                         if (mem.eql(u8, former, name)) {
-                            log.debug("{*} former output match `{s}`", .{ window, name });
+                            log.debug("{*} former output match `{s}`, returning to original output", .{ window, name });
                             window.set_output(output, true);
+                            context.shift_to_head(window);
                         }
                     }
                 }

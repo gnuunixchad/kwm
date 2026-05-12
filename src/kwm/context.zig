@@ -691,7 +691,9 @@ pub fn prepare_remove_output(self: *Self, output: *Output) void {
         var it = self.windows.iterator(.forward);
         while (it.next()) |window| {
             if (window.output == output) {
-                window.set_former_output(output.name);
+                if (window.former_output == null) {
+                    window.set_former_output(output.name);
+                }
                 window.set_output(new_output, false);
             }
             switch (window.fullscreen) {
