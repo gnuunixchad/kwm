@@ -111,6 +111,7 @@ conditions, which allows per-host configuration.
 Syntax:
 
 ```zig
+// @include(file)
 // @if(condition)
 // @elif(condition)
 // @else
@@ -155,12 +156,8 @@ implementing the river-input-management-v1 protocol and/or related protocols in
 order to configure input devices independent of window manager.
 
 When built with the `-Dkwim` option (defaults to `true`), `kwm` will call
-`kwim` at startup and read input rules from the same configuration file used by
-`kwm`. You can also run `kwim` to list input devices or apply a single rule on
-demand.
-
-For users who prefer compile-time configuration, could compile `kwim` with your
-`config.zon`.
+`kwim` at startup. You can also run `kwim` to list input devices or apply a
+single rule on demand.
 
 ### How I run kwm with river
 Read status from a fifo(to restart the status command without restarting kwm)

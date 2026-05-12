@@ -19,16 +19,10 @@ pub fn main() !void {
         }
     }
 
-    const input_file = try fs.cwd().openFile(
-        input orelse return error.MissingInput,
-        .{ .mode = .read_only },
-    );
-    defer input_file.close();
-
     const output_file = try fs.createFileAbsolute(output orelse return error.MissingOutput, .{});
     defer output_file.close();
 
-    var buffer = try preprocess.preprocess(heap.c_allocator, input_file);
+    var buffer = try preprocess.preprocess(heap.c_allocator, input orelse return error.MissingInput);
     defer buffer.deinit(heap.c_allocator);
 
     var output_buffer: [4096]u8 = undefined;

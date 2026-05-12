@@ -104,10 +104,7 @@ pub fn load(
 ) !Config {
     log.info("loading configuration from `{s}`", .{ path });
 
-    const file = try fs.cwd().openFile(path, .{ .mode = .read_only });
-    defer file.close();
-
-    var buffer = try preprocess.preprocess(ctx.gpa, file);
+    var buffer = try preprocess.preprocess(ctx.gpa, path);
     defer buffer.deinit(ctx.gpa);
 
     @setEvalBranchQuota(20000);

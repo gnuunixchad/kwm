@@ -17,7 +17,20 @@ const Target = struct {
 };
 
 
-pub fn preprocess(gpa: mem.Allocator, file: fs.File) !std.ArrayList(u8) {
+pub fn preprocess(gpa: mem.Allocator, path: []const u8) !std.ArrayList(u8) {
+    const cwd = fs.cwd();
+    const file = try cwd.openFile(path, .{ .mode = .read_only });
+    defer file.close();
+    var dir = blk: {
+        const abs_path = try fs.realpathAlloc(gpa, path);
+        defer gpa.free(abs_path);
+        break :blk cwd.openDir(
+            fs.path.dirname(abs_path) orelse break :blk cwd,
+            .{},
+        ) catch cwd;
+    };
+    defer dir.close();
+
     var result: std.ArrayList(u8) = .empty;
     errdefer result.deinit(gpa);
 
@@ -44,6 +57,10 @@ pub fn preprocess(gpa: mem.Allocator, file: fs.File) !std.ArrayList(u8) {
     ).?;
     const end_pattern = mvzr.compile(
         \\//\s*@endif
+        \\
+    ).?;
+    const include_pattern = mvzr.compile(
+        \\//\s*@include\(.+\)
         \\
     ).?;
     var save = true;
@@ -91,7 +108,24 @@ pub fn preprocess(gpa: mem.Allocator, file: fs.File) !std.ArrayList(u8) {
         }
 
         if (save) {
-            try result.appendSlice(gpa, line);
+            if (include_pattern.isMatch(line)) {
+                const begin = mem.indexOf(u8, line, "(") orelse continue;
+                const file_to_include = dir.openFile(
+                    line[begin+1..line.len-2],
+                    .{ .mode = .read_only },
+                ) catch continue;
+                defer file_to_include.close();
+
+                const len = result.items.len;
+                const stat = file_to_include.stat() catch continue;
+                result.resize(gpa, len+stat.size) catch continue;
+
+                const buffer = result.items[len..];
+                _ = file_to_include.readAll(buffer) catch {
+                    try result.resize(gpa, len);
+                    continue;
+                };
+            } else try result.appendSlice(gpa, line);
         }
     } else |err| if (err != error.EndOfStream) return err;
 
