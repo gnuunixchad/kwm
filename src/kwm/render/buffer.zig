@@ -1,16 +1,18 @@
 const Self = @This();
 
 const std = @import("std");
-const log = std.log.scoped(.buffer);
 const mem = std.mem;
 const posix = std.posix;
 const linux = std.os.linux;
+const log = std.log.scoped(.buffer);
 
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const pixman = @import("pixman");
 
 const Context = @import("../context.zig");
+
+const ctx = Context.get();
 
 
 wl_buffer: *wl.Buffer = undefined,
@@ -34,8 +36,6 @@ pub fn init(self: *Self, width: i32, height: i32) !void {
         self.deinit();
     }
 
-    const context = Context.get();
-
     const stride = width * 4;
     const size = stride * height;
 
@@ -47,7 +47,7 @@ pub fn init(self: *Self, width: i32, height: i32) !void {
     const data = try posix.mmap(null, @intCast(size), posix.PROT.READ|posix.PROT.WRITE, .{ .TYPE = .SHARED }, fd, 0);
     errdefer posix.munmap(data);
 
-    const pool = try context.wl_shm.createPool(fd, size);
+    const pool = try ctx.wl_shm.createPool(fd, size);
     defer pool.destroy();
 
     const wl_buffer = try pool.createBuffer(0, width, height, stride, .argb8888);

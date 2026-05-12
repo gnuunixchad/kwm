@@ -29,13 +29,13 @@ pub const WindowDecoration = Window.Decoration;
 pub const Button = types.Button;
 
 
+const ctx = Context.get();
 pub const init = Context.init;
 pub const deinit = Context.deinit;
-pub const init_allocator = utils.init_allocator;
 
 
 pub fn run(wl_display: *wl.Display) !void {
-    const context = Context.get();
+    Context.check_init();
 
     const wayland_fd = wl_display.getFd();
 
@@ -57,7 +57,7 @@ pub fn run(wl_display: *wl.Display) !void {
     log.info("start running", .{});
     defer log.info("stop running", .{});
 
-    while (context.running) {
+    while (ctx.running) {
         defer poll_fds.clearRetainingCapacity();
         defer fd_types.clearRetainingCapacity();
 
@@ -67,12 +67,12 @@ pub fn run(wl_display: *wl.Display) !void {
         try poll_fds.appendBounded(.{ .fd = signal_fd, .events = posix.POLL.IN, .revents = 0 });
         try fd_types.appendBounded(.signal);
 
-        if (context.bar_status_fd) |fd| {
+        if (ctx.bar_status_fd) |fd| {
             try poll_fds.appendBounded(.{ .fd = fd, .events = posix.POLL.IN, .revents = 0 });
             try fd_types.appendBounded(.bar_status);
         }
 
-        if (context.key_repeat) |key_repeat| {
+        if (ctx.key_repeat) |key_repeat| {
             if (key_repeat.is_repeating()) {
                 try poll_fds.appendBounded(.{ .fd = key_repeat.timer_fd, .events = posix.POLL.IN, .revents = 0 });
                 try fd_types.appendBounded(.key_repeat);
@@ -88,12 +88,12 @@ pub fn run(wl_display: *wl.Display) !void {
                     .wayland => if (wl_display.dispatch() != .SUCCESS) return error.DispatchFailed,
                     .signal => {
                         const signal_info = try read(posix.siginfo_t, poll_fd.fd) orelse continue;
-                        context.handle_signal(signal_info.signo);
+                        ctx.handle_signal(signal_info.signo);
                     },
-                    .bar_status => context.update_bar_status(),
+                    .bar_status => ctx.update_bar_status(),
                     .key_repeat => {
                         const count = try read(u64, poll_fd.fd) orelse continue;
-                        context.key_repeat.?.repeat(count);
+                        ctx.key_repeat.?.repeat(count);
                     },
                 }
             }

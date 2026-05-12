@@ -7,14 +7,16 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const utils = @import("../utils.zig");
 const binding = @import("../binding.zig");
 const Seat = @import("../seat.zig");
+const Context = @import("../context.zig");
 
 pub const Event = struct {
     pressed: ?binding.Action = null,
     released: ?binding.Action = null,
 };
+
+const ctx = Context.get();
 
 
 rwm_pointer_binding: *river.PointerBindingV1,
@@ -29,8 +31,8 @@ pub fn create(
     modifiers: river.SeatV1.Modifiers,
     event: Event,
 ) !*Self {
-    const pointer_binding = try utils.allocator.create(Self);
-    errdefer utils.allocator.destroy(pointer_binding);
+    const pointer_binding = try ctx.gpa.create(Self);
+    errdefer ctx.gpa.destroy(pointer_binding);
 
     defer log.debug("<{*}> created", .{ pointer_binding });
 
@@ -53,7 +55,7 @@ pub fn destroy(self: *Self) void {
 
     self.rwm_pointer_binding.destroy();
 
-    utils.allocator.destroy(self);
+    ctx.gpa.destroy(self);
 }
 
 

@@ -9,7 +9,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const Config = @import("config");
+const config = @import("config");
 
 const utils = @import("utils.zig");
 const types = @import("types.zig");
@@ -59,6 +59,8 @@ const Event = union(enum) {
     move: MoveState,
     resize: ResizeState,
 };
+
+const ctx = Context.get();
 
 
 link: wl.list.Link = undefined,
@@ -140,12 +142,10 @@ operator: union(enum) {
 
 
 pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
-    const window = try utils.allocator.create(Self);
-    errdefer utils.allocator.destroy(window);
+    const window = try ctx.gpa.create(Self);
+    errdefer ctx.gpa.destroy(window);
 
     defer log.debug("<{*}> created", .{ window });
-
-    const config = Config.get();
 
     const rwm_window_node = try rwm_window.getNode();
     errdefer rwm_window_node.destroy();
@@ -153,10 +153,10 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
     window.* = .{
         .rwm_window = rwm_window,
         .rwm_window_node = rwm_window_node,
-        .unhandled_events = try .initCapacity(utils.allocator, 2),
+        .unhandled_events = try .initCapacity(ctx.gpa, 2),
         .scroller_mfact =
             if (output) |o| o.scroller_mfact()
-            else config.layout.scroller.mfact,
+            else ctx.cfg.layout.scroller.mfact,
     };
     window.link.init();
     window.flink.init();
@@ -164,7 +164,7 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
         window.set_tag(o.tag);
         window.set_output(o, false);
     }
-    try window.unhandled_events.append(utils.allocator, .init);
+    try window.unhandled_events.append(ctx.gpa, .init);
 
     rwm_window.setListener(*Self, rwm_window_listener, window);
 
@@ -175,10 +175,8 @@ pub fn create(rwm_window: *river.WindowV1, output: ?*Output) !*Self {
 pub fn destroy(self: *Self) void {
     defer log.debug("<{*}> destroyed", .{ self });
 
-    const context = Context.get();
-
     {
-        var it = context.seats.safeIterator(.forward);
+        var it = ctx.seats.safeIterator(.forward);
         while (it.next()) |seat| {
             switch (seat.previous_focused) {
                 .window => |window| if (self == window) {
@@ -196,7 +194,7 @@ pub fn destroy(self: *Self) void {
     self.set_former_output(null);
 
     if (self.is_terminal) {
-        context.unregister_terminal(self);
+        ctx.unregister_terminal(self);
     }
     self.unswallow();
 
@@ -210,9 +208,9 @@ pub fn destroy(self: *Self) void {
     self.rwm_window_node.destroy();
     self.set_appid(null);
     self.set_title(null);
-    self.unhandled_events.deinit(utils.allocator);
+    self.unhandled_events.deinit(ctx.gpa);
 
-    utils.allocator.destroy(self);
+    ctx.gpa.destroy(self);
 }
 
 
@@ -243,12 +241,12 @@ pub fn set_former_output(self: *Self, output: ?[]const u8) void {
     log.debug("<{*}> set former output to `{s}`", .{ self, output orelse "" });
 
     if (self.former_output) |name| {
-        utils.allocator.free(name);
+        ctx.gpa.free(name);
         self.former_output = null;
     }
 
     if (output) |name| {
-        self.former_output = utils.allocator.dupe(u8, name) catch |err| {
+        self.former_output = ctx.gpa.dupe(u8, name) catch |err| {
             log.err("dupe {s} failed: {}", .{ name, err });
             return;
         };
@@ -295,20 +293,18 @@ pub fn place(self: *Self, pos: types.PlacePosition) void {
 pub fn move(self: *Self, x: ?i32, y: ?i32) void {
     defer log.debug("<{*}> move to (x: {}, y: {})", .{ self, self.x, self.y });
 
-    const config = Config.get();
-
     self.x = @max(
-        config.border.width,
+        ctx.cfg.border.width,
         @min(
             x orelse self.x,
-            self.output.?.exclusive_width()-self.width-config.border.width
+            self.output.?.exclusive_width()-self.width-ctx.cfg.border.width
         )
     );
     self.y = @max(
-        config.border.width,
+        ctx.cfg.border.width,
         @min(
             y orelse self.y,
-            self.output.?.exclusive_height()-self.height-config.border.width
+            self.output.?.exclusive_height()-self.height-ctx.cfg.border.width
         )
     );
 }
@@ -346,17 +342,15 @@ pub fn resize(self: *Self, width: ?i32, height: ?i32) void {
         .{ self, self.width, self.height },
     );
 
-    const config = Config.get();
-
     self.width = @min(
-        self.output.?.exclusive_width()-self.x-config.border.width,
+        self.output.?.exclusive_width()-self.x-ctx.cfg.border.width,
         @max(
             width orelse self.width,
             self.min_width,
         )
     );
     self.height = @min(
-        self.output.?.exclusive_height()-self.y-config.border.width,
+        self.output.?.exclusive_height()-self.y-ctx.cfg.border.width,
         @max(
             height orelse self.height,
             self.min_height,
@@ -473,9 +467,7 @@ pub fn toggle_floating(self: *Self, flag: ?bool) void {
         }
     }
 
-    const config = Config.get();
-
-    if (!config.remember_floating_geometry) return;
+    if (!ctx.cfg.remember_floating_geometry) return;
 
     if (self.floating) {
         if (self.floating_geometry) |geometry| {
@@ -566,9 +558,6 @@ pub fn toggle_swallow(self: *Self) void {
 pub fn handle_events(self: *Self) void {
     defer self.unhandled_events.clearRetainingCapacity();
 
-    const config = Config.get();
-    const context = Context.get();
-
     for (self.unhandled_events.items) |event| {
         log.debug("<{*}> handle event: {s}", .{ self, @tagName(event) });
 
@@ -596,7 +585,7 @@ pub fn handle_events(self: *Self) void {
                     else => {}
                 }
 
-                switch (self.decoration orelse config.default_window_decoration) {
+                switch (self.decoration orelse ctx.cfg.default_window_decoration) {
                     .csd => self.rwm_window.useCsd(),
                     .ssd => self.rwm_window.useSsd(),
                 }
@@ -610,10 +599,10 @@ pub fn handle_events(self: *Self) void {
                 }
 
                 if (self.is_terminal) {
-                    context.register_terminal(self);
+                    ctx.register_terminal(self);
                 }
 
-                if (config.auto_swallow) {
+                if (ctx.cfg.auto_swallow) {
                     self.try_swallow();
                 }
             },
@@ -759,9 +748,7 @@ pub fn handle_events(self: *Self) void {
 pub fn apply_rules(self: *Self) void {
     log.debug("<{*}> apply rules", .{ self });
 
-    const config = Config.get();
-
-    for (config.window_rules) |rule| {
+    for (ctx.cfg.window_rules) |rule| {
         if (rule.match(self.app_id, self.title)) {
             self.apply_rule(&rule);
             break;
@@ -779,21 +766,19 @@ pub fn manage(self: *Self) void {
     }
 
     const width, const height = blk: {
-        const config = Config.get();
-
         var width = self.width;
         var height = self.height;
         if (self.maximize) {
             if (self.output) |output| {
 
-                width = output.exclusive_width() - 2*config.border.width;
-                height = output.exclusive_height() - 2*config.border.width;
+                width = output.exclusive_width() - 2*ctx.cfg.border.width;
+                height = output.exclusive_height() - 2*ctx.cfg.border.width;
             }
         }
         if (self.swallowing_border != null) {
             if (self.managed_by_layout()) {
-                width = @max(width - 2*config.border.width, self.min_width);
-                height = @max(height - 2*config.border.width, self.min_height);
+                width = @max(width - 2*ctx.cfg.border.width, self.min_width);
+                height = @max(height - 2*ctx.cfg.border.width, self.min_height);
             }
         }
         break :blk .{ width, height };
@@ -806,16 +791,14 @@ pub fn manage(self: *Self) void {
 pub fn render(self: *Self) void {
     defer self.hidden = false;
 
-    const config = Config.get();
-
     if (
         self.hidden
         or self.output == null
         or self.geometry_undefined
-        or self.x - config.border.width >= self.output.?.width
-        or self.x + self.width + config.border.width <= 0
-        or self.y - config.border.width >= self.output.?.height
-        or self.y + self.height + config.border.width <= 0
+        or self.x - ctx.cfg.border.width >= self.output.?.width
+        or self.x + self.width + ctx.cfg.border.width <= 0
+        or self.y - ctx.cfg.border.width >= self.output.?.height
+        or self.y + self.height + ctx.cfg.border.width <= 0
     ) {
         if (!self.hidden and !self.geometry_undefined)
             log.debug("<{*}> out of range, hide", .{ self });
@@ -833,17 +816,17 @@ pub fn render(self: *Self) void {
     const output_y = self.output.?.exclusive_y();
 
     if (self.swallowing_border) |*border| {
-        border.render(config.border.color.swallowing);
+        border.render(ctx.cfg.border.color.swallowing);
         if (self.managed_by_layout()) {
-            offset_x += config.border.width;
-            offset_y += config.border.width;
+            offset_x += ctx.cfg.border.width;
+            offset_y += ctx.cfg.border.width;
         }
     }
 
     if (self.maximize) {
         log.debug("<{*}> rendering maximize", .{ self });
-        offset_x += config.border.width;
-        offset_y += config.border.width;
+        offset_x += ctx.cfg.border.width;
+        offset_y += ctx.cfg.border.width;
         self.rwm_window_node.setPosition(output_x + offset_x, output_y + offset_y);
         self.rwm_window.show();
         return;
@@ -856,10 +839,10 @@ pub fn render(self: *Self) void {
         output_y + self.y + offset_y
     );
 
-    var left = self.x - config.border.width;
-    var right = self.x + self.width + config.border.width;
-    var top = self.y - config.border.width;
-    var bottom = self.y + self.height + config.border.width;
+    var left = self.x - ctx.cfg.border.width;
+    var right = self.x + self.width + ctx.cfg.border.width;
+    var top = self.y - ctx.cfg.border.width;
+    var bottom = self.y + self.height + ctx.cfg.border.width;
     if (
         left < 0
         or top < 0
@@ -890,22 +873,22 @@ pub fn hide(self: *Self) void {
 
 fn set_appid(self: *Self, app_id: ?[]const u8) void {
     if (self.app_id) |appid| {
-        utils.allocator.free(appid);
+        ctx.gpa.free(appid);
         self.app_id = null;
     }
     if (app_id) |appid| {
-        self.app_id = utils.allocator.dupe(u8, appid) catch return;
+        self.app_id = ctx.gpa.dupe(u8, appid) catch return;
     }
 }
 
 
 fn set_title(self: *Self, title: ?[]const u8) void {
     if (self.title) |tt| {
-        utils.allocator.free(tt);
+        ctx.gpa.free(tt);
         self.title = null;
     }
     if (title) |tt| {
-        self.title = utils.allocator.dupe(u8, tt) catch return;
+        self.title = ctx.gpa.dupe(u8, tt) catch return;
     }
 }
 
@@ -921,7 +904,7 @@ fn center(self: *Self) void {
 fn append_event(self: *Self, event: Event) void {
     log.debug("<{*}> append event: {s}", .{ self, @tagName(event) });
 
-    self.unhandled_events.append(utils.allocator, event) catch |err| {
+    self.unhandled_events.append(ctx.gpa, event) catch |err| {
         log.err("<{*}> append event {s} failed: {}", .{ self, @tagName(event), err });
         return;
     };
@@ -931,7 +914,6 @@ fn append_event(self: *Self, event: Event) void {
 fn try_swallow(self: *Self) void {
     log.debug("<{*}> try swallow", .{ self });
 
-    const context = Context.get();
     if (!self.disable_swallow and self.pid != 0) {
         var pid = self.pid;
         var ppid: i32 = undefined;
@@ -939,7 +921,7 @@ fn try_swallow(self: *Self) void {
             ppid = utils.parent_pid(pid);
             if (ppid == 0 or ppid == 1) break;
 
-            if (context.find_terminal(ppid)) |term| {
+            if (ctx.find_terminal(ppid)) |term| {
                 self.swallow(term);
                 break;
             }
@@ -1018,13 +1000,11 @@ fn unswallow(self: *Self) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const Config.WindowRule) void {
-    const context = Context.get();
-
+fn apply_rule(self: *Self, rule: *const config.WindowRule) void {
     if (rule.tag) |tag| self.set_tag(tag);
     if (rule.output) |output_pattern| {
         {
-            var it = context.outputs.safeIterator(.forward);
+            var it = ctx.outputs.safeIterator(.forward);
             while (it.next()) |output| {
                 if (output_pattern.is_match(output.name)) {
                     self.set_output(output, true);
@@ -1042,8 +1022,8 @@ fn apply_rule(self: *Self, rule: *const Config.WindowRule) void {
     if (rule.attach_mode) |mode| {
         self.link.remove(); self.link.init();
         self.flink.remove(); self.flink.init();
-        context.attach_window(self, mode);
-        context.focus(self, true);
+        ctx.attach_window(self, mode);
+        ctx.focus(self, true);
     }
 }
 

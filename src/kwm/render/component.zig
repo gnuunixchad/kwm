@@ -11,6 +11,8 @@ const utils = @import("../utils.zig");
 const Context = @import("../context.zig");
 const Buffer = @import("buffer.zig");
 
+const ctx = Context.get();
+
 
 wl_surface: *wl.Surface,
 wl_subsurface: *wl.Subsurface,
@@ -21,15 +23,13 @@ buffers: [2]Buffer = undefined,
 pub fn init(self: *Self, parent: *wl.Surface) !void {
     log.debug("<{*}> init", .{ self });
 
-    const context = Context.get();
-
-    const wl_surface = try context.wl_compositor.createSurface();
+    const wl_surface = try ctx.wl_compositor.createSurface();
     errdefer wl_surface.destroy();
 
-    const wl_subsurface = try context.wl_subcompositor.getSubsurface(wl_surface, parent);
+    const wl_subsurface = try ctx.wl_subcompositor.getSubsurface(wl_surface, parent);
     errdefer wl_subsurface.destroy();
 
-    const wp_viewport = try context.wp_viewporter.getViewport(wl_surface);
+    const wp_viewport = try ctx.wp_viewporter.getViewport(wl_surface);
     errdefer wp_viewport.destroy();
 
     self.* = .{

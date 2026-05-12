@@ -8,9 +8,11 @@ const log = std.log.scoped(.font);
 const fcft = @import("fcft");
 const pixman = @import("pixman");
 
-const utils = @import("../utils.zig");
 const render_utils = @import("utils.zig");
 const Buffer = @import("buffer.zig");
+const Context = @import("../context.zig");
+
+const ctx = Context.get();
 
 
 font: *fcft.Font,
@@ -109,8 +111,8 @@ pub fn render_str(
     x: i32,
     y: i32,
 ) i16 {
-    const utf8 = render_utils.to_utf8(utils.allocator, str) catch return 0;
-    defer utils.allocator.free(utf8);
+    const utf8 = render_utils.to_utf8(ctx.gpa, str) catch return 0;
+    defer ctx.gpa.free(utf8);
 
     const text = self.rasterize_text_run(utf8) orelse return 0;
     defer text.destroy();
@@ -121,8 +123,8 @@ pub fn render_str(
 
 fn load_font(font_name: []const u8, scale: u32) !*fcft.Font {
     const backup_font = "monospace:size=10";
-    const name = try utils.allocator.dupeZ(u8, font_name);
-    defer utils.allocator.free(name);
+    const name = try ctx.gpa.dupeZ(u8, font_name);
+    defer ctx.gpa.free(name);
     var fonts = [_][*:0]const u8 { name.ptr, backup_font };
 
     var buffer: [12]u8 = undefined;

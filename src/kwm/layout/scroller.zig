@@ -7,6 +7,8 @@ const Context = @import("../context.zig");
 const Output = @import("../output.zig");
 const Window = @import("../window.zig");
 
+const ctx = Context.get();
+
 
 outer_gap: i32,
 inner_gap: i32,
@@ -16,9 +18,7 @@ mfact: f32,
 pub fn arrange(self: *const Self, output: *Output) !void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
-    const context = Context.get();
-
-    const focus_top = context.focus_top_in(output, true) orelse return;
+    const focus_top = ctx.focus_top_in(output, true) orelse return;
 
     const available_width = output.exclusive_width();
     const available_height = output.exclusive_height();
@@ -31,7 +31,7 @@ pub fn arrange(self: *const Self, output: *Output) !void {
 
     const left = @max(self.outer_gap, blk: {
         var link = &focus_top.link;
-        while (link.prev.? != &context.windows.link) {
+        while (link.prev.? != &ctx.windows.link) {
             defer link = link.prev.?;
             const window: *Window = @fieldParentPtr("link", link.prev.?);
             if (window.is_visible_in(output) and !window.floating) {
@@ -61,7 +61,7 @@ pub fn arrange(self: *const Self, output: *Output) !void {
     {
         var link = &focus_top.link;
         var x = master_x;
-        while (link.prev.? != &context.windows.link) {
+        while (link.prev.? != &ctx.windows.link) {
             defer link = link.prev.?;
             const window: *Window = @fieldParentPtr("link", link.prev.?);
             if (!window.is_visible_in(output) or window.floating) continue;
@@ -82,7 +82,7 @@ pub fn arrange(self: *const Self, output: *Output) !void {
     {
         var link = &focus_top.link;
         var x = master_x + master_width;
-        while (link.next.? != &context.windows.link) {
+        while (link.next.? != &ctx.windows.link) {
             defer link = link.next.?;
             const window: *Window = @fieldParentPtr("link", link.next.?);
             if (!window.is_visible_in(output) or window.floating) continue;

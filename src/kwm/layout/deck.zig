@@ -12,6 +12,8 @@ const Window = @import("../window.zig");
 
 pub const MasterLocation = types.LayoutMasterLocation;
 
+const ctx = Context.get();
+
 
 nmaster: i32,
 mfact: f32,
@@ -23,33 +25,31 @@ master_location: MasterLocation,
 pub fn arrange(self: *const Self, output: *Output) !void {
     log.debug("<{*}> arrange windows in output {*}", .{ self, output });
 
-    const context = Context.get();
-
     var windows = blk: {
         var windows: std.ArrayList(*Window) = .empty;
-        errdefer windows.deinit(utils.allocator);
+        errdefer windows.deinit(ctx.gpa);
 
         {
-            var it = context.windows.safeIterator(.forward);
+            var it = ctx.windows.safeIterator(.forward);
             while (windows.items.len < self.nmaster) {
                 const window = it.next() orelse break :blk windows;
                 if (!window.is_visible_in(output) or window.floating) continue;
-                try windows.append(utils.allocator, window);
+                try windows.append(ctx.gpa, window);
             }
         }
 
         {
-            var it = context.focus_stack.safeIterator(.forward);
+            var it = ctx.focus_stack.safeIterator(.forward);
             while (it.next()) |window| {
                 const masters = windows.items[0..@intCast(self.nmaster)];
                 if (mem.containsAtLeastScalar(*Window, masters, 1, window)) continue;
                 if (!window.is_visible_in(output) or window.floating) continue;
-                try windows.append(utils.allocator, window);
+                try windows.append(ctx.gpa, window);
             }
         }
         break :blk windows;
     };
-    defer windows.deinit(utils.allocator);
+    defer windows.deinit(ctx.gpa);
 
     if (windows.items.len == 0) return;
 

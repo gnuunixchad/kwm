@@ -10,7 +10,7 @@ const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const river = wayland.client.river;
 
-const Config = @import("config");
+const config = @import("config");
 
 const utils = @import("utils.zig");
 const Layout = @import("layout.zig");
@@ -28,6 +28,8 @@ pub const State = struct {
     layout_tag: [32]Layout.Type,
     prev_layout_tag: [32]Layout.Type,
 };
+
+const ctx = Context.get();
 
 
 link: wl.list.Link = undefined,
@@ -59,19 +61,17 @@ pub fn create(
     rwm_output: *river.OutputV1,
     rwm_layer_shell_output: ?*river.LayerShellOutputV1,
 ) !*Self {
-    const output = try utils.allocator.create(Self);
-    errdefer utils.allocator.destroy(output);
+    const output = try ctx.gpa.create(Self);
+    errdefer ctx.gpa.destroy(output);
 
     defer log.debug("<{*}> created", .{ output });
-
-    const config = Config.get();
 
     output.* = .{
         .rwm_output = rwm_output,
         .rwm_layer_shell_output = rwm_layer_shell_output,
-        .layouts = .{ config.layout } ** 32,
-        .layout_tag = .{ config.default_layout } ** 32,
-        .prev_layout_tag = .{ config.default_layout } ** 32,
+        .layouts = .{ ctx.cfg.layout } ** 32,
+        .layout_tag = .{ ctx.cfg.default_layout } ** 32,
+        .prev_layout_tag = .{ ctx.cfg.default_layout } ** 32,
     };
     output.link.init();
 
@@ -96,10 +96,8 @@ pub fn create(
 pub fn destroy(self: *Self) void {
     defer log.debug("<{*}> destroyed", .{ self });
 
-    const context = Context.get();
-
     {
-        var it = context.seats.safeIterator(.forward);
+        var it = ctx.seats.safeIterator(.forward);
         while (it.next()) |seat| {
             switch (seat.previous_focused) {
                 .output => |output| if (self == output) {
@@ -124,7 +122,7 @@ pub fn destroy(self: *Self) void {
 
     if (comptime build_options.bar_enabled) self.bar.deinit();
 
-    utils.allocator.destroy(self);
+    ctx.gpa.destroy(self);
 }
 
 
@@ -147,9 +145,7 @@ pub fn sync_state(self: *Self, state: *const State) void {
 pub fn apply_rules(self: *Self) void {
     log.debug("<{*}> apply rules", .{ self });
 
-    const config = Config.get();
-
-    for (config.output_rules) |rule| {
+    for (ctx.cfg.output_rules) |rule| {
         if (rule.match(self.name)) {
             self.apply_rule(&rule);
             break;
@@ -164,11 +160,9 @@ pub inline fn exclusive_x(self: *Self) i32 {
 
 
 pub inline fn exclusive_y(self: *Self) i32 {
-    const config = Config.get();
-
     return
         if (comptime build_options.bar_enabled)
-            if (config.bar.position == .bottom or self.bar.hidden) self.y
+            if (ctx.cfg.bar.position == .bottom or self.bar.hidden) self.y
             else self.y + self.bar.height(true)
         else self.y;
 }
@@ -189,10 +183,8 @@ pub inline fn exclusive_height(self: *Self) i32 {
 
 
 pub fn fullscreen_window(self: *Self) ?*Window {
-    const context = Context.get();
-
     {
-        var it = context.windows.safeIterator(.forward);
+        var it = ctx.windows.safeIterator(.forward);
         while (it.next()) |window| {
             if (!window.is_visible_in(self)) continue;
 
@@ -212,10 +204,8 @@ pub fn fullscreen_window(self: *Self) ?*Window {
 
 
 pub fn master_window(self: *Self) ?*Window {
-    const context = Context.get();
-
     {
-        var it = context.windows.safeIterator(.forward);
+        var it = ctx.windows.safeIterator(.forward);
         while (it.next()) |window| {
             if (window.is_visible_in(self) and !window.floating) {
                 return window;
@@ -266,10 +256,9 @@ pub fn switch_to_previous_tag(self: *Self) void {
 
 
 pub fn occupied_tags(self: *const Self) u32 {
-    const context = Context.get();
     var mask: u32 = 0;
     {
-        var it = context.windows.safeIterator(.forward);
+        var it = ctx.windows.safeIterator(.forward);
         while (it.next()) |window| {
             if (window.output == self and window.swallowed_by == null) mask |= window.tag;
         }
@@ -361,10 +350,10 @@ pub fn manage(self: *Self) void {
 }
 
 
-fn apply_rule(self: *Self, rule: *const Config.OutputRule) void {
+fn apply_rule(self: *Self, rule: *const config.OutputRule) void {
     if (rule.presentation_mode) |mode| self.set_presentation(mode);
     if (rule.layout) |layout| for (&self.layouts) |*l| {
-        l.* = Config.meta.override(l.*, layout);
+        l.* = config.meta.override(l.*, layout);
     };
     if (rule.default_layout) |default_layout| {
         self.layout_tag = .{ default_layout } ** 32;
@@ -375,12 +364,12 @@ fn apply_rule(self: *Self, rule: *const Config.OutputRule) void {
 
 fn set_name(self: *Self, name: ?[]const u8) void {
     if (self.name) |name_| {
-        utils.allocator.free(name_);
+        ctx.gpa.free(name_);
         self.name = null;
     }
 
     if (name) |name_| {
-        self.name = utils.allocator.dupe(u8, name_) catch null;
+        self.name = ctx.gpa.dupe(u8, name_) catch null;
     }
 }
 
@@ -410,17 +399,14 @@ fn rwm_output_listener(rwm_output: *river.OutputV1, event: river.OutputV1.Event,
         .removed => {
             log.debug("<{*}> removed, name: {s}", .{ output, output.name orelse "" });
 
-            const context = Context.get();
-
-            context.prepare_remove_output(output);
+            ctx.prepare_remove_output(output);
 
             output.destroy();
         },
         .wl_output => |data| {
             log.debug("<{*}> wl_output: {}", .{ output, data.name });
 
-            const context = Context.get();
-            const wl_output = context.wl_registry.bind(data.name, wl.Output, 4) catch return;
+            const wl_output = ctx.wl_registry.bind(data.name, wl.Output, 4) catch return;
             output.wl_output = wl_output;
             wl_output.setListener(*Self, wl_output_listener, output);
         },
@@ -458,7 +444,6 @@ fn rwm_layer_shell_output_listener(
 fn wl_output_listener(wl_output: *wl.Output, event: wl.Output.Event, output: *Self) void {
     std.debug.assert(wl_output == output.wl_output.?);
 
-    const context = Context.get();
     switch (event) {
         .geometry => |data| {
             log.debug(
@@ -481,17 +466,17 @@ fn wl_output_listener(wl_output: *wl.Output, event: wl.Output.Event, output: *Se
             const name = mem.span(data.name);
             output.set_name(name);
 
-            if (context.output_states.fetchRemove(name)) |kv| {
+            if (ctx.output_states.fetchRemove(name)) |kv| {
                 log.debug("<{*}> restore state: {any}", .{ output, kv.value });
                 output.sync_state(kv.value);
-                utils.allocator.free(kv.key);
-                utils.allocator.destroy(kv.value);
+                ctx.gpa.free(kv.key);
+                ctx.gpa.destroy(kv.value);
 
-                context.rwm.manageDirty();
+                ctx.rwm.manageDirty();
             }
 
             {
-                var it = context.windows.safeIterator(.forward);
+                var it = ctx.windows.safeIterator(.forward);
                 while (it.next()) |window| {
                     if (window.former_output) |former| {
                         if (mem.eql(u8, former, name)) {

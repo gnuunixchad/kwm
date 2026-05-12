@@ -18,6 +18,8 @@ const Type = union(enum) {
     bar: if (build_options.bar_enabled) *@import("bar.zig") else void,
 };
 
+const ctx = Context.get();
+
 
 rwm_shell_surface: *river.ShellSurfaceV1,
 rwm_shell_surface_node: *river.NodeV1,
@@ -28,9 +30,7 @@ type: Type,
 pub fn init(self: *Self, wl_surface: *wl.Surface, @"type": Type) !void {
     log.debug("<{*}> init", .{ self });
 
-    const context = Context.get();
-
-    const rwm_shell_surface = try context.rwm.getShellSurface(wl_surface);
+    const rwm_shell_surface = try ctx.rwm.getShellSurface(wl_surface);
     errdefer rwm_shell_surface.destroy();
 
     const rwm_shell_surface_node = try rwm_shell_surface.getNode();

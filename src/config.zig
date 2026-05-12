@@ -15,177 +15,158 @@ const rule = @import("config/rule.zig");
 const constants = @import("config/constants.zig");
 const preprocess = @import("config/preprocess.zig");
 pub const meta = @import("config/meta.zig");
-const Bar = @import("config/bar.zig");
 
-var allocator: mem.Allocator = undefined;
+pub const Config = struct {
+    env: []const struct { []const u8, []const u8 },
 
-const Config = meta.add_default(Self, @as(Self, @import("default_config")));
-var config: Config = undefined;
+    working_directory: union(enum) {
+        none,
+        home,
+        custom: []const u8,
+    },
 
-pub var path: []const u8 = undefined;
+    startup_cmds: []const []const []const u8,
+
+    xcursor_theme: ?struct {
+        name: [:0]const u8,
+        size: u32,
+    },
+
+    background: ?u32,
+
+    bar: @import("config/bar.zig"),
+
+    sloppy_focus: bool,
+
+    cursor_warp: enum {
+        none,
+        on_output_changed,
+        on_focus_changed,
+    },
+
+    disable_wrap_around_for_scroller: bool,
+
+    remember_floating_geometry: bool,
+
+    auto_swallow: bool,
+
+    default_attach_mode: meta.enum_struct(kwm.Layout.Type, kwm.WindowAttachMode),
+
+    default_window_decoration: kwm.WindowDecoration,
+
+    border: struct {
+        width: i32,
+        color: struct {
+            focus: u32,
+            unfocus: u32,
+            swallowing: u32,
+        }
+    },
+
+    default_layout: kwm.Layout.Type,
+    layout: kwm.Layout,
+
+    bindings: struct {
+        repeat_info: struct {
+            rate: i32,
+            delay: i32,
+        },
+        key: []const struct {
+            mode: ?[]const u8 = null,
+            keysym: []const u8,
+            modifiers: river.SeatV1.Modifiers,
+            event: kwm.XkbBindingEvent,
+        },
+        pointer: []const struct {
+            mode: ?[]const u8 = null,
+            button: kwm.Button,
+            modifiers: river.SeatV1.Modifiers,
+            event: kwm.PointerBindingEvent,
+        }
+    },
+
+    window_rules: []const rule.Window,
+    output_rules: []const rule.Output,
+};
+
+pub const default: Config = @import("default_config");
 pub const lock_mode = constants.lock_mode;
 pub const default_mode = constants.default_mode;
 pub const WindowRule = rule.Window;
 pub const OutputRule = rule.Output;
 
 
-env: []const struct { []const u8, []const u8 },
-
-working_directory: union(enum) {
-    none,
-    home,
-    custom: []const u8,
-},
-
-startup_cmds: []const []const []const u8,
-
-xcursor_theme: ?struct {
-    name: [:0]const u8,
-    size: u32,
-},
-
-background: ?u32,
-
-bar: Bar,
-
-sloppy_focus: bool,
-
-cursor_warp: enum {
-    none,
-    on_output_changed,
-    on_focus_changed,
-},
-
-disable_wrap_around_for_scroller: bool,
-
-remember_floating_geometry: bool,
-
-auto_swallow: bool,
-
-default_attach_mode: meta.enum_struct(kwm.Layout.Type, kwm.WindowAttachMode),
-
-default_window_decoration: kwm.WindowDecoration,
-
-border: struct {
-    width: i32,
-    color: struct {
-        focus: u32,
-        unfocus: u32,
-        swallowing: u32,
-    }
-},
-
-default_layout: kwm.Layout.Type,
-layout: kwm.Layout,
-
-bindings: struct {
-    repeat_info: struct {
-        rate: i32,
-        delay: i32,
+pub fn load(
+    ctx: struct {
+        gpa: mem.Allocator,
     },
-    key: []const struct {
-        mode: ?[]const u8 = null,
-        keysym: []const u8,
-        modifiers: river.SeatV1.Modifiers,
-        event: kwm.XkbBindingEvent,
-    },
-    pointer: []const struct {
-        mode: ?[]const u8 = null,
-        button: kwm.Button,
-        modifiers: river.SeatV1.Modifiers,
-        event: kwm.PointerBindingEvent,
-    }
-},
+    path: []const u8,
+) !Config {
+    log.info("loading configuration from `{s}`", .{ path });
 
-window_rules: []const rule.Window,
-output_rules: []const rule.Output,
-
-
-pub fn init(al: *const mem.Allocator, config_path: []const u8) void {
-    log.debug("config init", .{});
-
-    allocator = al.*;
-    path = config_path;
-
-    config = try_load_user_config() orelse .{};
-}
-
-
-pub inline fn deinit() void {
-    log.debug("config deinit", .{});
-
-    meta.zon_free(allocator, config, null);
-}
-
-
-pub fn reload() meta.field_mask(Self) {
-    log.debug("reload user config", .{});
-
-    var mask: meta.field_mask(Self) = .{};
-    var new_config = try_load_user_config();
-    if (new_config) |*new_cfg| {
-        defer meta.zon_free(allocator, new_cfg.*, null);
-        const struct_info = @typeInfo(Self).@"struct";
-        inline for (struct_info.fields) |field| {
-            if (!meta.deep_equal(
-                @FieldType(@TypeOf(new_cfg.*), field.name),
-                &@field(config, field.name),
-                &@field(new_cfg.*, field.name),
-            )) {
-                @field(mask, field.name) = true;
-                mem.swap(
-                    @FieldType(@TypeOf(new_cfg.*), field.name),
-                    &@field(config, field.name),
-                    &@field(new_cfg.*, field.name),
-                );
-            }
-        }
-    }
-    return mask;
-}
-
-
-fn try_load_user_config() ?Config {
-    log.info("try load user config from `{s}`", .{ path });
-
-    const file = fs.cwd().openFile(path, .{ .mode = .read_only }) catch |err| {
-        switch (err) {
-            error.FileNotFound => {
-                log.warn("`{s}` not exists", .{ path });
-            },
-            else => {
-                log.err("access file `{s}` failed: {}", .{ path, err });
-            }
-        }
-        return null;
-    };
+    const file = try fs.cwd().openFile(path, .{ .mode = .read_only });
     defer file.close();
 
-    var buffer = preprocess.preprocess(allocator, file) catch |err| {
-        log.err("preprocess `{s}` failed: {}", .{ path, err });
-        return null;
-    };
-    defer buffer.deinit(allocator);
+    var buffer = try preprocess.preprocess(ctx.gpa, file);
+    defer buffer.deinit(ctx.gpa);
 
     @setEvalBranchQuota(20000);
     var diag: std.zon.parse.Diagnostics = .{};
-    defer diag.deinit(allocator);
-    return zon.parse.fromSlice(
-        Config,
-        allocator,
+    defer diag.deinit(ctx.gpa);
+    const config = zon.parse.fromSlice(
+        meta.add_default(Config, default),
+        ctx.gpa,
         buffer.items[0..buffer.items.len-1:0],
         &diag,
         .{.ignore_unknown_fields = true},
     ) catch |err| {
-        switch (err) {
-            error.ParseZon => log.err("load user config failed: {f}", .{ diag }),
-            else => log.err("load user config failed: {}", .{ err }),
+        if (err == error.ParseZon) {
+            log.err("parse configuration failed: {f}", .{ diag });
         }
-        return null;
+        return err;
     };
+    return @as(*const Config, @ptrCast(&config)).*;
 }
 
 
-pub inline fn get() *Self {
-    return @ptrCast(&config);
+pub fn reload(
+    ctx: struct {
+        gpa: mem.Allocator,
+    },
+    old: *Config,
+    path: []const u8
+) !meta.field_mask(Config) {
+    log.debug("reload configuration from `{s}`", .{ path });
+
+    var new = try load(.{ .gpa = ctx.gpa }, path);
+    defer free(ctx.gpa, new);
+
+    var mask: meta.field_mask(Config) = .{};
+
+    const struct_info = @typeInfo(Config).@"struct";
+    inline for (struct_info.fields) |field| {
+        if (
+            !meta.deep_equal(
+                @FieldType(Config, field.name),
+                &@field(old, field.name),
+                &@field(new, field.name),
+            )
+        ) {
+            mem.swap(
+                @FieldType(Config, field.name),
+                &@field(old, field.name),
+                &@field(new, field.name),
+            );
+            @field(mask, field.name) = true;
+        }
+    }
+
+    return mask;
+}
+
+
+pub fn free(gpa: mem.Allocator, config: Config) void {
+    log.debug("free configuration", .{});
+
+    meta.zon_free(gpa, config, null);
 }

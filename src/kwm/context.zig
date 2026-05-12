@@ -16,7 +16,7 @@ const wl = wayland.client.wl;
 const wp = wayland.client.wp;
 const river = wayland.client.river;
 
-const Config = @import("config");
+const config = @import("config");
 
 const utils = @import("utils.zig");
 const types = @import("types.zig");
@@ -26,9 +26,14 @@ const Window = @import("window.zig");
 const KeyRepeat = @import("key_repeat.zig");
 const ShellSurface = @import("shell_surface.zig");
 
-var ctx: ?Self = null;
+var ctx: Self = undefined;
+var inited: bool = false;
 var mode_buffer: [16]u8 = undefined;
 
+
+gpa: mem.Allocator,
+config_path: []const u8,
+cfg: config.Config = undefined,
 
 wl_registry: *wl.Registry,
 wl_compositor: *wl.Compositor,
@@ -73,7 +78,14 @@ quit_hook: ?struct {
 } = null,
 
 
+pub inline fn check_init() void {
+    if (!inited) @panic("context has not been initialized yet");
+}
+
+
 pub fn init(
+    gpa: mem.Allocator,
+    config_path: []const u8,
     wl_registry: *wl.Registry,
     wl_compositor: *wl.Compositor,
     wl_subcompositor: *wl.Subcompositor,
@@ -87,7 +99,7 @@ pub fn init(
     rwm_layer_shell: *river.LayerShellV1,
 ) !void {
     // initialize once
-    if (ctx != null) return;
+    if (inited) return;
 
     if (comptime build_options.bar_enabled) {
         _ = @import("fcft").init(.auto, false, .err);
@@ -96,6 +108,8 @@ pub fn init(
     log.info("init context", .{});
 
     ctx = .{
+        .gpa = gpa,
+        .config_path = config_path,
         .wl_registry = wl_registry,
         .wl_compositor = wl_compositor,
         .wl_subcompositor = wl_subcompositor,
@@ -108,9 +122,9 @@ pub fn init(
         .rwm_xkb_bindings = rwm_xkb_bindings,
         .rwm_layer_shell = rwm_layer_shell,
         .key_repeat = undefined,
-        .terminal_windows = .init(utils.allocator),
-        .output_states = .init(utils.allocator),
-        .mode = fmt.bufPrint(&mode_buffer, "{s}", .{ Config.default_mode }) catch return error.ModeNameTooLong,
+        .terminal_windows = .init(gpa),
+        .output_states = .init(gpa),
+        .mode = fmt.bufPrint(&mode_buffer, "{s}", .{ config.default_mode }) catch return error.ModeNameTooLong,
     };
 
     const wl_surface = try wl_compositor.createSurface();
@@ -119,27 +133,31 @@ pub fn init(
     defer wl_region.destroy();
     wl_surface.setInputRegion(wl_region);
     wl_surface.setOpaqueRegion(null);
-    try ctx.?.layer_marker.init(wl_surface, .layer_marker);
-    ctx.?.wl_surface = wl_surface;
+    try ctx.layer_marker.init(wl_surface, .layer_marker);
+    ctx.wl_surface = wl_surface;
     wl_surface.commit();
 
-    ctx.?.seats.init();
-    ctx.?.outputs.init();
-    ctx.?.windows.init();
-    ctx.?.focus_stack.init();
-    ctx.?.key_repeat.?.init() catch {
-        ctx.?.key_repeat = null;
+    ctx.seats.init();
+    ctx.outputs.init();
+    ctx.windows.init();
+    ctx.focus_stack.init();
+    ctx.key_repeat.?.init() catch {
+        ctx.key_repeat = null;
     };
 
-    ctx.?.init_env_map();
-    ctx.?.run_startup_cmds();
+    ctx.load_config();
+    ctx.init_env_map();
+    ctx.run_startup_cmds();
 
-    rwm.setListener(*Self, rwm_listener, &ctx.?);
+    rwm.setListener(*Self, rwm_listener, &ctx);
+
+    inited = true;
 }
 
 
 pub fn deinit() void {
-    std.debug.assert(ctx != null);
+    std.debug.assert(inited);
+    defer inited = false;
 
     log.info("deinit context", .{});
 
@@ -147,85 +165,90 @@ pub fn deinit() void {
         @import("fcft").fini();
     }
 
-    defer ctx = null;
-
-    ctx.?.wl_registry.destroy();
-    ctx.?.wl_compositor.destroy();
-    ctx.?.wl_subcompositor.destroy();
-    ctx.?.wl_shm.destroy();
-    ctx.?.wp_viewporter.destroy();
-    ctx.?.wp_cursor_shape_manager.destroy();
-    ctx.?.wp_fractional_scale_manager.destroy();
-    ctx.?.wp_single_pixel_buffer_manager.destroy();
-    ctx.?.rwm.destroy();
-    ctx.?.rwm_xkb_bindings.destroy();
-    ctx.?.rwm_layer_shell.destroy();
-    ctx.?.layer_marker.deinit();
-    ctx.?.wl_surface.destroy();
+    ctx.wl_registry.destroy();
+    ctx.wl_compositor.destroy();
+    ctx.wl_subcompositor.destroy();
+    ctx.wl_shm.destroy();
+    ctx.wp_viewporter.destroy();
+    ctx.wp_cursor_shape_manager.destroy();
+    ctx.wp_fractional_scale_manager.destroy();
+    ctx.wp_single_pixel_buffer_manager.destroy();
+    ctx.rwm.destroy();
+    ctx.rwm_xkb_bindings.destroy();
+    ctx.rwm_layer_shell.destroy();
+    ctx.layer_marker.deinit();
+    ctx.wl_surface.destroy();
 
     // first destroy windows for it's destroy function may depends on others
     {
-        var it = ctx.?.windows.safeIterator(.forward);
+        var it = ctx.windows.safeIterator(.forward);
         while (it.next()) |window| {
             window.destroy();
         }
-        ctx.?.windows.init();
-        ctx.?.focus_stack.init();
+        ctx.windows.init();
+        ctx.focus_stack.init();
     }
 
     {
-        var it = ctx.?.seats.safeIterator(.forward);
+        var it = ctx.seats.safeIterator(.forward);
         while (it.next()) |seat| {
             seat.destroy();
         }
-        ctx.?.seats.init();
+        ctx.seats.init();
     }
-    ctx.?.current_seat = null;
+    ctx.current_seat = null;
 
     {
-        var it = ctx.?.outputs.safeIterator(.forward);
+        var it = ctx.outputs.safeIterator(.forward);
         while (it.next()) |output| {
             output.destroy();
         }
-        ctx.?.outputs.init();
+        ctx.outputs.init();
     }
-    ctx.?.current_output = null;
+    ctx.current_output = null;
 
-    if (ctx.?.key_repeat) |*key_repeat| key_repeat.deinit();
+    if (ctx.key_repeat) |*key_repeat| key_repeat.deinit();
 
-    if (ctx.?.is_listening_status()) {
-        ctx.?.stop_listening_status();
+    if (ctx.is_listening_status()) {
+        ctx.stop_listening_status();
     }
 
-    ctx.?.terminal_windows.deinit();
+    ctx.terminal_windows.deinit();
 
     {
-        var it = ctx.?.output_states.iterator();
+        var it = ctx.output_states.iterator();
         while (it.next()) |kv| {
-            utils.allocator.free(kv.key_ptr.*);
-            utils.allocator.destroy(kv.value_ptr.*);
+            ctx.gpa.free(kv.key_ptr.*);
+            ctx.gpa.destroy(kv.value_ptr.*);
         }
     }
-    ctx.?.output_states.deinit();
+    ctx.output_states.deinit();
 
-    ctx.?.env.deinit();
+    ctx.env.deinit();
 
-    ctx.?.kill_startup_process();
-    ctx.?.startup_processes.deinit(utils.allocator);
+    ctx.kill_startup_process();
+    ctx.startup_processes.deinit(ctx.gpa);
+
+    config.free(ctx.gpa, ctx.cfg);
 }
 
 
 pub inline fn get() *Self {
-    std.debug.assert(ctx != null);
-
-    return &ctx.?;
+    return &ctx;
 }
 
 
 pub fn reload_config(self: *Self) void {
-    log.debug("reload config", .{});
+    log.debug("reloading config", .{});
 
-    const mask = Config.reload();
+    const mask = config.reload(
+        .{ .gpa = self.gpa },
+        &self.cfg,
+        self.config_path
+    ) catch |err| {
+        log.err("reload configuration failed: {}", .{ err });
+        return;
+    };
 
     log.debug("mask: {any}", .{ mask });
 
@@ -297,9 +320,7 @@ pub fn reload_config(self: *Self) void {
 pub fn start_listening_status(self: *Self) void {
     self.stop_listening_status();
 
-    const config = Config.get();
-
-    self.bar_status_fd = if (config.bar.status) |area|
+    self.bar_status_fd = if (self.cfg.bar.status) |area|
         switch (area.data) {
             .text => null,
             .stdin => blk: {
@@ -316,16 +337,14 @@ pub fn start_listening_status(self: *Self) void {
 
                 break :blk posix.STDIN_FILENO;
             },
-            .fifo => |fifo| try_open_fifo(fifo, &self.env) catch null,
+            .fifo => |fifo| try_open_fifo(fifo) catch null,
         }
         else null;
 }
 
 
 pub fn stop_listening_status(self: *Self) void {
-    const config = Config.get();
-
-    if (config.bar.status) |area| {
+    if (self.cfg.bar.status) |area| {
         switch (area.data) {
             .text => {},
             .stdin => self.bar_status_fd = null,
@@ -475,10 +494,8 @@ pub fn focused_window(self: *Self) ?*Window {
 pub fn focus_iter(self: *Self, direction: types.Direction, skip: types.WindowIterSkip) void {
     log.debug("focus iter: {s}", .{ @tagName(direction) });
 
-    const config = Config.get();
-
     if (self.focused_window()) |window| {
-        const wrap_around = !config.disable_wrap_around_for_scroller or window.output.?.current_layout() != .scroller;
+        const wrap_around = !self.cfg.disable_wrap_around_for_scroller or window.output.?.current_layout() != .scroller;
 
         var win = window;
         while (true) {
@@ -600,13 +617,11 @@ pub inline fn focus_exclusive(self: *Self) bool {
 pub fn swap(self: *Self, direction: types.Direction) void {
     log.debug("swap window: {s}", .{ @tagName(direction) });
 
-    const config = Config.get();
-
     if (self.focused_window()) |window| {
         if (window.floating) return;
         if (window.fullscreen == .output) return;
 
-        const wrap_around = !config.disable_wrap_around_for_scroller or window.output.?.current_layout() != .scroller;
+        const wrap_around = !self.cfg.disable_wrap_around_for_scroller or window.output.?.current_layout() != .scroller;
 
         var win = window;
         while (true) {
@@ -810,16 +825,14 @@ pub inline fn set_current_seat(self: *Self, seat: ?*Seat) void {
 
 pub fn spawn_child(self: *Self, argv: []const []const u8) ?process.Child {
     if (comptime builtins.mode == .Debug) {
-        const cmd = mem.join(utils.allocator, " ", argv) catch unreachable;
-        defer utils.allocator.free(cmd);
+        const cmd = mem.join(self.gpa, " ", argv) catch unreachable;
+        defer self.gpa.free(cmd);
         log.debug("spawn child process: {s}", .{ cmd });
     }
 
-    const config = Config.get();
-
-    var child = process.Child.init(argv, utils.allocator);
+    var child = process.Child.init(argv, self.gpa);
     child.env_map = &self.env;
-    child.cwd = switch (config.working_directory) {
+    child.cwd = switch (self.cfg.working_directory) {
         .none => null,
         .home => self.env.get("HOME"),
         .custom => |dir| dir,
@@ -834,12 +847,10 @@ pub fn spawn_child(self: *Self, argv: []const []const u8) ?process.Child {
 
 pub fn spawn(self: *Self, argv: []const []const u8) void {
     if (comptime builtins.mode == .Debug) {
-        const cmd = mem.join(utils.allocator, " ", argv) catch unreachable;
-        defer utils.allocator.free(cmd);
+        const cmd = mem.join(self.gpa, " ", argv) catch unreachable;
+        defer self.gpa.free(cmd);
         log.debug("spawn: `{s}`", .{ cmd });
     }
-
-    const config = Config.get();
 
     const pid1 = posix.fork() catch |err| {
         log.err("fork failed: {}", .{ err });
@@ -861,7 +872,7 @@ pub fn spawn(self: *Self, argv: []const []const u8) void {
 
     const pid2 = posix.fork() catch posix.exit(1);
     if (pid2 == 0) {
-        if (switch (config.working_directory) {
+        if (switch (self.cfg.working_directory) {
             .none => null,
             .home => self.env.get("HOME"),
             .custom => |dir| dir,
@@ -869,7 +880,7 @@ pub fn spawn(self: *Self, argv: []const []const u8) void {
             posix.chdir(dir) catch posix.exit(1);
         }
 
-        const err = process.execve(utils.allocator, argv, &self.env);
+        const err = process.execve(self.gpa, argv, &self.env);
         log.err("execve failed: {}", .{ err });
     }
 
@@ -884,11 +895,11 @@ pub inline fn spawn_shell(self: *Self, cmd: []const u8) void {
 
 inline fn store_output_state(self: *Self, output: *const Output) !void {
     if (output.name) |name| {
-        const state = try utils.allocator.create(Output.State);
-        errdefer utils.allocator.destroy(state);
+        const state = try self.gpa.create(Output.State);
+        errdefer self.gpa.destroy(state);
         state.* = output.get_state();
         try self.output_states.put(
-            try utils.allocator.dupe(u8, name),
+            try self.gpa.dupe(u8, name),
             state,
         );
     }
@@ -896,22 +907,20 @@ inline fn store_output_state(self: *Self, output: *const Output) !void {
 
 
 fn init_env_map(self: *Self) void {
-    self.env = process.getEnvMap(utils.allocator) catch |err| blk: {
+    self.env = process.getEnvMap(self.gpa) catch |err| blk: {
         log.warn("get EnvMap failed: {}", .{ err });
-        break :blk .init(utils.allocator);
+        break :blk .init(self.gpa);
     };
 
-    const config = Config.get();
-
-    for (config.env) |pair| {
+    for (self.cfg.env) |pair| {
         const key, const value = pair;
-        ctx.?.env.put(key, value) catch |err| {
+        ctx.env.put(key, value) catch |err| {
             log.warn("put (key: {s}, value: {s}) to env map failed: {}", .{ key, value, err });
         };
     }
 
-    if (config.xcursor_theme) |xcursor_theme| blk: {
-        ctx.?.env.put("XCURSOR_THEME", xcursor_theme.name) catch |err| {
+    if (self.cfg.xcursor_theme) |xcursor_theme| blk: {
+        ctx.env.put("XCURSOR_THEME", xcursor_theme.name) catch |err| {
             log.warn("put XCURSOR_THEME to `{s}` failed: {}", .{ xcursor_theme.name, err });
         };
 
@@ -920,22 +929,29 @@ fn init_env_map(self: *Self) void {
             log.warn("bufPrint failed: {}", .{ err });
             break :blk;
         };
-        ctx.?.env.put("XCURSOR_SIZE", xcursor_size) catch |err| {
+        ctx.env.put("XCURSOR_SIZE", xcursor_size) catch |err| {
             log.warn("put XCURSOR_SIZE to `{}` failed: {}", .{ xcursor_theme.size, err });
         };
     }
 }
 
 
-fn run_startup_cmds(self: *Self) void {
-    const config = Config.get();
+fn load_config(self: *Self) void {
+    log.debug("loading configuration", .{});
+    self.cfg = config.load(.{ .gpa = self.gpa }, self.config_path) catch |err| blk: {
+        log.err("load configuration failed: {}, fallback to default configuration", .{ err });
+        break :blk config.default;
+    };
+}
 
-    self.startup_processes.ensureTotalCapacity(utils.allocator, config.startup_cmds.len) catch |err| {
+
+fn run_startup_cmds(self: *Self) void {
+    self.startup_processes.ensureTotalCapacity(self.gpa, self.cfg.startup_cmds.len) catch |err| {
         log.err("initCapacity for startup_processes failed: {}", .{ err });
         return;
     };
-    for (config.startup_cmds) |argv| {
-        ctx.?.startup_processes.appendBounded(self.spawn_child(argv)) catch unreachable;
+    for (self.cfg.startup_cmds) |argv| {
+        ctx.startup_processes.appendBounded(self.spawn_child(argv)) catch unreachable;
     }
 }
 
@@ -1012,8 +1028,6 @@ fn prepare_manage(self: *Self) void {
 
 
 fn prepare_render_windows(self: *Self) void {
-    const config = Config.get();
-
     const focused = self.focused_window();
 
     var it = self.windows.safeIterator(.forward);
@@ -1023,10 +1037,10 @@ fn prepare_render_windows(self: *Self) void {
         } else {
             window.set_border(
                 if (window.fullscreen == .output) 0
-                else config.border.width,
+                else self.cfg.border.width,
                 if (!self.focus_exclusive() and window == focused)
-                    config.border.color.focus
-                else config.border.color.unfocus
+                    self.cfg.border.color.focus
+                else self.cfg.border.color.unfocus
             );
         }
     }
@@ -1075,8 +1089,6 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
     const cache = struct {
         pub var mode: [16] u8 = undefined;
     };
-
-    const config = Config.get();
 
     switch (event) {
         .finished => {
@@ -1152,9 +1164,9 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
 
             context.attach_window(
                 window,
-                config.default_attach_mode.getter.get(
+                context.cfg.default_attach_mode.getter.get(
                     if (context.current_output) |output| output.current_layout()
-                    else config.default_layout,
+                    else context.cfg.default_layout,
                 ),
             );
             context.focus(window, true);
@@ -1199,7 +1211,7 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
             log.debug("session locked", .{});
 
             _ = fmt.bufPrintZ(&cache.mode, "{s}", .{ context.mode }) catch unreachable;
-            context.switch_mode(Config.lock_mode);
+            context.switch_mode(config.lock_mode);
         },
         .session_unlocked => {
             log.debug("session unlocked", .{});
@@ -1210,25 +1222,28 @@ fn rwm_listener(rwm: *river.WindowManagerV1, event: river.WindowManagerV1.Event,
 }
 
 
-fn try_open_fifo(fifo: []const u8, env: *const process.EnvMap) !posix.fd_t {
-    var expanded_fifo = try utils.expand_env_str(utils.allocator, fifo, env);
-    defer expanded_fifo.deinit(utils.allocator);
+fn try_open_fifo(path: []const u8) !posix.fd_t {
+    var expanded_path = try utils.expand_env_str(
+        .{ .gpa = ctx.gpa, .env = &ctx.env },
+        path
+    );
+    defer expanded_path.deinit(ctx.gpa);
 
-    log.debug("try open fifo file `{s}`", .{ expanded_fifo.items });
+    log.debug("try open fifo file `{s}`", .{ expanded_path.items });
 
-    const fd = posix.open(expanded_fifo.items, .{ .ACCMODE = .RDWR, .NONBLOCK = true }, 0) catch |err| {
-        log.warn("open `{s}` failed: {}", .{ fifo, err });
+    const fd = posix.open(expanded_path.items, .{ .ACCMODE = .RDWR, .NONBLOCK = true }, 0) catch |err| {
+        log.warn("open `{s}` failed: {}", .{ path, err });
         return error.OpenFailed;
     };
     errdefer posix.close(fd);
 
     const stat = posix.fstat(fd) catch |err| {
-        log.warn("stat `{s}` failed: {}", .{ fifo, err });
+        log.warn("stat `{s}` failed: {}", .{ path, err });
         return error.StatFailed;
     };
 
     if (stat.mode & posix.S.IFMT == 0) {
-        log.warn("`{s}` is not a fifo file", .{ fifo });
+        log.warn("`{s}` is not a fifo file", .{ path });
         return error.NotFifo;
     }
     return fd;

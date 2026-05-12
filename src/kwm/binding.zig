@@ -1,15 +1,12 @@
 const std = @import("std");
 const math = std.math;
 
+const utils = @import("utils.zig");
 const types = @import("types.zig");
 const layout = @import("layout.zig");
-const Context = @import("context.zig");
 const Window = @import("window.zig");
 const Output = @import("output.zig");
-
-const Config = @import("config");
-
-const utils = @import("utils.zig");
+const Context = @import("context.zig");
 pub const XkbBinding = @import("binding/xkb_binding.zig");
 pub const PointerBinding = @import("binding/pointer_binding.zig");
 
@@ -28,13 +25,12 @@ const Tag = union(enum) {
     unoccupied: types.Direction,
 
     pub fn of(self: *const @This(), base: union(enum) { output: *const Output, window: *const Window }) u32 {
-        const config = Config.get();
         const output, const base_tag = switch (base) {
             .output => |o| .{ o, o.tag },
             .window => |w| .{ w.output orelse return 0, w.tag },
         };
         return
-            if (config.bar.tags) |area|
+            if (ctx.cfg.bar.tags) |area|
                 switch (self.*) {
                     .tag => |tag| tag,
                     .direction => |direction| utils.shift_tag(
@@ -145,3 +141,5 @@ pub const Action = union(enum) {
         actions: []const Action,
     },
 };
+
+const ctx = Context.get();

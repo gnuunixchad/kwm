@@ -17,9 +17,9 @@ const Target = struct {
 };
 
 
-pub fn preprocess(allocator: mem.Allocator, file: fs.File) !std.ArrayList(u8) {
+pub fn preprocess(gpa: mem.Allocator, file: fs.File) !std.ArrayList(u8) {
     var result: std.ArrayList(u8) = .empty;
-    errdefer result.deinit(allocator);
+    errdefer result.deinit(gpa);
 
     var reader_buffer: [1024]u8 = undefined;
     var reader = file.reader(&reader_buffer);
@@ -91,11 +91,11 @@ pub fn preprocess(allocator: mem.Allocator, file: fs.File) !std.ArrayList(u8) {
         }
 
         if (save) {
-            try result.appendSlice(allocator, line);
+            try result.appendSlice(gpa, line);
         }
     } else |err| if (err != error.EndOfStream) return err;
 
-    try result.append(allocator, 0);
+    try result.append(gpa, 0);
     return result;
 }
 

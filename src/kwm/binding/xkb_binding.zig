@@ -19,6 +19,8 @@ pub const Event = union(enum) {
     },
 };
 
+const ctx = Context.get();
+
 
 rwm_xkb_binding: *river.XkbBindingV1,
 
@@ -32,13 +34,12 @@ pub fn create(
     modifiers: river.SeatV1.Modifiers,
     event: Event,
 ) !*Self {
-    const xkb_binding = try utils.allocator.create(Self);
-    errdefer utils.allocator.destroy(xkb_binding);
+    const xkb_binding = try ctx.gpa.create(Self);
+    errdefer ctx.gpa.destroy(xkb_binding);
 
     defer log.debug("<{*}> created", .{ xkb_binding });
 
-    const context = Context.get();
-    const rwm_xkb_binding = try context.rwm_xkb_bindings.getXkbBinding(seat.rwm_seat, keysym, modifiers);
+    const rwm_xkb_binding = try ctx.rwm_xkb_bindings.getXkbBinding(seat.rwm_seat, keysym, modifiers);
 
     xkb_binding.* = .{
         .rwm_xkb_binding = rwm_xkb_binding,
@@ -57,7 +58,7 @@ pub fn destroy(self: *Self) void {
 
     self.rwm_xkb_binding.destroy();
 
-    utils.allocator.destroy(self);
+    ctx.gpa.destroy(self);
 }
 
 
@@ -101,9 +102,7 @@ fn rwm_xkb_binding_listener(rwm_xkb_binding: *river.XkbBindingV1, event: river.X
             });
         },
         .repeat => |action| {
-            const context = Context.get();
-
-            if (context.key_repeat) |*key_repeat| {
+            if (ctx.key_repeat) |*key_repeat| {
                 switch (event) {
                     .pressed => {
                         key_repeat.prepare_repeat(xkb_binding, action);

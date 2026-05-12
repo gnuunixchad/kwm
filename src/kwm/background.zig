@@ -8,12 +8,12 @@ const wl = wayland.client.wl;
 const wp = wayland.client.wp;
 const river = wayland.client.river;
 
-const Config = @import("config");
-
 const utils = @import("utils.zig");
 const Context = @import("context.zig");
 const Output = @import("output.zig");
 const ShellSurface = @import("shell_surface.zig");
+
+const ctx = Context.get();
 
 
 wl_surface: *wl.Surface,
@@ -28,12 +28,10 @@ damaged: bool = true,
 pub fn init(self: *Self, output: *Output) !void {
     log.debug("<{*}> init", .{ self });
 
-    const context = Context.get();
-
-    const wl_surface = try context.wl_compositor.createSurface();
+    const wl_surface = try ctx.wl_compositor.createSurface();
     errdefer wl_surface.destroy();
 
-    const wp_viewport = try context.wp_viewporter.getViewport(wl_surface);
+    const wp_viewport = try ctx.wp_viewporter.getViewport(wl_surface);
     errdefer wp_viewport.destroy();
 
     self.* = .{
@@ -69,23 +67,20 @@ pub fn render(self: *Self) void {
 
     log.debug("<{*}> rendering", .{ self });
 
-    const config = Config.get();
-    const context = Context.get();
-
     self.shell_surface.sync_next_commit();
     self.shell_surface.place(.bottom);
     self.shell_surface.set_position(self.output.x, self.output.y);
 
     const buffer = (
-        if (config.background) |color| blk: {
+        if (ctx.cfg.background) |color| blk: {
             const rgba = utils.rgba(color);
-            break :blk context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(
+            break :blk ctx.wp_single_pixel_buffer_manager.createU32RgbaBuffer(
                 rgba.r,
                 rgba.g,
                 rgba.b,
                 rgba.a,
             );
-        } else context.wp_single_pixel_buffer_manager.createU32RgbaBuffer(0, 0, 0, 0)
+        } else ctx.wp_single_pixel_buffer_manager.createU32RgbaBuffer(0, 0, 0, 0)
     ) catch |err| {
         log.err("<{*}> create buffer failed: {}", .{ self, err });
         return;

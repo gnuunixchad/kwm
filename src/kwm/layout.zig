@@ -1,9 +1,5 @@
 const Self = @This();
 
-const Config = @import("config");
-
-const Output = @import("output.zig");
-
 pub const Type = enum {
     tile,
     grid,
