@@ -1,9 +1,10 @@
 const Self = @This();
 
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const mem = std.mem;
 const zon = std.zon;
+const process = std.process;
 const log = std.log.scoped(.config);
 
 const wayland = @import("wayland");
@@ -15,6 +16,9 @@ const rule = @import("config/rule.zig");
 const constants = @import("config/constants.zig");
 const preprocess = @import("config/preprocess.zig");
 pub const meta = @import("config/meta.zig");
+
+// work around for zig issue: https://codeberg.org/ziglang/zig/issues/31570
+pub const Modifiers = meta.unpacked(river.SeatV1.Modifiers);
 
 pub const Config = struct {
     env: []const struct { []const u8, []const u8 },
@@ -74,13 +78,13 @@ pub const Config = struct {
         key: []const struct {
             mode: ?[]const u8 = null,
             keysym: []const u8,
-            modifiers: river.SeatV1.Modifiers,
+            modifiers: Modifiers,
             event: kwm.XkbBindingEvent,
         },
         pointer: []const struct {
             mode: ?[]const u8 = null,
             button: kwm.Button,
-            modifiers: river.SeatV1.Modifiers,
+            modifiers: Modifiers,
             event: kwm.PointerBindingEvent,
         }
     },
@@ -99,18 +103,20 @@ pub const OutputRule = rule.Output;
 pub fn load(
     ctx: struct {
         gpa: mem.Allocator,
+        io: Io,
+        env: *const process.Environ.Map,
     },
     path: []const u8,
 ) !Config {
     log.info("loading configuration from `{s}`", .{ path });
 
-    var buffer = try preprocess.preprocess(ctx.gpa, path);
+    var buffer = try preprocess.preprocess(.{ .gpa = ctx.gpa, .io = ctx.io, .env = ctx.env }, path);
     defer buffer.deinit(ctx.gpa);
 
     @setEvalBranchQuota(20000);
     var diag: std.zon.parse.Diagnostics = .{};
     defer diag.deinit(ctx.gpa);
-    const config = zon.parse.fromSlice(
+    const config = zon.parse.fromSliceAlloc(
         meta.add_default(Config, default),
         ctx.gpa,
         buffer.items[0..buffer.items.len-1:0],
@@ -129,13 +135,15 @@ pub fn load(
 pub fn reload(
     ctx: struct {
         gpa: mem.Allocator,
+        io: Io,
+        env: *const process.Environ.Map,
     },
     old: *Config,
     path: []const u8
 ) !meta.field_mask(Config) {
     log.debug("reload configuration from `{s}`", .{ path });
 
-    var new = try load(.{ .gpa = ctx.gpa }, path);
+    var new = try load(.{ .gpa = ctx.gpa, .io = ctx.io, .env = ctx.env }, path);
     defer free(ctx.gpa, new);
 
     var mask: meta.field_mask(Config) = .{};

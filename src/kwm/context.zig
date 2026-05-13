@@ -1,13 +1,12 @@
 const Self = @This();
 
 const build_options = @import("build_options");
-const builtins = @import("builtin");
+const builtin = @import("builtin");
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const fmt = std.fmt;
 const mem = std.mem;
-const posix = std.posix;
-const linux = std.os.linux;
+const heap = std.heap;
 const process = std.process;
 const log = std.log.scoped(.context);
 
@@ -16,6 +15,7 @@ const wl = wayland.client.wl;
 const wp = wayland.client.wp;
 const river = wayland.client.river;
 
+const posix = @import("posix");
 const config = @import("config");
 
 const utils = @import("utils.zig");
@@ -32,6 +32,9 @@ var mode_buffer: [16]u8 = undefined;
 
 
 gpa: mem.Allocator,
+io: Io,
+init_env: *const process.Environ,
+
 config_path: []const u8,
 cfg: config.Config = undefined,
 
@@ -70,8 +73,8 @@ output_states: std.StringHashMap(*Output.State) = undefined,
 
 mode: []const u8,
 running: bool = true,
-env: process.EnvMap = undefined,
-startup_processes: std.ArrayList(?process.Child) = .empty,
+env: process.Environ.Map = undefined,
+startup_processes: std.ArrayList(process.Child) = .empty,
 quit_hook: ?struct {
     pid: i32,
     exit_session: bool,
@@ -85,6 +88,8 @@ pub inline fn check_init() void {
 
 pub fn init(
     gpa: mem.Allocator,
+    io: Io,
+    init_env: *const process.Environ,
     config_path: []const u8,
     wl_registry: *wl.Registry,
     wl_compositor: *wl.Compositor,
@@ -109,6 +114,8 @@ pub fn init(
 
     ctx = .{
         .gpa = gpa,
+        .io = io,
+        .init_env = init_env,
         .config_path = config_path,
         .wl_registry = wl_registry,
         .wl_compositor = wl_compositor,
@@ -242,7 +249,7 @@ pub fn reload_config(self: *Self) void {
     log.debug("reloading config", .{});
 
     const mask = config.reload(
-        .{ .gpa = self.gpa },
+        .{ .gpa = self.gpa, .io = self.io, .env = &self.env },
         &self.cfg,
         self.config_path
     ) catch |err| {
@@ -337,7 +344,10 @@ pub fn start_listening_status(self: *Self) void {
 
                 break :blk posix.STDIN_FILENO;
             },
-            .fifo => |fifo| try_open_fifo(fifo) catch null,
+            .fifo => |fifo| try_open_fifo(fifo) catch |err| blk: {
+                log.warn("open fifo `{s}` failed: {}", .{ fifo, err });
+                break :blk null;
+            },
         }
         else null;
 }
@@ -405,13 +415,13 @@ pub fn update_bar_status(self: *Self) void {
 }
 
 
-pub fn handle_signal(self: *Self, sig: i32) void {
+pub fn handle_signal(self: *Self, sig: posix.SIG) void {
     switch (sig) {
-        posix.SIG.INT, posix.SIG.TERM, posix.SIG.QUIT => self.quit(false),
-        posix.SIG.KILL => self.quit(true),
-        posix.SIG.CHLD => {
+        .INT, .TERM, .QUIT => self.quit(false),
+        .KILL => self.quit(true),
+        .CHLD => {
             while (true) {
-                const res = utils.waitpid(-1, posix.W.NOHANG) catch |err| {
+                const res = posix.waitpid(-1, posix.W.NOHANG) catch |err| {
                     log.warn("wait failed: {}", .{ err });
                     break;
                 };
@@ -435,8 +445,17 @@ pub fn register_quit_hook(self: *Self, argv: []const []const u8, exit_session: b
     log.debug("register quit hook", .{});
 
     if (self.quit_hook == null) {
-        const child = self.spawn_child(argv) orelse return;
-        self.quit_hook = .{ .pid = child.id, .exit_session = exit_session };
+        const child = self.spawn_child(argv) catch |err| {
+            log.err("spawn quit hook failed: {}", .{ err });
+            return;
+        };
+        self.quit_hook = .{
+            .pid = child.id orelse {
+                log.err("null child id", .{});
+                return;
+            },
+            .exit_session = exit_session
+        };
     } else log.warn("repeatly register quit hook", .{});
 }
 
@@ -823,34 +842,58 @@ pub inline fn set_current_seat(self: *Self, seat: ?*Seat) void {
 }
 
 
-pub fn spawn_child(self: *Self, argv: []const []const u8) ?process.Child {
-    if (comptime builtins.mode == .Debug) {
-        const cmd = mem.join(self.gpa, " ", argv) catch unreachable;
+pub fn spawn_child(self: *Self, argv: []const []const u8) !process.Child {
+    if (comptime builtin.mode == .Debug) {
+        const cmd = try mem.join(self.gpa, " ", argv);
         defer self.gpa.free(cmd);
         log.debug("spawn child process: {s}", .{ cmd });
     }
 
-    var child = process.Child.init(argv, self.gpa);
-    child.env_map = &self.env;
-    child.cwd = switch (self.cfg.working_directory) {
-        .none => null,
-        .home => self.env.get("HOME"),
-        .custom => |dir| dir,
-    };
-    child.spawn() catch |err| {
-        log.err("spawn child process failed: {}", .{ err });
-        return null;
-    };
-    return child;
+    return try process.spawn(
+        self.io,
+        .{
+            .argv = argv,
+            .environ_map = &self.env,
+            .cwd =
+                if (
+                    switch (self.cfg.working_directory) {
+                        .none => null,
+                        .home => self.env.get("HOME"),
+                        .custom => |dir| dir,
+                    }
+                ) |path| .{ .path = path }
+                else .inherit
+        }
+    );
 }
 
 
 pub fn spawn(self: *Self, argv: []const []const u8) void {
-    if (comptime builtins.mode == .Debug) {
+    if (argv.len == 0) return;
+
+    if (comptime builtin.mode == .Debug) {
         const cmd = mem.join(self.gpa, " ", argv) catch unreachable;
         defer self.gpa.free(cmd);
         log.debug("spawn: `{s}`", .{ cmd });
     }
+
+    var arena_allocator: heap.ArenaAllocator = .init(self.gpa);
+    defer arena_allocator.deinit();
+    const arena = arena_allocator.allocator();
+
+    const argv_buffer = arena.allocSentinel(?[*:0]const u8, argv.len, null) catch |err| {
+        log.err("allocSentinel failed: {}", .{ err });
+        return;
+    };
+    for (0..argv.len) |i| argv_buffer[i] = arena.dupeZ(u8, argv[i]) catch |err| {
+        log.err("dupeZ failed: {}", .{ err });
+        return;
+    };
+
+    const env_block = self.env.createPosixBlock(arena, .{}) catch |err| {
+        log.err("createPosixBlock failed: {}", .{ err });
+        return;
+    };
 
     const pid1 = posix.fork() catch |err| {
         log.err("fork failed: {}", .{ err });
@@ -880,7 +923,7 @@ pub fn spawn(self: *Self, argv: []const []const u8) void {
             posix.chdir(dir) catch posix.exit(1);
         }
 
-        const err = process.execve(self.gpa, argv, &self.env);
+        const err = posix.execve(argv_buffer[0].?, argv_buffer, env_block.slice.ptr);
         log.err("execve failed: {}", .{ err });
     }
 
@@ -907,8 +950,8 @@ inline fn store_output_state(self: *Self, output: *const Output) !void {
 
 
 fn init_env_map(self: *Self) void {
-    self.env = process.getEnvMap(self.gpa) catch |err| blk: {
-        log.warn("get EnvMap failed: {}", .{ err });
+    self.env = self.init_env.createMap(self.gpa) catch |err| blk: {
+        log.warn("create environ map failed: {}", .{ err });
         break :blk .init(self.gpa);
     };
 
@@ -938,7 +981,17 @@ fn init_env_map(self: *Self) void {
 
 fn load_config(self: *Self) void {
     log.debug("loading configuration", .{});
-    self.cfg = config.load(.{ .gpa = self.gpa }, self.config_path) catch |err| blk: {
+
+    var env: process.Environ.Map = self.init_env.createMap(self.gpa) catch |err| blk: {
+        log.warn("create environ map failed: {}", .{ err });
+        break :blk .init(self.gpa);
+    };
+    defer env.deinit();
+
+    self.cfg = config.load(
+        .{ .gpa = self.gpa, .io = self.io, .env = &env },
+        self.config_path
+    ) catch |err| blk: {
         log.err("load configuration failed: {}, fallback to default configuration", .{ err });
         break :blk config.default;
     };
@@ -951,20 +1004,19 @@ fn run_startup_cmds(self: *Self) void {
         return;
     };
     for (self.cfg.startup_cmds) |argv| {
-        ctx.startup_processes.appendBounded(self.spawn_child(argv)) catch unreachable;
+        const child = self.spawn_child(argv) catch |err| {
+            log.err("spawn child failed: {}", .{ err });
+            continue;
+        };
+        ctx.startup_processes.appendBounded(child) catch unreachable;
     }
 }
 
 
 fn kill_startup_process(self: *Self) void {
-    for (self.startup_processes.items) |*proc| {
-        if (proc.*) |*child| {
-            _ = child.kill() catch |err| {
-                log.err("kill startup process {} failed: {}", .{ child.id, err });
-                continue;
-            };
-            log.debug("kill startup process {}", .{ child.id });
-        }
+    for (self.startup_processes.items) |*child| {
+        log.debug("kill startup process {}", .{ child.id orelse -1 });
+        child.kill(self.io);
     }
     self.startup_processes.clearRetainingCapacity();
 }
@@ -1229,22 +1281,19 @@ fn try_open_fifo(path: []const u8) !posix.fd_t {
     );
     defer expanded_path.deinit(ctx.gpa);
 
-    log.debug("try open fifo file `{s}`", .{ expanded_path.items });
+    log.debug("try to open fifo file `{s}`", .{ expanded_path.items });
 
-    const fd = posix.open(expanded_path.items, .{ .ACCMODE = .RDWR, .NONBLOCK = true }, 0) catch |err| {
-        log.warn("open `{s}` failed: {}", .{ path, err });
-        return error.OpenFailed;
-    };
+    const fd = try posix.open(
+        expanded_path.items,
+        .{ .ACCMODE = .RDWR, .NONBLOCK = true },
+        0
+    );
     errdefer posix.close(fd);
 
-    const stat = posix.fstat(fd) catch |err| {
-        log.warn("stat `{s}` failed: {}", .{ path, err });
-        return error.StatFailed;
-    };
+    const file: Io.File = .{ .handle = fd, .flags = .{ .nonblocking = true } };
+    const stat = try file.stat(ctx.io);
 
-    if (stat.mode & posix.S.IFMT == 0) {
-        log.warn("`{s}` is not a fifo file", .{ path });
-        return error.NotFifo;
-    }
+    if (stat.kind != .named_pipe) return error.NotFifo;
+
     return fd;
 }

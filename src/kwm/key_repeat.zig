@@ -3,8 +3,9 @@ const Self = @This();
 const std = @import("std");
 const mem = std.mem;
 const time = std.time;
-const posix = std.posix;
 const log = std.log.scoped(.key_repeat);
+
+const posix = @import("posix");
 
 const binding = @import("binding.zig");
 const Context = @import("context.zig");
