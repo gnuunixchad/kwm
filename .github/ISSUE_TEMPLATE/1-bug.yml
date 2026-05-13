@@ -65,6 +65,5 @@ body:
         ```
         WAYLAND_DEBUG=1 firefox 2> firefox.log
         ```
-      render: shell
     validations:
       required: false
