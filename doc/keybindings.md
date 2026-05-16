@@ -33,6 +33,7 @@ configuration file.
 | Mod4-d | Switch to the deck layout |
 | Mod4-m | Switch to the monocle layout |
 | Mod4-s | Switch to the scroller layout |
+| Mod4-u | Switch to the centered master layout |
 | Mod4-Tab | Switch to the previous tag |
 | Mod4-\[';\] | Shift output's each tag to the next/previous occupied output tag |
 | Mod4-Shift-\[';\] | Shift window's each tag to the next/previous unoccupied output tag |
@@ -47,6 +48,7 @@ configuration file.
 | Mod1-Mod4-\[-=\] | Decrease/increase the gaps |
 | Mod4-Shift-a | Toggle auto swallow |
 | Mod4-Shift-g | Toggle grid layout's direction |
+| Mod4-Shift-u | Toggle centered master layout's direction |
 | Mod4-p | Spawn *wmenu-run* |
 | Mod4-Shift-Return | Spawn *foot* |
 

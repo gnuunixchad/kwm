@@ -22,8 +22,8 @@ river-window-management-v1 protocol.
 
 ## Features
 
-- **Layouts:** tile, grid, monocle, deck, scroller, and floating, with per-tag
-customization
+- **Layouts:** tile, grid, monocle, deck, scroller, centered master, and
+  floating, with per-tag states
 
 - **Tags:** organize windows with tags instead of workspaces, with shift-tags
 support

@@ -116,6 +116,9 @@ Mod4-m
 Mod4-s
 	Switch to the scroller layout.
 
+Mod4-u
+	Switch to the centered master layout.
+
 Mod4-Tab
 	Switch to the previous tag.
 
@@ -160,6 +163,9 @@ Mod4-Shift-a
 
 Mod4-Shift-g
 	Toggle grid layout's direction.
+
+Mod4-Shift-u
+	Toggle centered master layout's direction.
 
 Mod4-p
 	Spawn _wmenu-run_.
