@@ -94,6 +94,10 @@
                     .bottom = "[{{D}}_]",
                 },
                 .scroller = "[==]",
+                .centered_master = .{
+                    .horizontal = "=[]=",
+                    .vertical = "=[V]="
+                },
                 .float = "><>",
             },
 
@@ -180,6 +184,7 @@
         .monocle = .top,
         .deck = .stack_top,
         .scroller = .below_focused,
+        .centered_master = .top,
         .float = .top,
     },
 
@@ -202,6 +207,7 @@
     // .monocle
     // .deck
     // .scroller
+    // .centered_master
     // .float
     .default_layout = .tile,
     .layout = .{
@@ -244,6 +250,16 @@
             .mfact = 0.5,
             .inner_gap = 16,
             .outer_gap = 9,
+        },
+        .centered_master = .{
+            .nmaster = 1,
+            .mfact = 0.55,
+            .inner_gap = 12,
+            .outer_gap = 9,
+
+            // .horizontal
+            // .vertical
+            .direction = .horizontal,
         },
     },
 
@@ -767,6 +783,17 @@
                 },
             },
             .{
+                .keysym = "u",
+                .modifiers = .{ .mod4 = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .{
+                            .switch_layout = .{ .layout = .centered_master },
+                        },
+                    },
+                },
+            },
+            .{
                 .keysym = "Tab",
                 .modifiers = .{ .mod4 = true },
                 .event = .{
@@ -987,6 +1014,15 @@
                 .event = .{
                     .click = .{
                         .pressed = .toggle_grid_direction,
+                    },
+                },
+            },
+            .{
+                .keysym = "u",
+                .modifiers = .{ .mod4 = true, .shift = true },
+                .event = .{
+                    .click = .{
+                        .pressed = .toggle_centered_master_direction,
                     },
                 },
             },

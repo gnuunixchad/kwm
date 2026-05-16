@@ -133,6 +133,7 @@ pub const Action = union(enum) {
     modify_gap: struct { step: i32 },
     modify_master_location: struct { location: types.LayoutMasterLocation },
     toggle_grid_direction,
+    toggle_centered_master_direction,
     toggle_auto_swallow,
 
     reload_config,

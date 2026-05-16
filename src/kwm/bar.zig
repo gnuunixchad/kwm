@@ -519,6 +519,7 @@ fn render_dynamic_component(self: *Self) void {
                 .monocle => area.tags.monocle,
                 .deck => |deck| area.tags.deck.getter.get(deck.master_location),
                 .scroller => area.tags.scroller,
+                .centered_master => |centered_master| area.tags.centered_master.getter.get(centered_master.direction),
                 .float => area.tags.float,
             };
             const left = mem.indexOf(u8, tag, "{{") orelse break :blk tag;

@@ -748,6 +748,10 @@ fn handle_actions(self: *Self) void {
                             .increase => deck.nmaster += 1,
                             .decrease => deck.nmaster = @max(1, deck.nmaster-1),
                         },
+                        .centered_master => |centered_master| switch (data.change) {
+                            .increase => centered_master.nmaster += 1,
+                            .decrease => centered_master.nmaster = @max(1, centered_master.nmaster-1),
+                        },
                         else => {}
                     }
                 }
@@ -778,6 +782,13 @@ fn handle_actions(self: *Self) void {
                                 window.scroller_mfact = @min(1, @max(0, mfact));
                             }
                         },
+                        .centered_master => |centered_master| {
+                            const mfact = switch (data.change) {
+                                .set => |mfact| mfact,
+                                .step => |step| centered_master.mfact + step,
+                            };
+                            centered_master.mfact = @min(1, @max(0, mfact));
+                        },
                         else => {},
                     }
                 }
@@ -790,6 +801,7 @@ fn handle_actions(self: *Self) void {
                         .monocle => |monocle| monocle.gap = @max(ctx.cfg.border.width*2, monocle.gap+data.step),
                         .deck => |deck| deck.inner_gap = @max(ctx.cfg.border.width*2, deck.inner_gap+data.step),
                         .scroller => |scroller| scroller.inner_gap = @max(ctx.cfg.border.width*2, scroller.inner_gap+data.step),
+                        .centered_master => |centered_master| centered_master.inner_gap = @max(ctx.cfg.border.width*2, centered_master.inner_gap+data.step),
                         .float => {},
                     }
                 }
@@ -811,6 +823,22 @@ fn handle_actions(self: *Self) void {
                     switch (output.current_layout()) {
                         .grid => |grid| {
                             grid.direction = switch (grid.direction) {
+                                .horizontal => .vertical,
+                                .vertical => .horizontal,
+                            };
+                            if (comptime build_options.bar_enabled) {
+                                output.bar.damage(.layout);
+                            }
+                        },
+                        else => {}
+                    }
+                }
+            },
+            .toggle_centered_master_direction => {
+                if (ctx.current_output) |output| {
+                    switch (output.current_layout()) {
+                        .centered_master => |centered_master| {
+                            centered_master.direction = switch (centered_master.direction) {
                                 .horizontal => .vertical,
                                 .vertical => .horizontal,
                             };

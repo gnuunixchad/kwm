@@ -290,6 +290,7 @@ pub fn current_layout(self: *Self) union(Layout.Type) {
     monocle: *Layout.Monocle,
     deck: *Layout.Deck,
     scroller: *Layout.Scroller,
+    centered_master: *Layout.CenteredMaster,
     float,
 } {
     std.debug.assert(self.main_tag != 0 and self.main_tag & (self.main_tag-1) == 0);
