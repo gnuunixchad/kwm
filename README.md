@@ -62,6 +62,7 @@ Requires zig 0.15.x.
 zig build -Doptimize=ReleaseSafe
 ```
 
+- `-Dllvm`: force using LLVM compiler and linker
 - `-Dconfig`: specify the default config file path (defaults to `config.zon`,
   copied from `config.def.zon` if missing)
 - `-Dbackground`: enable or disable the solid background (defaults to `false`)

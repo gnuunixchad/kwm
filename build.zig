@@ -79,6 +79,7 @@ pub fn build(b: *std.Build) void {
         }
     };
 
+    const use_llvm = b.option(bool, "llvm", "if to use LLVM compiler and linker");
     const pie = b.option(bool, "pie", "if enable pie") orelse false;
     const default_config_path = b.option([]const u8, "config", "path to config file") orelse "config.zon";
     const background_enabled = b.option(bool, "background", "if enable background") orelse false;
@@ -141,7 +142,9 @@ pub fn build(b: *std.Build) void {
                         .{ .name = "mvzr", .module = mvzr_mod },
                     },
                     .link_libc = true,
-                })
+                }),
+                .use_llvm = use_llvm,
+                .use_lld = use_llvm,
             });
             const preprocess_run = b.addRunArtifact(preprocess);
             preprocess_run.addArg("-i");
@@ -224,6 +227,8 @@ pub fn build(b: *std.Build) void {
 
             .link_libc = true,
         }),
+        .use_llvm = use_llvm,
+        .use_lld = use_llvm,
     });
     exe.pie = pie;
     exe.root_module.linkSystemLibrary("wayland-client", .{});
