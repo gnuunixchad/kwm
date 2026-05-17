@@ -918,7 +918,7 @@ fn try_swallow(self: *Self) void {
         var pid = self.pid;
         var ppid: i32 = undefined;
         while (true) {
-            ppid = utils.parent_pid(pid);
+            ppid = utils.parent_pid(ctx.io, pid);
             if (ppid == 0 or ppid == 1) break;
 
             if (ctx.find_terminal(ppid)) |term| {

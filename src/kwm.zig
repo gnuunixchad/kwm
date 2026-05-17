@@ -1,10 +1,11 @@
 const build_options = @import("build_options");
 const std = @import("std");
-const posix = std.posix;
 const log = std.log.scoped(.kwm);
 
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
+
+const posix = @import("posix");
 
 const utils = @import("kwm/utils.zig");
 const types = @import("kwm/types.zig");

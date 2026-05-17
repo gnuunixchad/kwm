@@ -1,9 +1,10 @@
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const mem = std.mem;
 
 const wayland = @import("wayland");
 
+const io = Io.Threaded.global_single_threaded.io();
 const manifest = @import("build.zig.zon");
 const version = manifest.version;
 
@@ -62,7 +63,7 @@ pub fn build(b: *std.Build) void {
             const git_describe_long = b.runAllowFail(
                 &.{ "git", "-C", b.build_root.path orelse ".", "describe", "--long" },
                 &ret,
-                .Ignore,
+                .ignore,
             ) catch break :blk version;
 
             var it = mem.splitSequence(u8, mem.trim(u8, git_describe_long, &std.ascii.whitespace), "-");
@@ -95,17 +96,23 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .root_source_file = b.path("src/flags.zig"),
     });
+    const posix_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .root_source_file = b.path("src/posix.zig"),
+    });
 
     const backup_default_config_path = "config.def.zon";
     const config_path = blk: {
-        fs.cwd().access(default_config_path, .{}) catch |err| switch (err) {
+        const cwd = Io.Dir.cwd();
+        cwd.access(io, default_config_path, .{}) catch |err| switch (err) {
             error.FileNotFound => {
                 std.log.warn(
                     "Config file `{s}` not found, creating from `{s}`",
                     .{ default_config_path, backup_default_config_path },
                 );
 
-                fs.cwd().copyFile(backup_default_config_path, fs.cwd(), default_config_path, .{}) catch |copy_err| {
+                cwd.copyFile(backup_default_config_path, cwd, default_config_path, io, .{}) catch |copy_err| {
                     std.log.err(
                         "Failed to copy `{s}` to `{s}`: {}",
                         .{ backup_default_config_path, default_config_path, copy_err },
@@ -141,7 +148,6 @@ pub fn build(b: *std.Build) void {
                     .imports = &.{
                         .{ .name = "mvzr", .module = mvzr_mod },
                     },
-                    .link_libc = true,
                 }),
                 .use_llvm = use_llvm,
                 .use_lld = use_llvm,
@@ -174,6 +180,8 @@ pub fn build(b: *std.Build) void {
             .{ .name = "wayland", .module = wayland_mod },
             .{ .name = "xkbcommon", .module = xkbcommon_mod },
             .{ .name = "mvzr", .module = mvzr_mod },
+
+            .{ .name = "posix", .module = posix_mod },
         },
     });
 

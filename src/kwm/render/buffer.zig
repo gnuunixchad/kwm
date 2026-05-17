@@ -2,13 +2,14 @@ const Self = @This();
 
 const std = @import("std");
 const mem = std.mem;
-const posix = std.posix;
 const linux = std.os.linux;
 const log = std.log.scoped(.buffer);
 
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
 const pixman = @import("pixman");
+
+const posix = @import("posix");
 
 const Context = @import("../context.zig");
 
@@ -44,7 +45,14 @@ pub fn init(self: *Self, width: i32, height: i32) !void {
 
     try posix.ftruncate(fd, @intCast(size));
 
-    const data = try posix.mmap(null, @intCast(size), posix.PROT.READ|posix.PROT.WRITE, .{ .TYPE = .SHARED }, fd, 0);
+    const data = try posix.mmap(
+        null,
+        @intCast(size),
+        .{ .READ = true, .WRITE = true },
+        .{ .TYPE = .SHARED },
+        fd,
+        0
+    );
     errdefer posix.munmap(data);
 
     const pool = try ctx.wl_shm.createPool(fd, size);

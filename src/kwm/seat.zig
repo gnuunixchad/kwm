@@ -282,13 +282,11 @@ pub fn try_focus(self: *Self) void {
         };
 
         // if there are any window fullscreen on output, focus it first
-        self.rwm_seat.focusWindow((
-            (
-                if (window.output) |output|
-                    output.fullscreen_window()
-                else null
-            ) orelse window
-        ).rwm_window);
+        const fullscreen_window =
+            if (window.output) |output|
+                output.fullscreen_window()
+            else null;
+        self.rwm_seat.focusWindow((fullscreen_window orelse window).rwm_window);
     } else {
         if (ctx.current_output) |output| {
             defer self.previous_focused = .{ .output = output };
@@ -356,7 +354,7 @@ pub fn create_bindings(self: *Self) void {
                     log.warn("ambiguous keysym name '{s}'", .{ key_binding.keysym });
                     continue;
                 },
-                key_binding.modifiers,
+                to_river_modifiers(key_binding.modifiers),
                 key_binding.event,
             ) catch |err| {
                 log.err("<{*}> create xkb binding failed: {}", .{ self, err });
@@ -399,7 +397,7 @@ pub fn create_bindings(self: *Self) void {
             binding.PointerBinding.create(
                 self,
                 @intFromEnum(pointer_binding.button),
-                pointer_binding.modifiers,
+                to_river_modifiers(pointer_binding.modifiers),
                 pointer_binding.event,
             ) catch |err| {
                 log.err("<{*}> create pointer binding failed: {}", .{ self, err });
@@ -1138,6 +1136,15 @@ fn wl_pointer_listener(wl_pointer: *wl.Pointer, event: wl.Pointer.Event, seat: *
         },
         else => {}
     }
+}
+
+
+fn to_river_modifiers(modifiers: config.Modifiers) river.SeatV1.Modifiers {
+    var mods: river.SeatV1.Modifiers = .{};
+    inline for (@typeInfo(config.Modifiers).@"struct".fields) |field| {
+        @field(mods, field.name) = @field(modifiers, field.name);
+    }
+    return mods;
 }
 
 
