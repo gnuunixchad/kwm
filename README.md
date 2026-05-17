@@ -24,8 +24,8 @@ For changes I've made, check [patches](./patches)
 
 ## Features
 
-- **Layouts:** tile, grid, monocle, deck, scroller, and floating, with per-tag
-customization
+- **Layouts:** tile, grid, monocle, deck, scroller, centered master, and
+  floating, with per-tag states
 
 - **Tags:** organize windows with tags instead of workspaces, with shift-tags
 support
@@ -58,12 +58,13 @@ See the default [configuration](./config.def.zon) file for detailed features.
 
 ## Build
 
-Requires zig 0.15.x.
+Requires zig 0.16.x.
 
 ```
 zig build -Doptimize=ReleaseSafe
 ```
 
+- `-Dllvm`: force using LLVM compiler and linker
 - `-Dconfig`: specify the default config file path (defaults to `config.zon`,
   copied from `config.def.zon` if missing)
 - `-Dbackground`: enable or disable the solid background (defaults to `false`)

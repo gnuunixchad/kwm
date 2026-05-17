@@ -1,28 +1,66 @@
 const std = @import("std");
 const mem = std.mem;
 const meta = std.meta;
+const Type = std.builtin.Type;
 
 const constants = @import("constants.zig");
+
+
+// turn packed struct to normal struct
+pub fn unpacked(comptime T: type) type {
+    const info = @typeInfo(T).@"struct";
+    const fields = info.fields;
+    var len: usize = 0;
+    var names: [fields.len][]const u8 = undefined;
+    var types: [fields.len]type = undefined;
+    var attrs: [fields.len]Type.StructField.Attributes = undefined;
+    for (fields) |field| {
+        if (field.name[0] == '_') continue;
+
+        names[len] = field.name;
+        types[len] = field.@"type";
+        attrs[len] = Type.StructField.Attributes {
+            .@"comptime" = field.is_comptime,
+            .@"align" = field.alignment,
+            .default_value_ptr = field.default_value_ptr,
+        };
+        len += 1;
+    }
+
+    return @Struct(
+        .auto,
+        null,
+        names[0..len],
+        types[0..len],
+        attrs[0..len]
+    );
+}
 
 
 pub fn add_default(comptime T: type, comptime object: T) type {
     switch (@typeInfo(T)) {
         .@"struct" => |info| {
-            var new_info = info;
-            var new_fields: [info.fields.len]std.builtin.Type.StructField = undefined;
-            for (&new_fields, info.fields) |*new_field, field| {
+            const len = info.fields.len;
+            var names: [len][]const u8 = undefined;
+            var types: [len]type = undefined;
+            var attrs: [len]Type.StructField.Attributes = undefined;
+
+            for (0.., info.fields) |i, field| {
                 const new_T = add_default(field.type, @field(object, field.name));
                 const default: new_T =
                     if (@typeInfo(new_T) == .@"struct") .{}
                     else @field(object, field.name);
 
-                new_field.* = field;
-                new_field.type = new_T;
-                new_field.default_value_ptr = @ptrCast(&default);
+                names[i] = field.name;
+                types[i] = new_T;
+                attrs[i] = Type.StructField.Attributes {
+                    .@"comptime" = field.is_comptime,
+                    .@"align" = field.alignment,
+                    .default_value_ptr = @ptrCast(&default),
+                };
             }
-            new_info.fields = &new_fields;
-            new_info.decls = &.{};
-            return @Type(.{ .@"struct" = new_info });
+
+            return @Struct(info.layout, info.backing_integer, &names, &types, &attrs);
         },
         else => return T,
     }
@@ -30,15 +68,18 @@ pub fn add_default(comptime T: type, comptime object: T) type {
 
 
 pub fn enum_struct(comptime E: type, comptime T: type) type {
-    const info = @typeInfo(E);
-    if (info != .@"enum") @compileError("E is needed to be a enum");
+    const info = @typeInfo(E).@"enum";
 
-    var fields: [info.@"enum".fields.len]std.builtin.Type.StructField = undefined;
-    for (0.., info.@"enum".fields) |i, field| {
-        fields[i] = std.builtin.Type.StructField {
-            .name = field.name,
-            .type = T,
-            .is_comptime = false,
+    const len = info.fields.len;
+    var names: [len][]const u8 = undefined;
+    var types: [len]type = undefined;
+    var attrs: [len]Type.StructField.Attributes = undefined;
+    for (0.., info.fields) |i, field| {
+        names[i] = field.name;
+        types[i] = T;
+        attrs[i] = Type.StructField.Attributes {
+            .@"comptime" = false,
+            .@"align" = @alignOf(T),
             .default_value_ptr = switch (@typeInfo(T)) {
                 .optional => blk: {
                     const default_value: T = null;
@@ -46,20 +87,10 @@ pub fn enum_struct(comptime E: type, comptime T: type) type {
                 },
                 else => null,
             },
-            .alignment = @alignOf(T),
         };
     }
 
-    const S = @Type(
-        .{
-            .@"struct" = .{
-                .layout = .auto,
-                .is_tuple = false,
-                .fields = &fields,
-                .decls = &.{},
-            },
-        }
-    );
+    const S = @Struct(.auto, null, &names, &types, &attrs);
 
     const Getter = struct {
         pub const instance: @This() = .{};
@@ -73,21 +104,18 @@ pub fn enum_struct(comptime E: type, comptime T: type) type {
         }
     };
 
-    return @Type(
-        .{
-            .@"struct" = .{
-                .layout = .auto,
-                .is_tuple = false,
-                .fields = &([_]std.builtin.Type.StructField {.{
-                    .name = "getter",
-                    .type = Getter,
-                    .default_value_ptr = &Getter.instance,
-                    .is_comptime = false,
-                    .alignment = @alignOf(T),
-                }} ++ fields),
-                .decls = &.{},
-            },
-        }
+    return @Struct(
+        .auto,
+        null,
+        &(.{ "getter" } ++ names),
+        &(.{ Getter } ++ types),
+        &(.{
+            Type.StructField.Attributes {
+                .@"comptime" = false,
+                .@"align" = @alignOf(T),
+                .default_value_ptr = &Getter.instance
+            }
+        } ++ attrs)
     );
 }
 
@@ -95,68 +123,52 @@ pub fn enum_struct(comptime E: type, comptime T: type) type {
 pub fn make_optional(comptime T: type) type {
     return switch (@typeInfo(T)) {
         .optional => T,
-        .@"struct" => @Type(.{ .optional = .{ .child = make_fields_optional(T) } }),
-        else => @Type(.{ .optional = .{ .child = T } }),
+        .@"struct" => ?make_fields_optional(T),
+        else => ?T,
     };
 }
 
 
 pub fn make_fields_optional(comptime T: type) type {
-    const info = @typeInfo(T);
-    if (info != .@"struct") @compileError("T is needed to be a struct");
+    const info = @typeInfo(T).@"struct";
 
-    var fields: [info.@"struct".fields.len]std.builtin.Type.StructField = undefined;
-    for (0.., info.@"struct".fields) |i, field| {
+    const len = info.fields.len;
+    var names: [len][]const u8 = undefined;
+    var types: [len]type = undefined;
+    var attrs: [len]Type.StructField.Attributes = undefined;
+    for (0.., info.fields) |i, field| {
         const new_T = make_optional(field.type);
         const default_value: new_T = null;
-        fields[i] = std.builtin.Type.StructField {
-            .name = field.name,
-            .type = new_T,
+        names[i] = field.name;
+        types[i] = new_T;
+        attrs[i] = Type.StructField.Attributes {
+            .@"comptime" = false,
+            .@"align" = @alignOf(new_T),
             .default_value_ptr = &default_value,
-            .is_comptime = false,
-            .alignment = @alignOf(new_T),
         };
     }
 
-    return @Type(
-        .{
-            .@"struct" = .{
-                .layout = .auto,
-                .is_tuple = false,
-                .fields = &fields,
-                .decls = &.{},
-            },
-        }
-    );
+    return @Struct(.auto, null, &names, &types, &attrs);
 }
 
 
 pub fn field_mask(comptime T: type) type {
-    const info = @typeInfo(T);
-    if (info != .@"struct") @compileError("T is needed to be a struct");
+    const info = @typeInfo(T).@"struct";
 
-    var fields: [info.@"struct".fields.len]std.builtin.Type.StructField = undefined;
-    for (0.., info.@"struct".fields) |i, field| {
+    const len = info.fields.len;
+    var names: [len][]const u8 = undefined;
+    var attrs: [len]Type.StructField.Attributes = undefined;
+    for (0.., info.fields) |i, field| {
         const default_value = false;
-        fields[i] = std.builtin.Type.StructField {
-            .name = field.name,
-            .type = bool,
+        names[i] = field.name;
+        attrs[i] = Type.StructField.Attributes {
+            .@"comptime" = false,
+            .@"align" = @alignOf(bool),
             .default_value_ptr = &default_value,
-            .is_comptime = false,
-            .alignment = @alignOf(bool),
         };
     }
 
-    return @Type(
-        .{
-            .@"struct" = .{
-                .layout = .auto,
-                .is_tuple = false,
-                .fields = &fields,
-                .decls = &.{},
-            },
-        }
-    );
+    return @Struct(.auto, null, &names, &@splat(bool), &attrs);
 }
 
 

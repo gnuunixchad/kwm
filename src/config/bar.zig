@@ -66,6 +66,7 @@ layout: ?struct {
         monocle: []const u8,
         deck: meta.enum_struct(kwm.Layout.Deck.MasterLocation, []const u8),
         scroller: []const u8,
+        centered_master: meta.enum_struct(kwm.Layout.CenteredMaster.Direction, []const u8),
         float: []const u8,
     },
     click: meta.enum_struct(

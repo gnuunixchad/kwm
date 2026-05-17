@@ -1,12 +1,11 @@
 const build_options = @import("build_options");
 const builtins = @import("builtin");
 const std = @import("std");
-const fs = std.fs;
-const os = std.os;
+const Io = std.Io;
 const fmt = std.fmt;
 const log = std.log;
 const mem = std.mem;
-const posix = std.posix;
+const process = std.process;
 
 const wayland = @import("wayland");
 const wl = wayland.client.wl;
@@ -39,9 +38,10 @@ const Globals = struct {
 };
 
 
-pub fn main() !void {
+pub fn main(init: process.Init) !void {
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
+
     const options = flags.parser(
-        [*:0]const u8,
         &.{
             .{ .name = "h", .kind = .boolean },
             .{ .name = "help", .kind = .boolean },
@@ -50,43 +50,29 @@ pub fn main() !void {
             .{ .name = "v", .kind = .boolean },
             .{ .name = "version", .kind = .boolean },
         },
-    ).parse(os.argv[1..]) catch {
-        try print(.stderr, usage);
-        posix.exit(1);
+    ).parse(args[1..]) catch {
+        try print(init.io, .stderr, usage);
+        process.exit(1);
     };
     if (options.flags.h or options.flags.help) {
-        try print(.stdout, usage);
-        posix.exit(0);
+        try print(init.io, .stdout, usage);
+        process.exit(0);
     }
     if (options.flags.v or options.flags.version) {
-        try print(.stdout, build_options.version++"\n");
-        posix.exit(0);
+        try print(init.io, .stdout, build_options.version++"\n");
+        process.exit(0);
     }
     if (options.args.len != 0) {
         log.err("unknown option '{s}'", .{options.args[0]});
-        try print(.stderr, usage);
-        posix.exit(1);
+        try print(init.io, .stderr, usage);
+        process.exit(1);
     }
-
-    var gpa = switch (comptime builtins.mode) {
-        .Debug => std.heap.GeneralPurposeAllocator(.{}) {},
-        else => void{},
-    };
-    defer switch (comptime builtins.mode) {
-        .Debug => if (gpa.deinit() != .ok) @panic("memory leak"),
-        else => {}
-    };
-
-    const allocator = switch (comptime builtins.mode) {
-        .Debug => gpa.allocator(),
-        else => std.heap.smp_allocator,
-    };
 
     var path_buffer: [256]u8 = undefined;
     const config_path = options.flags.c orelse options.flags.config orelse (
-        if (posix.getenv("XDG_CONFIG_HOME")) |config_home|
+        if (init.environ_map.get("XDG_CONFIG_HOME")) |config_home|
             fmt.bufPrint(&path_buffer, "{s}/kwm/config.zon", .{ config_home })
-        else if (posix.getenv("HOME")) |home|
+        else if (init.environ_map.get("HOME")) |home|
             fmt.bufPrint(&path_buffer, "{s}/.config/kwm/config.zon", .{ home })
         else return error.GetConfigHomeFailed
     ) catch |err| {
@@ -117,7 +103,9 @@ pub fn main() !void {
         const rwm_layer_shell = globals.rwm_layer_shell orelse return error.MissingRiverLayerShellV1;
 
         try kwm.init(
-            allocator,
+            init.gpa,
+            init.io,
+            &init.minimal.environ,
             config_path,
             registry,
             wl_compositor,
@@ -167,12 +155,12 @@ fn registry_listener(registry: *wl.Registry, event: wl.Registry.Event, globals: 
 }
 
 
-fn print(dest: enum { stdout, stderr }, bytes: []const u8) !void {
+fn print(io: Io, dest: enum { stdout, stderr }, bytes: []const u8) !void {
     var buffer: [1024]u8 = undefined;
     var writer = switch (dest) {
-        .stdout => fs.File.stdout(),
-        .stderr => fs.File.stderr(),
-    }.writer(&buffer);
+        .stdout => Io.File.stdout(),
+        .stderr => Io.File.stderr(),
+    }.writer(io, &buffer);
     const interface = &writer.interface;
     try interface.writeAll(bytes);
     try interface.flush();

@@ -1,9 +1,7 @@
-const builtins = @import("builtin");
 const std = @import("std");
-const fs = std.fs;
+const Io = std.Io;
 const fmt = std.fmt;
 const mem = std.mem;
-const posix = std.posix;
 const process = std.process;
 
 const mvzr = @import("mvzr");
@@ -36,7 +34,7 @@ pub fn cycle_list(
     wrap_around: bool,
     head: *wl.list.Link,
     node: *wl.list.Link,
-    tag: @Type(.enum_literal),
+    tag: @EnumLiteral(),
 ) ?*T {
     var next_node: ?*wl.list.Link = @field(node, @tagName(tag));
     if (next_node) |link| {
@@ -102,7 +100,7 @@ pub fn rgba(color: u32) struct { r: u32, g: u32, b: u32, a: u32 } {
 
 
 // https://codeberg.org/dwl/dwl-patches/src/branch/main/patches/swallow/swallow.patch
-pub fn parent_pid(pid: i32) i32 {
+pub fn parent_pid(io: Io, pid: i32) i32 {
     var path_buf: [32]u8 = undefined;
     const path = fmt.bufPrint(
         &path_buf,
@@ -110,39 +108,16 @@ pub fn parent_pid(pid: i32) i32 {
         .{ @as(u32, @intCast(pid)) },
     ) catch return 0;
 
-    const file = fs.openFileAbsolute(path, .{ .mode = .read_only }) catch return 0;
-    defer file.close();
+    var buffer: [256]u8 = undefined;
+    const contents = Io.Dir.cwd().readFile(io, path, &buffer) catch return 0;
 
-    var buf: [256]u8 = undefined;
-    const nbytes = file.readAll(&buf) catch return 0;
-    const data = buf[0..nbytes];
-
-    var it = mem.splitAny(u8, data, " ");
+    var it = mem.splitAny(u8, contents, " ");
     _ = it.next(); // pid
     _ = it.next(); // process name
     _ = it.next(); // process state
     const ppid_str = it.next() orelse return 0;
 
     return fmt.parseInt(i32, ppid_str, 10) catch return 0;
-}
-
-
-pub fn waitpid(pid: posix.pid_t, flags: u32) !posix.WaitPidResult {
-    var status: if (builtins.link_libc) c_int else u32 = undefined;
-    while (true) {
-        const rc = posix.system.waitpid(pid, &status, @intCast(flags));
-        const err = posix.errno(rc);
-        switch (err) {
-            .SUCCESS => return .{
-                .pid = @intCast(rc),
-                .status = @bitCast(status),
-            },
-            .INTR => continue,
-            .CHILD => return error.ChildProcessDoesNotExist,
-            .INVAL => return error.InvalidWaitpidFlags,
-            else => return posix.unexpectedErrno(err),
-        }
-    }
 }
 
 
@@ -156,7 +131,7 @@ pub fn set_user_data(comptime T: type, object: *T, comptime DataT: type, data: D
 pub fn expand_env_str(
     ctx: struct {
         gpa: mem.Allocator,
-        env: *const process.EnvMap
+        env: *const process.Environ.Map,
     },
     str: []const u8
 ) !std.ArrayList(u8) {
