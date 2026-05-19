@@ -47,9 +47,14 @@ pub fn add_default(comptime T: type, comptime object: T) type {
 
             for (0.., info.fields) |i, field| {
                 const new_T = add_default(field.type, @field(object, field.name));
-                const default: new_T =
-                    if (@typeInfo(new_T) == .@"struct") .{}
-                    else @field(object, field.name);
+                const default: new_T = switch (@typeInfo(new_T)) {
+                    .@"struct" => .{},
+                    .optional => |optional_info| switch (@typeInfo(optional_info.child)) {
+                        .@"struct" => if (@field(object, field.name)) |_| .{} else null,
+                        else => @field(object, field.name),
+                    },
+                    else => @field(object, field.name),
+                };
 
                 names[i] = field.name;
                 types[i] = new_T;
@@ -62,6 +67,9 @@ pub fn add_default(comptime T: type, comptime object: T) type {
 
             return @Struct(info.layout, info.backing_integer, &names, &types, &attrs);
         },
+        .optional => |info| return
+            if (object) |obj| ?add_default(info.child, obj)
+            else T,
         else => return T,
     }
 }
