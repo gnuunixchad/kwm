@@ -40,6 +40,8 @@ pub const Config = struct {
 
     bar: @import("config/bar.zig"),
 
+    single_tagset: bool,
+
     sloppy_focus: bool,
 
     cursor_warp: enum {

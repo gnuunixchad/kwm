@@ -1076,6 +1076,36 @@ fn prepare_manage(self: *Self) void {
             window.handle_events();
         }
     }
+
+    if (self.cfg.single_tagset) single_tagset_blk: {
+        const current_output = self.current_output
+            orelse break :single_tagset_blk;
+
+        {
+            var it = self.outputs.safeIterator(.forward);
+            while (it.next()) |output| {
+                if (output == current_output) continue;
+                if (output.tag & current_output.tag != 0) {
+                    output.set_tag(current_output.prev_tag);
+                }
+            }
+        }
+
+        var flag = true;
+        var output_it = self.outputs.safeIterator(.forward);
+        while (flag) {
+            const output = output_it.next() orelse blk: {
+                flag = false;
+                break :blk current_output;
+            };
+            var window_it = self.windows.safeIterator(.forward);
+            while (window_it.next()) |window| {
+                if (window.sticky or window.tag & output.tag != 0) {
+                    window.set_output(output, false);
+                }
+            }
+        }
+    }
 }
 
 

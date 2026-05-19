@@ -176,6 +176,8 @@
         }
     },
 
+    .single_tagset = false,
+
     .sloppy_focus = false,
 
     // .none
