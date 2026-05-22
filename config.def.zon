@@ -273,9 +273,9 @@
         },
         .centered_master = .{
             .nmaster = 1,
-            .mfact = 0.55,
-            .inner_gap = 12,
-            .outer_gap = 9,
+            .mfact = 0.50,
+            .inner_gap = 0,
+            .outer_gap = 2,
 
             // .horizontal
             // .vertical
@@ -1501,7 +1501,7 @@
             },
             .{
                 .keysym = "u",
-                .modifiers = .{ .mod4 = true },
+                .modifiers = .{ .mod1 = true },
                 .event = .{
                     .click = .{
                         .pressed = .{
@@ -1763,7 +1763,7 @@
             },
             .{
                 .keysym = "u",
-                .modifiers = .{ .mod4 = true, .shift = true },
+                .modifiers = .{ .mod1 = true, .shift = true },
                 .event = .{
                     .click = .{
                         .pressed = .toggle_centered_master_direction,
