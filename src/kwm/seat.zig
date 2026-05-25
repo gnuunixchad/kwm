@@ -673,7 +673,7 @@ fn handle_actions(self: *Self) void {
 
                     if (window.output) |output| {
                         switch (output.current_layout()) {
-                            .tile, .deck => {
+                            .tile, .deck, .centered_master => {
                                 if (!data.swap) {
                                     ctx.focus(window, true);
                                     ctx.shift_to_head(window);
