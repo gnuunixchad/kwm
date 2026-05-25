@@ -702,7 +702,7 @@ fn handle_actions(self: *Self) void {
                     if (window.floating) continue;
                     if (window.output) |output| {
                         switch (output.current_layout()) {
-                            .tile, .deck => {
+                            .tile, .deck, .centered_master => {
                                 const master = output.master_window() orelse continue;
                                 ctx.focus(
                                     if (window != master) master
