@@ -1500,8 +1500,8 @@
                 },
             },
             .{
-                .keysym = "u",
-                .modifiers = .{ .mod1 = true },
+                .keysym = "m",
+                .modifiers = .{ .mod4 = true, .shift = true },
                 .event = .{
                     .click = .{
                         .pressed = .{
@@ -1762,8 +1762,8 @@
                 },
             },
             .{
-                .keysym = "u",
-                .modifiers = .{ .mod1 = true, .shift = true },
+                .keysym = "m",
+                .modifiers = .{ .mod4 = true, .ctrl = true },
                 .event = .{
                     .click = .{
                         .pressed = .toggle_centered_master_direction,
@@ -1979,7 +1979,7 @@
                 },
             },
             .{
-                .keysym = "m",
+                .keysym = "i",
                 .modifiers = .{ .mod4 = true, .shift = true },
                 .event = .{
                     .click = .{
