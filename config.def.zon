@@ -234,7 +234,7 @@
         .tile = .{
             .nmaster = 1,
             .mfact = 0.50,
-            .inner_gap = 0,
+            .inner_gap = 4,
             .outer_gap = 2,
 
             // .left
@@ -245,7 +245,7 @@
         },
         .grid = .{
             .outer_gap = 2,
-            .inner_gap = 0,
+            .inner_gap = 4,
 
             // .horizontal
             // .vertical
@@ -257,7 +257,7 @@
         .deck = .{
             .nmaster = 1,
             .mfact = 0.50,
-            .inner_gap = 0,
+            .inner_gap = 4,
             .outer_gap = 2,
 
             // .left
@@ -268,13 +268,13 @@
         },
         .scroller = .{
             .mfact = 0.5,
-            .inner_gap = 0,
+            .inner_gap = 4,
             .outer_gap = 2,
         },
         .centered_master = .{
             .nmaster = 1,
             .mfact = 0.50,
-            .inner_gap = 0,
+            .inner_gap = 4,
             .outer_gap = 2,
 
             // .horizontal
