@@ -22,7 +22,7 @@ timer_fd: posix.fd_t,
 pub fn init(self: *Self) !void {
     log.debug("<{*}> init", .{ self });
 
-    const timer_fd = try posix.timerfd_create(.MONOTONIC, .{ .NONBLOCK = true });
+    const timer_fd = try posix.timerfd_create(.MONOTONIC, .{ .NONBLOCK = true, .CLOEXEC = true });
     errdefer posix.close(timer_fd);
 
     self.* = .{
