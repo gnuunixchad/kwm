@@ -1315,7 +1315,7 @@ fn try_open_fifo(path: []const u8) !posix.fd_t {
 
     const fd = try posix.open(
         expanded_path.items,
-        .{ .ACCMODE = .RDWR, .NONBLOCK = true },
+        .{ .ACCMODE = .RDWR, .NONBLOCK = true, .CLOEXEC = true },
         0
     );
     errdefer posix.close(fd);
